@@ -1,7 +1,7 @@
 package main
 
 import (
-	sdk "github.com/nbd-wtf/go-nostr/sdk"
+	sdk "fiatjaf.com/nostr/sdk"
 )
 
 var sys = sdk.NewSystem(

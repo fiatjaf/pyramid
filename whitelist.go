@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nbd-wtf/go-nostr"
+	"fiatjaf.com/nostr"
 )
 
 type Whitelist map[string]string // { [user_pubkey]: [invited_by] }

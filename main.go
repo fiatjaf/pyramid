@@ -11,12 +11,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/fiatjaf/eventstore/lmdb"
-	"github.com/fiatjaf/khatru"
-	"github.com/fiatjaf/khatru/policies"
+	"fiatjaf.com/nostr/eventstore/lmdb"
+	"fiatjaf.com/nostr/khatru"
+	"fiatjaf.com/nostr/khatru/policies"
 	"github.com/kelseyhightower/envconfig"
-	"github.com/nbd-wtf/go-nostr"
-	"github.com/nbd-wtf/go-nostr/nip11"
+	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/nip11"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 )

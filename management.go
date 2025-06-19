@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/fiatjaf/khatru"
-	"github.com/nbd-wtf/go-nostr/nip86"
+	"fiatjaf.com/nostr/khatru"
+	"fiatjaf.com/nostr/nip86"
 )
 
 func allowPubKeyHandler(ctx context.Context, pubkey, reason string) error {

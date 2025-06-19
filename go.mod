@@ -4,7 +4,7 @@ go 1.24.2
 
 require (
 	github.com/a-h/templ v0.3.857
-	github.com/fiatjaf/eventstore v0.16.7
+	fiatjaf.com/nostr/eventstore v0.16.7
 	github.com/fiatjaf/khatru v0.18.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/nbd-wtf/go-nostr v0.51.10
