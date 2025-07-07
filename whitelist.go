@@ -11,6 +11,45 @@ import (
 
 type Whitelist map[nostr.PubKey]nostr.PubKey // { [user_pubkey]: [invited_by] }
 
+func (w Whitelist) MarshalJSON() ([]byte, error) {
+	aux := make(map[string]string, len(w))
+	for pubkey, inviter := range w {
+		inviterHex := ""
+		if inviter != nostr.ZeroPK {
+			inviterHex = inviter.Hex()
+		}
+		aux[pubkey.Hex()] = inviterHex
+	}
+	return json.Marshal(aux)
+}
+
+func (w *Whitelist) UnmarshalJSON(b []byte) error {
+	var aux map[string]string
+	err := json.Unmarshal(b, &aux)
+	if err != nil {
+		return err
+	}
+
+	*w = make(Whitelist, len(aux))
+	for pubkeyHex, inviterHex := range aux {
+		pubkey, err := nostr.PubKeyFromHex(pubkeyHex)
+		if err != nil {
+			return err
+		}
+
+		inviter := nostr.ZeroPK
+		if inviterHex != "" {
+			inviter, err = nostr.PubKeyFromHex(inviterHex)
+			if err != nil {
+				return err
+			}
+		}
+		(*w)[pubkey] = inviter
+	}
+
+	return nil
+}
+
 func addToWhitelist(pubkey nostr.PubKey, inviter nostr.PubKey) error {
 	if !isPublicKeyInWhitelist(inviter) {
 		return fmt.Errorf("pubkey %s doesn't have permission to invite", inviter)
@@ -97,11 +136,7 @@ func loadWhitelist() error {
 		// if the whitelist file does not exist, with RELAY_PUBKEY
 		if errors.Is(err, os.ErrNotExist) {
 			whitelist[relay.Info.PubKey] = nostr.ZeroPK
-			jsonBytes, err := json.Marshal(&whitelist)
-			if err != nil {
-				return err
-			}
-			if err := os.WriteFile(s.UserdataPath, jsonBytes, 0644); err != nil {
+			if err := saveWhitelist(); err != nil {
 				return err
 			}
 			return nil
@@ -118,7 +153,7 @@ func loadWhitelist() error {
 }
 
 func saveWhitelist() error {
-	jsonBytes, err := json.Marshal(whitelist)
+	jsonBytes, err := json.MarshalIndent(whitelist, "", "  ")
 	if err != nil {
 		return err
 	}
