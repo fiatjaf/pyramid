@@ -9,5 +9,5 @@ templ:
 
 deploy target: build
     ssh root@{{target}} 'systemctl stop pyramid';
-    scp pyramid {{target}}:pyramid/invite
+    scp pyramid {{target}}:pyramid/pyramid
     ssh root@{{target}} 'systemctl start pyramid'
