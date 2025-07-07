@@ -4,6 +4,8 @@ import (
 	sdk "fiatjaf.com/nostr/sdk"
 )
 
-var sys = sdk.NewSystem(
-	sdk.WithStore(db),
-)
+var sys = (func() *sdk.System {
+	sys := sdk.NewSystem()
+	sys.Store = db
+	return sys
+})()

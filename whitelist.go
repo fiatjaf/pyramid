@@ -9,15 +9,11 @@ import (
 	"fiatjaf.com/nostr"
 )
 
-type Whitelist map[string]string // { [user_pubkey]: [invited_by] }
+type Whitelist map[nostr.PubKey]nostr.PubKey // { [user_pubkey]: [invited_by] }
 
-func addToWhitelist(pubkey string, inviter string) error {
+func addToWhitelist(pubkey nostr.PubKey, inviter nostr.PubKey) error {
 	if !isPublicKeyInWhitelist(inviter) {
 		return fmt.Errorf("pubkey %s doesn't have permission to invite", inviter)
-	}
-
-	if !nostr.IsValidPublicKey(pubkey) {
-		return fmt.Errorf("pubkey invalid: %s", pubkey)
 	}
 
 	if isPublicKeyInWhitelist(pubkey) {
@@ -28,21 +24,17 @@ func addToWhitelist(pubkey string, inviter string) error {
 	return saveWhitelist()
 }
 
-func isPublicKeyInWhitelist(pubkey string) bool {
+func isPublicKeyInWhitelist(pubkey nostr.PubKey) bool {
 	_, ok := whitelist[pubkey]
 	return ok
 }
 
-func canInviteMore(pubkey string) bool {
-	if pubkey == "" {
-		return false
-	}
-
-	if pubkey == s.RelayPubkey {
+func canInviteMore(pubkey nostr.PubKey) bool {
+	if pubkey == relay.Info.PubKey {
 		return true
 	}
 
-	if !isPublicKeyInWhitelist(pubkey) {
+	if pubkey == nostr.ZeroPK || !isPublicKeyInWhitelist(pubkey) {
 		return false
 	}
 
@@ -58,7 +50,7 @@ func canInviteMore(pubkey string) bool {
 	return true
 }
 
-func isAncestorOf(ancestor string, target string) bool {
+func isAncestorOf(ancestor nostr.PubKey, target nostr.PubKey) bool {
 	parent, ok := whitelist[target]
 	if !ok {
 		// parent is not in whitelist, this means this is a top-level user and can
@@ -75,7 +67,7 @@ func isAncestorOf(ancestor string, target string) bool {
 	return isAncestorOf(ancestor, parent)
 }
 
-func removeFromWhitelist(target string, deleter string) error {
+func removeFromWhitelist(target nostr.PubKey, deleter nostr.PubKey) error {
 	// check if this user is a descendant of the user who issued the delete command
 	if !isAncestorOf(deleter, target) {
 		return fmt.Errorf("insufficient permissions to delete this")
@@ -90,7 +82,7 @@ func removeFromWhitelist(target string, deleter string) error {
 	return saveWhitelist()
 }
 
-func removeDescendantsFromWhitelist(ancestor string) {
+func removeDescendantsFromWhitelist(ancestor nostr.PubKey) {
 	for pubkey, inviter := range whitelist {
 		if inviter == ancestor {
 			delete(whitelist, pubkey)
@@ -102,9 +94,9 @@ func removeDescendantsFromWhitelist(ancestor string) {
 func loadWhitelist() error {
 	b, err := os.ReadFile(s.UserdataPath)
 	if err != nil {
-		// If the whitelist file does not exist, with RELAY_PUBKEY
+		// if the whitelist file does not exist, with RELAY_PUBKEY
 		if errors.Is(err, os.ErrNotExist) {
-			whitelist[s.RelayPubkey] = ""
+			whitelist[relay.Info.PubKey] = nostr.ZeroPK
 			jsonBytes, err := json.Marshal(&whitelist)
 			if err != nil {
 				return err

@@ -4,12 +4,16 @@ import (
 	"context"
 	"fmt"
 
+	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/nip86"
 )
 
-func allowPubKeyHandler(ctx context.Context, pubkey, reason string) error {
-	loggedUser := khatru.GetAuthed(ctx)
+func allowPubKeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string) error {
+	loggedUser, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
 
 	if !canInviteMore(loggedUser) {
 		return fmt.Errorf("cannot invite more than %d", s.MaxInvitesPerPerson)
@@ -21,8 +25,11 @@ func allowPubKeyHandler(ctx context.Context, pubkey, reason string) error {
 	return nil
 }
 
-func banPubKeyHandler(ctx context.Context, pubkey, reason string) error {
-	loggedUser := khatru.GetAuthed(ctx)
+func banPubKeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string) error {
+	loggedUser, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
 
 	// check if this user is a descendant of the user who issued the delete command
 	if !isAncestorOf(loggedUser, pubkey) {
@@ -43,7 +50,7 @@ func listAllowedPubKeysHandler(ctx context.Context) ([]nip86.PubKeyReason, error
 	i := 0
 	for pubkey, inviter := range whitelist {
 		reason := fmt.Sprintf("invited by %s", inviter)
-		if inviter == "" {
+		if inviter == nostr.ZeroPK {
 			reason = "root user"
 		}
 		list[i] = nip86.PubKeyReason{PubKey: pubkey, Reason: reason}

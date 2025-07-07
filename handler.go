@@ -5,21 +5,17 @@ import (
 	"net/http"
 
 	"fiatjaf.com/nostr"
-	"fiatjaf.com/nostr/nip19"
 )
 
 func inviteTreeHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser := getLoggedUser(r)
+	loggedUser, _ := getLoggedUser(r)
 	inviteTreePage(loggedUser).Render(r.Context(), w)
 }
 
 func addToWhitelistHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser := getLoggedUser(r)
+	loggedUser, _ := getLoggedUser(r)
 
-	pubkey := r.PostFormValue("pubkey")
-	if pfx, value, err := nip19.Decode(pubkey); err == nil && pfx == "npub" {
-		pubkey = value.(string)
-	}
+	pubkey := pubkeyFromInput(r.PostFormValue("pubkey"))
 
 	if !canInviteMore(loggedUser) {
 		http.Error(w, fmt.Sprintf("cannot invite more than %d", s.MaxInvitesPerPerson), 403)
@@ -31,44 +27,37 @@ func addToWhitelistHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	inviteTreeComponent("", loggedUser).Render(r.Context(), w)
+	inviteTreeComponent(nostr.ZeroPK, loggedUser).Render(r.Context(), w)
 }
 
 func removeFromWhitelistHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser := getLoggedUser(r)
-	pubkey := r.PostFormValue("pubkey")
+	loggedUser, _ := getLoggedUser(r)
+
+	pubkey := pubkeyFromInput(r.PostFormValue("pubkey"))
+
 	if err := removeFromWhitelist(pubkey, loggedUser); err != nil {
 		http.Error(w, "failed to remove from whitelist: "+err.Error(), 500)
 		return
 	}
-	inviteTreeComponent("", loggedUser).Render(r.Context(), w)
+	inviteTreeComponent(nostr.ZeroPK, loggedUser).Render(r.Context(), w)
 }
 
 // this deletes all events from users not in the relay anymore
 func cleanupStuffFromExcludedUsersHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser := getLoggedUser(r)
-	if loggedUser != s.RelayPubkey {
+	loggedUser, _ := getLoggedUser(r)
+
+	if loggedUser != relay.Info.PubKey {
 		http.Error(w, "unauthorized, only the relay owner can do this", 403)
 		return
 	}
 
-	oldLimit := db.MaxLimit
-	db.MaxLimit = 999999
-	ch, err := db.QueryEvents(r.Context(), nostr.Filter{Limit: db.MaxLimit})
-	if err != nil {
-		http.Error(w, "failed to query", 500)
-		return
-	}
-	db.MaxLimit = oldLimit
-
 	count := 0
-
-	for evt := range ch {
+	for evt := range db.QueryEvents(nostr.Filter{}, 99999999) {
 		if isPublicKeyInWhitelist(evt.PubKey) {
 			continue
 		}
 
-		if err := db.DeleteEvent(r.Context(), evt); err != nil {
+		if err := db.DeleteEvent(evt.ID); err != nil {
 			http.Error(w, fmt.Sprintf(
 				"failed to delete %s: %s -- stopping, %d events were deleted before this error", evt, err, count), 500)
 			return
@@ -80,16 +69,10 @@ func cleanupStuffFromExcludedUsersHandler(w http.ResponseWriter, r *http.Request
 }
 
 func reportsViewerHandler(w http.ResponseWriter, r *http.Request) {
-	events, err := db.QueryEvents(r.Context(), nostr.Filter{
-		Kinds: []int{1984},
-		Limit: 52,
-	})
-	if err != nil {
-		http.Error(w, "failed to query reports: "+err.Error(), 500)
-		return
-	}
+	loggedUser, _ := getLoggedUser(r)
 
-	reportsPage(events, getLoggedUser(r)).Render(r.Context(), w)
+	events := db.QueryEvents(nostr.Filter{Kinds: []nostr.Kind{1984}}, 52)
+	reportsPage(events, loggedUser).Render(r.Context(), w)
 }
 
 func forumHandler(w http.ResponseWriter, r *http.Request) {

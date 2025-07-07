@@ -3,11 +3,10 @@ module github.com/fiatjaf/pyramid
 go 1.24.2
 
 require (
-	github.com/a-h/templ v0.3.857
-	fiatjaf.com/nostr/eventstore v0.16.7
-	github.com/fiatjaf/khatru v0.18.0
+	fiatjaf.com/nostr v0.0.0
+	github.com/a-h/templ v0.3.906
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/nbd-wtf/go-nostr v0.51.10
+	github.com/nbd-wtf/go-nostr v0.51.12
 	github.com/rs/zerolog v1.33.0
 	golang.org/x/sync v0.13.0
 )
@@ -56,3 +55,5 @@ require (
 	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
 )
+
+replace fiatjaf.com/nostr => ../nostrlib

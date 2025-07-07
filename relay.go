@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
+	"slices"
 
 	"fiatjaf.com/nostr"
 )
 
-func rejectEventsFromUsersNotInWhitelist(ctx context.Context, event *nostr.Event) (reject bool, msg string) {
+func rejectEventsFromUsersNotInWhitelist(ctx context.Context, event nostr.Event) (reject bool, msg string) {
 	if isPublicKeyInWhitelist(event.PubKey) {
 		return false, ""
 	}
@@ -17,7 +18,7 @@ func rejectEventsFromUsersNotInWhitelist(ctx context.Context, event *nostr.Event
 	return true, "not authorized"
 }
 
-var supportedKinds = []uint16{
+var supportedKinds = []nostr.Kind{
 	0,
 	1,
 	3,
@@ -79,44 +80,27 @@ var supportedKinds = []uint16{
 	39701,
 }
 
-func validateAndFilterReports(ctx context.Context, event *nostr.Event) (reject bool, msg string) {
+func validateAndFilterReports(ctx context.Context, event nostr.Event) (reject bool, msg string) {
 	if event.Kind == 1984 {
 		if e := event.Tags.Find("e"); e != nil {
 			// event report: check if the target event is here
-			res, _ := sys.StoreRelay.QuerySync(ctx, nostr.Filter{IDs: []string{e[1]}})
-			if len(res) == 0 {
-				return true, "we don't know anything about the target event"
+			if id, err := nostr.IDFromHex(e[1]); err == nil {
+				res := slices.Collect(sys.Store.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1))
+				if len(res) == 0 {
+					return true, "we don't know anything about the target event"
+				}
 			}
 		} else if p := event.Tags.Find("p"); p != nil {
 			// pubkey report
-			if !isPublicKeyInWhitelist(p[1]) {
-				return true, "target pubkey is not a user of this relay"
+			if pk, err := nostr.PubKeyFromHex(p[1]); err == nil {
+				if !isPublicKeyInWhitelist(pk) {
+					return true, "target pubkey is not a user of this relay"
+				}
 			}
-		} else {
-			return true, "invalid report"
 		}
+
+		return true, "invalid report"
 	}
 
 	return false, ""
-}
-
-func removeAuthorsNotWhitelisted(ctx context.Context, filter *nostr.Filter) {
-	if n := len(filter.Authors); n > len(whitelist)*11/10 {
-		// this query was clearly badly constructed, so we will not bother even looking
-		filter.LimitZero = true // this causes the query to be short cut
-	} else if n > 0 {
-		// otherwise we go through the authors list and remove the irrelevant ones
-		newAuthors := make([]string, 0, n)
-		for i := 0; i < n; i++ {
-			k := filter.Authors[i]
-			if _, ok := whitelist[k]; ok {
-				newAuthors = append(newAuthors, k)
-			}
-		}
-		filter.Authors = newAuthors
-
-		if len(newAuthors) == 0 {
-			filter.LimitZero = true // this causes the query to be short cut
-		}
-	}
 }

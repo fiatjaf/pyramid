@@ -11,12 +11,12 @@ import (
 	"syscall"
 	"time"
 
+	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/eventstore/lmdb"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
-	"github.com/kelseyhightower/envconfig"
-	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/nip11"
+	"github.com/kelseyhightower/envconfig"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 )
@@ -38,9 +38,7 @@ type Settings struct {
 var (
 	s  Settings
 	db = &lmdb.LMDBBackend{
-		MaxLimit:           500,
-		MaxLimitNegentropy: 999999,
-		EnableHLLCacheFor: func(kind int) (useCache bool, skipSavingActualEvent bool) {
+		EnableHLLCacheFor: func(kind nostr.Kind) (useCache bool, skipSavingActualEvent bool) {
 			switch kind {
 			case 7:
 				return true, true
@@ -82,7 +80,7 @@ func main() {
 
 	// init relay
 	relay.Info.Name = s.RelayName
-	relay.Info.PubKey = s.RelayPubkey
+	relay.Info.PubKey, _ = nostr.PubKeyFromHex(s.RelayPubkey)
 	relay.Info.Description = s.RelayDescription
 	relay.Info.Contact = s.RelayContact
 	relay.Info.Icon = s.RelayIcon
@@ -91,33 +89,21 @@ func main() {
 	}
 	relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
-	relay.RejectFilter = append(relay.RejectFilter,
+	relay.UseEventstore(db, 500)
+	relay.OnRequest = policies.SeqRequest(
 		policies.NoComplexFilters,
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
+		policies.NoSearchQueries,
 	)
-	relay.RejectConnection = append(relay.RejectConnection,
-		policies.ConnectionRateLimiter(1, time.Minute*5, 100),
-	)
+	relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 100)
 
-	relay.StoreEvent = append(relay.StoreEvent, db.SaveEvent)
-	relay.QueryEvents = append(relay.QueryEvents, db.QueryEvents)
-	relay.CountEventsHLL = append(relay.CountEventsHLL, db.CountEventsHLL)
-	relay.ReplaceEvent = append(relay.ReplaceEvent, db.ReplaceEvent)
-	relay.DeleteEvent = append(relay.DeleteEvent, db.DeleteEvent)
-	relay.RejectEvent = append(relay.RejectEvent,
+	relay.OnEvent = policies.SeqEvent(
 		policies.PreventLargeTags(100),
-		policies.PreventTooManyIndexableTags(9, []int{3}, nil),
-		policies.PreventTooManyIndexableTags(1200, nil, []int{3}),
+		policies.PreventTooManyIndexableTags(9, []nostr.Kind{3}, nil),
+		policies.PreventTooManyIndexableTags(1200, nil, []nostr.Kind{3}),
 		policies.RestrictToSpecifiedKinds(true, supportedKinds...),
 		rejectEventsFromUsersNotInWhitelist,
 		validateAndFilterReports,
-	)
-	relay.OverwriteFilter = append(relay.OverwriteFilter,
-		policies.RemoveAllButKinds(supportedKinds...),
-		removeAuthorsNotWhitelisted,
-	)
-	relay.RejectFilter = append(relay.RejectFilter,
-		policies.NoSearchQueries,
 	)
 
 	relay.ManagementAPI.AllowPubKey = allowPubKeyHandler
@@ -162,18 +148,18 @@ func main() {
 	}
 }
 
-func getLoggedUser(r *http.Request) string {
+func getLoggedUser(r *http.Request) (nostr.PubKey, bool) {
 	if cookie, _ := r.Cookie("nip98"); cookie != nil {
 		if evtj, err := url.QueryUnescape(cookie.Value); err == nil {
 			var evt nostr.Event
 			if err := json.Unmarshal([]byte(evtj), &evt); err == nil {
 				if tag := evt.Tags.Find("domain"); tag != nil && tag[1] == s.Domain {
-					if ok, _ := evt.CheckSignature(); ok {
-						return evt.PubKey
+					if evt.VerifySignature() {
+						return evt.PubKey, true
 					}
 				}
 			}
 		}
 	}
-	return ""
+	return nostr.ZeroPK, false
 }

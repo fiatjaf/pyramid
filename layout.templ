@@ -1,6 +1,8 @@
 package main
 
-templ layout(loggedUser string) {
+import "fiatjaf.com/nostr"
+
+templ layout(loggedUser nostr.PubKey) {
 	<!DOCTYPE html>
 	<html>
 		<head>
@@ -23,7 +25,7 @@ templ layout(loggedUser string) {
 				<a href="/" class="text-gray-600 hover:bg-gray-200 rounded-md px-3 py-2 font-medium" hx-boost="true" hx-target="main" hx-select="main">invite tree</a>
 				<a target="_blank" class="text-gray-600 hover:bg-gray-200 rounded-md px-3 py-2 font-medium" _="on load set my href to `https://jumble.social/?r=${location.hostname}`">browse</a>
 				<a href="/reports" class="text-gray-600 hover:bg-gray-200 rounded-md px-3 py-2 font-medium" hx-boost="true" hx-target="main" hx-select="main">reports</a>
-				if loggedUser == s.RelayPubkey {
+				if loggedUser == relay.Info.PubKey {
 					<a href="/cleanup" class="text-gray-600 hover:bg-gray-200 rounded-md px-3 py-2 font-medium">clear stuff</a>
 				}
 				<a
@@ -40,7 +42,7 @@ templ layout(loggedUser string) {
 					then call location.reload()
 				` }
 				>
-					if loggedUser != "" {
+					if loggedUser != nostr.ZeroPK {
 						logout
 					} else {
 						login
