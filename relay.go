@@ -8,6 +8,11 @@ import (
 )
 
 func rejectEventsFromUsersNotInWhitelist(ctx context.Context, event nostr.Event) (reject bool, msg string) {
+	// allow ephemeral
+	if event.Kind.IsEphemeral() {
+		return false, ""
+	}
+
 	if isPublicKeyInWhitelist(event.PubKey) {
 		return false, ""
 	}
