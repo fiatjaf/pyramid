@@ -95,7 +95,7 @@ func main() {
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
 		policies.NoSearchQueries,
 	)
-	relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 100)
+	relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
 
 	relay.OnEvent = policies.SeqEvent(
 		policies.PreventLargeTags(100),
