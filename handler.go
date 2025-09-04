@@ -46,7 +46,7 @@ func removeFromWhitelistHandler(w http.ResponseWriter, r *http.Request) {
 func cleanupStuffFromExcludedUsersHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := getLoggedUser(r)
 
-	if loggedUser != relay.Info.PubKey {
+	if loggedUser != *relay.Info.PubKey {
 		http.Error(w, "unauthorized, only the relay owner can do this", 403)
 		return
 	}

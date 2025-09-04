@@ -80,7 +80,12 @@ func main() {
 
 	// init relay
 	relay.Info.Name = s.RelayName
-	relay.Info.PubKey, _ = nostr.PubKeyFromHex(s.RelayPubkey)
+
+	if pk, err := nostr.PubKeyFromHex(s.RelayPubkey); err != nil {
+		log.Fatal().Err(err).Str("value", s.RelayPubkey).Msg("invalid relay main pubkey")
+	} else {
+		relay.Info.PubKey = &pk
+	}
 	relay.Info.Description = s.RelayDescription
 	relay.Info.Contact = s.RelayContact
 	relay.Info.Icon = s.RelayIcon
@@ -92,13 +97,13 @@ func main() {
 	relay.UseEventstore(db, 500)
 	relay.OnRequest = policies.SeqRequest(
 		policies.NoComplexFilters,
-		policies.FilterIPRateLimiter(20, time.Minute, 100),
 		policies.NoSearchQueries,
+		policies.FilterIPRateLimiter(20, time.Minute, 100),
 	)
 	relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
 
 	relay.OnEvent = policies.SeqEvent(
-		policies.PreventLargeTags(100),
+		policies.PreventLargeContent(10000),
 		policies.PreventTooManyIndexableTags(9, []nostr.Kind{3}, nil),
 		policies.PreventTooManyIndexableTags(1200, nil, []nostr.Kind{3}),
 		policies.RestrictToSpecifiedKinds(true, supportedKinds...),

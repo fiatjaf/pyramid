@@ -69,7 +69,7 @@ func isPublicKeyInWhitelist(pubkey nostr.PubKey) bool {
 }
 
 func canInviteMore(pubkey nostr.PubKey) bool {
-	if pubkey == relay.Info.PubKey {
+	if pubkey == *relay.Info.PubKey {
 		return true
 	}
 
@@ -135,7 +135,7 @@ func loadWhitelist() error {
 	if err != nil {
 		// if the whitelist file does not exist, with RELAY_PUBKEY
 		if errors.Is(err, os.ErrNotExist) {
-			whitelist[relay.Info.PubKey] = nostr.ZeroPK
+			whitelist[*relay.Info.PubKey] = nostr.ZeroPK
 			if err := saveWhitelist(); err != nil {
 				return err
 			}

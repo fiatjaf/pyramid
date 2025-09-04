@@ -25,7 +25,7 @@ templ layout(loggedUser nostr.PubKey) {
 				<a href="/" class="text-gray-600 hover:bg-gray-200 rounded-md px-3 py-2 font-medium" hx-boost="true" hx-target="main" hx-select="main">invite tree</a>
 				<a target="_blank" class="text-gray-600 hover:bg-gray-200 rounded-md px-3 py-2 font-medium" _="on load set my href to `https://jumble.social/?r=${location.hostname}`">browse</a>
 				<a href="/reports" class="text-gray-600 hover:bg-gray-200 rounded-md px-3 py-2 font-medium" hx-boost="true" hx-target="main" hx-select="main">reports</a>
-				if loggedUser == relay.Info.PubKey {
+				if loggedUser == *relay.Info.PubKey {
 					<a href="/cleanup" class="text-gray-600 hover:bg-gray-200 rounded-md px-3 py-2 font-medium">clear stuff</a>
 				}
 				<a
