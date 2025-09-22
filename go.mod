@@ -3,7 +3,7 @@ module github.com/fiatjaf/pyramid
 go 1.24.2
 
 require (
-	fiatjaf.com/nostr v0.0.0-20250822210219-b88edca78686
+	fiatjaf.com/nostr v0.0.0-20250915112729-805003b39b5d
 	github.com/a-h/templ v0.3.943
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/rs/zerolog v1.33.0
@@ -46,5 +46,3 @@ require (
 	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 )
-
-replace fiatjaf.com/nostr => ../nostrlib
