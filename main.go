@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	log   zerolog.Logger
+	log   = zerolog.New(os.Stderr).Output(zerolog.ConsoleWriter{Out: os.Stdout}).With().Timestamp().Logger()
 	db    *lmdb.LMDBBackend
 	relay = khatru.NewRelay()
 )
@@ -35,6 +35,11 @@ func main() {
 	err := envconfig.Process("", &global.S)
 	if err != nil {
 		log.Fatal().Err(err).Msg("couldn't process envconfig")
+		return
+	}
+
+	if err := os.MkdirAll(global.S.DataPath, 0755); err != nil {
+		log.Fatal().Err(err).Str("dir", global.S.DataPath).Msg("failed to create data directory")
 		return
 	}
 

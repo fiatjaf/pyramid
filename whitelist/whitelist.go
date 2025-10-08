@@ -100,9 +100,6 @@ func AddAction(type_ string, author nostr.PubKey, target nostr.PubKey) error {
 }
 
 func LoadManagement() error {
-	if err := os.MkdirAll("data", 0755); err != nil {
-		return err
-	}
 	file, err := os.Open(filepath.Join(global.S.DataPath, "management.jsonl"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -115,15 +112,18 @@ func LoadManagement() error {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
+
 		var action managementAction
 		if err := json.Unmarshal([]byte(scanner.Text()), &action); err != nil {
 			return err
 		}
-		author, err := nostr.PubKeyFromHex(action.Author)
+
+		author, err := nostr.PubKeyFromHexCheap(action.Author)
 		if err != nil {
 			return err
 		}
-		target, err := nostr.PubKeyFromHex(action.Target)
+
+		target, err := nostr.PubKeyFromHexCheap(action.Target)
 		if err != nil {
 			return err
 		}
