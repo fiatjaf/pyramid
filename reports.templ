@@ -3,6 +3,7 @@ package main
 import (
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/nip19"
+	"github.com/fiatjaf/pyramid/global"
 	"iter"
 )
 
@@ -15,7 +16,7 @@ templ reportsPage(reports iter.Seq[nostr.Event], loggedUser nostr.PubKey) {
 					<div>
 						if e := report.Tags.Find("e"); e != nil {
 							if id, err := nostr.IDFromHex(e[1]); err == nil {
-								for target := range sys.Store.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+								for target := range global.Nostr.Store.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
 									@eventReportComponent(e, target, report)
 								}
 							}

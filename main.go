@@ -10,10 +10,11 @@ import (
 	"time"
 
 	"fiatjaf.com/nostr"
-	"fiatjaf.com/nostr/eventstore/lmdb"
+	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
 	"fiatjaf.com/nostr/nip11"
+	"fiatjaf.com/nostr/sdk"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
@@ -24,7 +25,6 @@ import (
 
 var (
 	log   = zerolog.New(os.Stderr).Output(zerolog.ConsoleWriter{Out: os.Stdout}).With().Timestamp().Logger()
-	db    *lmdb.LMDBBackend
 	relay = khatru.NewRelay()
 )
 
@@ -49,13 +49,24 @@ func main() {
 	relay.Negentropy = true
 
 	// load db
-	db = &lmdb.LMDBBackend{Path: global.S.DataPath}
-	if err := db.Init(); err != nil {
-		log.Fatal().Err(err).Msg("failed to initialize database")
+	global.MMMM = &mmm.MultiMmapManager{
+		Logger: &log,
+		Dir:    global.S.DataPath,
+	}
+	if err := global.MMMM.Init(); err != nil {
+		log.Fatal().Err(err).Msg("failed to setup mmm")
 		return
 	}
-	defer db.Close()
-	log.Debug().Str("path", db.Path).Msg("initialized database")
+	defer global.MMMM.Close()
+
+	db := &mmm.IndexingLayer{}
+	if err := global.MMMM.EnsureLayer("main", db); err != nil {
+		log.Fatal().Err(err).Msg("failed to setup main indexing layer")
+		return
+	}
+
+	global.Nostr = sdk.NewSystem()
+	global.Nostr.Store = db
 
 	// init relay
 	relay.Info.Name = global.S.RelayName

@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"fiatjaf.com/nostr"
+	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/whitelist"
 )
 
@@ -93,7 +94,7 @@ func validateAndFilterReports(ctx context.Context, event nostr.Event) (reject bo
 		if e := event.Tags.Find("e"); e != nil {
 			// event report: check if the target event is here
 			if id, err := nostr.IDFromHex(e[1]); err == nil {
-				res := slices.Collect(sys.Store.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1))
+				res := slices.Collect(global.Nostr.Store.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1))
 				if len(res) == 0 {
 					return true, "we don't know anything about the target event"
 				}

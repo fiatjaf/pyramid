@@ -6,6 +6,7 @@ import (
 
 	"fiatjaf.com/nostr"
 
+	"github.com/fiatjaf/pyramid/global"
 	whitelist "github.com/fiatjaf/pyramid/whitelist"
 )
 
@@ -37,12 +38,12 @@ func cleanupStuffFromExcludedUsersHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	count := 0
-	for evt := range db.QueryEvents(nostr.Filter{}, 99999999) {
+	for evt := range global.Nostr.Store.QueryEvents(nostr.Filter{}, 99999999) {
 		if whitelist.IsPublicKeyInWhitelist(evt.PubKey) {
 			continue
 		}
 
-		if err := db.DeleteEvent(evt.ID); err != nil {
+		if err := global.Nostr.Store.DeleteEvent(evt.ID); err != nil {
 			http.Error(w, fmt.Sprintf(
 				"failed to delete %s: %s -- stopping, %d events were deleted before this error", evt, err, count), 500)
 			return
@@ -56,7 +57,7 @@ func cleanupStuffFromExcludedUsersHandler(w http.ResponseWriter, r *http.Request
 func reportsViewerHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := getLoggedUser(r)
 
-	events := db.QueryEvents(nostr.Filter{Kinds: []nostr.Kind{1984}}, 52)
+	events := global.Nostr.Store.QueryEvents(nostr.Filter{Kinds: []nostr.Kind{1984}}, 52)
 	reportsPage(events, loggedUser).Render(r.Context(), w)
 }
 

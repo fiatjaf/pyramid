@@ -1,6 +1,10 @@
 package global
 
-import "fiatjaf.com/nostr"
+import (
+	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/eventstore/mmm"
+	"fiatjaf.com/nostr/sdk"
+)
 
 type Settings struct {
 	Port             string `envconfig:"PORT" default:"3334"`
@@ -17,5 +21,7 @@ type Settings struct {
 
 var (
 	S      Settings
+	Nostr  *sdk.System
 	Master nostr.PubKey
+	MMMM   *mmm.MultiMmapManager
 )
