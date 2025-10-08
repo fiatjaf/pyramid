@@ -13,7 +13,7 @@ templ inviteTreePage(loggedUser nostr.PubKey) {
 		<div>
 			if whitelist.CanInviteMore(loggedUser) {
 				<form
-					hx-post="/add-to-whitelist"
+					hx-post="/action"
 					hx-trigger="submit"
 					hx-target="#tree"
 					_="on htmx:afterRequest(elt, successful) if successful and elt is I call I.reset()"
@@ -21,10 +21,11 @@ templ inviteTreePage(loggedUser nostr.PubKey) {
 				>
 					<input
 						type="text"
-						name="pubkey"
+						name="target"
 						placeholder="npub1..."
 						class="w-96 rounded-md border-0 p-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
 					/>
+					<input type="hidden" name="type" value="invite"/>
 					<button
 						type="submit"
 						class="rounded-md text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 ml-2 p-2 bg-white hover:bg-gray-50"
@@ -45,18 +46,22 @@ templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey) {
 		for pubkey, parents := range whitelist.Whitelist {
 			if slices.Contains(parents, curr) {
 				<li class="ml-6">
-					<a href={ templ.URL("https://njump.me/p/" + pubkey.Hex()) } target="_blank" class="font-mono py-1">
+					<a
+						href={ templ.URL("https://njump.me/p/" + pubkey.Hex()) }
+						target="_blank"
+						class="font-mono py-1"
+					>
 						<nostr-name pubkey={ pubkey.Hex() }>{ pubkey.Hex() }</nostr-name>
 					</a>
 					if whitelist.IsAncestorOf(loggedUser, pubkey) && loggedUser != nostr.ZeroPK {
 						<button
 							class="rounded-md text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 px-2 ml-2 bg-red-100 hover:bg-red-300"
-							hx-post="/remove-from-whitelist"
+							hx-post="/action"
 							hx-trigger="click"
 							hx-target="#tree"
-							hx-vals={ fmt.Sprintf(`{"pubkey": "%s"}`, pubkey.Hex()) }
+							hx-vals={ fmt.Sprintf(`{"target": "%s", "type": "drop"}`, pubkey.Hex()) }
 						>
-							remove
+							drop
 						</button>
 					}
 					@inviteTreeComponent(pubkey, loggedUser)

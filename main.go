@@ -114,7 +114,7 @@ func main() {
 			http.Redirect(w, r, "/static/icon.png", 302)
 		}
 	})
-	relay.Router().HandleFunc("/", inviteTreeHandler)
+	relay.Router().HandleFunc("/{$}", inviteTreeHandler)
 
 	log.Info().Msg("running on http://0.0.0.0:" + global.S.Port)
 

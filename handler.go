@@ -17,14 +17,14 @@ func inviteTreeHandler(w http.ResponseWriter, r *http.Request) {
 func actionHandler(w http.ResponseWriter, r *http.Request) {
 	type_ := r.PostFormValue("type")
 	author, _ := getLoggedUser(r)
-	target := pubkeyFromInput(r.PostFormValue("pubkey"))
+	target := pubkeyFromInput(r.PostFormValue("target"))
 
 	if err := whitelist.AddAction(type_, author, target); err != nil {
 		http.Error(w, err.Error(), 403)
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	inviteTreeComponent(nostr.ZeroPK, author).Render(r.Context(), w)
 }
 
 // this deletes all events from users not in the relay anymore

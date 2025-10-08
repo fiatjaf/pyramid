@@ -32,6 +32,10 @@ func CanInviteMore(pubkey nostr.PubKey) bool {
 	return len(Whitelist[pubkey]) < global.S.MaxInvitesPerPerson
 }
 
+func IsParentOf(parent nostr.PubKey, target nostr.PubKey) bool {
+	return slices.Contains(Whitelist[target], parent)
+}
+
 func IsAncestorOf(ancestor nostr.PubKey, target nostr.PubKey) bool {
 	parents := Whitelist[target]
 	if len(parents) == 0 {
@@ -50,16 +54,18 @@ func IsAncestorOf(ancestor nostr.PubKey, target nostr.PubKey) bool {
 }
 
 func hasSingleRootAncestor(ancestor nostr.PubKey, target nostr.PubKey) bool {
-	parents := Whitelist[target]
+	if target == ancestor {
+		return true
+	}
+
+	parents, _ := Whitelist[target]
 	if len(parents) == 0 {
 		return false
 	}
 
 	for _, parent := range parents {
-		if parent != ancestor {
-			if !hasSingleRootAncestor(ancestor, target) {
-				return false
-			}
+		if parent != ancestor && !hasSingleRootAncestor(ancestor, parent) {
+			return false
 		}
 	}
 
@@ -73,10 +79,6 @@ type managementAction struct {
 }
 
 func AddAction(type_ string, author nostr.PubKey, target nostr.PubKey) error {
-	if target == author {
-		return fmt.Errorf("can't act on yourself")
-	}
-
 	if !IsPublicKeyInWhitelist(author) {
 		return fmt.Errorf("pubkey %s doesn't have permission to invite", author)
 	}
@@ -86,9 +88,14 @@ func AddAction(type_ string, author nostr.PubKey, target nostr.PubKey) error {
 		if !CanInviteMore(author) {
 			return fmt.Errorf("cannot invite more than %d", global.S.MaxInvitesPerPerson)
 		}
-	case "remove":
-		if !IsAncestorOf(author, target) {
-			return fmt.Errorf("insufficient permissions to remove this")
+		if IsAncestorOf(target, author) {
+			return fmt.Errorf("can't invite an ancestor")
+		}
+		if IsParentOf(author, target) {
+			return fmt.Errorf("already invited")
+		}
+		if target == author {
+			return fmt.Errorf("can't invite yourself")
 		}
 	case "drop":
 		if !IsAncestorOf(author, target) {
@@ -96,7 +103,7 @@ func AddAction(type_ string, author nostr.PubKey, target nostr.PubKey) error {
 		}
 	}
 
-	return appendActionToFile("invite", author, target)
+	return appendActionToFile(type_, author, target)
 }
 
 func LoadManagement() error {
@@ -139,33 +146,14 @@ func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
 		if !slices.Contains(Whitelist[target], author) {
 			Whitelist[target] = append(Whitelist[target], author)
 		}
-	case "remove":
-		parents := Whitelist[target]
-
-		// delete all parents for this that have as their unique parent the author
-		// (even if the ancestorship is from multiple branches)
-		for i := 0; i < len(parents); {
-			parent := parents[i]
-			if hasSingleRootAncestor(author, parent) {
-				// swap-delete
-				parents[i] = parents[len(parents)-1]
-				parents = parents[0 : len(parents)-1]
-			} else {
-				i++ // only advance i if we don't swap-delete
-			}
-		}
-
-		// if all parents of target have been removed also remove it
-		if len(parents) == 0 {
-			delete(Whitelist, target)
-		} else {
-			Whitelist[target] = parents
-		}
 	case "drop":
 		queue := []nostr.PubKey{target}
 		dealtwith := make([]nostr.PubKey, 0, 12)
 
-		for _, target := range queue {
+		for len(queue) > 0 {
+			target := queue[0]
+			queue = queue[1:]
+
 			parents := Whitelist[target]
 			// add parents to queue
 			// and remove them if possible

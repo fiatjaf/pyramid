@@ -4,7 +4,7 @@ recreate the social ladder
 
 ## how it works
 
-Relay members can invite others to join. The system supports three internal actions: **invite** adds a user to the whitelist with the inviter as their parent, **remove** removes a user's invitation if they were invited by the remover, and **drop** recursively removes a user and all their descendants from the whitelist (a user can have more than one parent, which ensures they will keep existing even if one of their ancestors deletes them or is dropped).
+Relay members can **invite** others to join and they can also **drop** anyone below them in the hierarchy, that will recursively remove a user and all their descendants (a user can have more than one parent, which ensures they will keep existing even if one of their ancestors deletes them or is dropped).
 
 ## running
 

@@ -25,7 +25,7 @@ func banPubKeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string) e
 		return fmt.Errorf("not authenticated")
 	}
 
-	return whitelist.AddAction("remove", author, pubkey)
+	return whitelist.AddAction("drop", author, pubkey)
 }
 
 func listAllowedPubKeysHandler(ctx context.Context) ([]nip86.PubKeyReason, error) {
