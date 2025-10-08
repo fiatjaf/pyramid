@@ -147,64 +147,39 @@ func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
 			Whitelist[target] = append(Whitelist[target], author)
 		}
 	case "drop":
-		queue := []nostr.PubKey{target}
-		dealtwith := make([]nostr.PubKey, 0, 12)
+		parents, _ := Whitelist[target]
 
-		for len(queue) > 0 {
-			target := queue[0]
-			queue = queue[1:]
-
-			parents := Whitelist[target]
-			// add parents to queue
-			// and remove them if possible
-			for i := 0; i < len(parents); {
-				parent := parents[i]
-				if !slices.Contains(dealtwith, parent) {
-					queue = append(queue, parent)
-				}
-
-				if hasSingleRootAncestor(author, parent) {
-					// swap-delete
-					parents[i] = parents[len(parents)-1]
-					parents = parents[0 : len(parents)-1]
-				} else {
-					i++
-				}
-			}
-
-			// delete this if it has no parents
-			if len(parents) == 0 {
-				delete(Whitelist, target)
-			} else {
-				Whitelist[target] = parents
-			}
-
-			// mark this as dealt with
-			dealtwith = append(dealtwith, target)
-		}
-
-		// this is similar to delete, but we delete everybody in the path if they lose all their parents,
-		// not only the target
-		parents := Whitelist[target]
-
-		// delete all parents for this that have as their unique parent the author
-		// (even if the ancestorship is from multiple branches)
+		// check all the parents
 		for i := 0; i < len(parents); {
 			parent := parents[i]
+
+			// for all the parents that are dependent on the author, remove the link
 			if hasSingleRootAncestor(author, parent) {
 				// swap-delete
 				parents[i] = parents[len(parents)-1]
 				parents = parents[0 : len(parents)-1]
 			} else {
-				i++ // only advance i if we don't swap-delete
+				i++
 			}
 		}
 
-		// if all parents of target have been removed also remove it
-		if len(parents) == 0 {
-			delete(Whitelist, target)
-		} else {
+		// delete this only if it has no parent links left
+		if len(parents) > 0 {
 			Whitelist[target] = parents
+		} else {
+			delete(Whitelist, target)
+
+			// since we've deleted it, delete all its unique children
+			toDelete := make([]nostr.PubKey, 0, 5)
+			for node := range Whitelist {
+				if hasSingleRootAncestor(target, node) {
+					toDelete = append(toDelete, node)
+				}
+			}
+
+			for _, node := range toDelete {
+				delete(Whitelist, node)
+			}
 		}
 	}
 }
