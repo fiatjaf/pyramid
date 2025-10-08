@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"fiatjaf.com/nostr"
+	"github.com/fiatjaf/pyramid/whitelist"
 )
 
 func rejectEventsFromUsersNotInWhitelist(ctx context.Context, event nostr.Event) (reject bool, msg string) {
@@ -13,7 +14,7 @@ func rejectEventsFromUsersNotInWhitelist(ctx context.Context, event nostr.Event)
 		return false, ""
 	}
 
-	if isPublicKeyInWhitelist(event.PubKey) {
+	if whitelist.IsPublicKeyInWhitelist(event.PubKey) {
 		return false, ""
 	}
 	if event.Kind == 1984 {
@@ -100,7 +101,7 @@ func validateAndFilterReports(ctx context.Context, event nostr.Event) (reject bo
 		} else if p := event.Tags.Find("p"); p != nil {
 			// pubkey report
 			if pk, err := nostr.PubKeyFromHex(p[1]); err == nil {
-				if !isPublicKeyInWhitelist(pk) {
+				if !whitelist.IsPublicKeyInWhitelist(pk) {
 					return true, "target pubkey is not a user of this relay"
 				}
 			}

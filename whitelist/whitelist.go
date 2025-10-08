@@ -1,4 +1,4 @@
-package main
+package whitelist
 
 import (
 	"bufio"
@@ -10,28 +10,30 @@ import (
 	"slices"
 
 	"fiatjaf.com/nostr"
+
+	"github.com/fiatjaf/pyramid/global"
 )
 
-var whitelist = make(map[nostr.PubKey][]nostr.PubKey) // { [user_pubkey]: [invited_by_list] }
+var Whitelist = make(map[nostr.PubKey][]nostr.PubKey) // { [user_pubkey]: [invited_by_list] }
 
-func isPublicKeyInWhitelist(pubkey nostr.PubKey) bool {
-	return len(whitelist[pubkey]) > 0
+func IsPublicKeyInWhitelist(pubkey nostr.PubKey) bool {
+	return len(Whitelist[pubkey]) > 0
 }
 
-func canInviteMore(pubkey nostr.PubKey) bool {
-	if pubkey == *relay.Info.PubKey {
+func CanInviteMore(pubkey nostr.PubKey) bool {
+	if pubkey == global.Master {
 		return true
 	}
 
-	if pubkey == nostr.ZeroPK || !isPublicKeyInWhitelist(pubkey) {
+	if pubkey == nostr.ZeroPK || !IsPublicKeyInWhitelist(pubkey) {
 		return false
 	}
 
-	return len(whitelist[pubkey]) < s.MaxInvitesPerPerson
+	return len(Whitelist[pubkey]) < global.S.MaxInvitesPerPerson
 }
 
-func isAncestorOf(ancestor nostr.PubKey, target nostr.PubKey) bool {
-	parents := whitelist[target]
+func IsAncestorOf(ancestor nostr.PubKey, target nostr.PubKey) bool {
+	parents := Whitelist[target]
 	if len(parents) == 0 {
 		return false
 	}
@@ -40,7 +42,7 @@ func isAncestorOf(ancestor nostr.PubKey, target nostr.PubKey) bool {
 		if parent == ancestor {
 			return true
 		}
-		if isAncestorOf(ancestor, parent) {
+		if IsAncestorOf(ancestor, parent) {
 			return true
 		}
 	}
@@ -48,7 +50,7 @@ func isAncestorOf(ancestor nostr.PubKey, target nostr.PubKey) bool {
 }
 
 func hasSingleRootAncestor(ancestor nostr.PubKey, target nostr.PubKey) bool {
-	parents := whitelist[target]
+	parents := Whitelist[target]
 	if len(parents) == 0 {
 		return false
 	}
@@ -70,26 +72,26 @@ type managementAction struct {
 	Target string `json:"target"`
 }
 
-func addAction(type_ string, author nostr.PubKey, target nostr.PubKey) error {
+func AddAction(type_ string, author nostr.PubKey, target nostr.PubKey) error {
 	if target == author {
 		return fmt.Errorf("can't act on yourself")
 	}
 
-	if !isPublicKeyInWhitelist(author) {
+	if !IsPublicKeyInWhitelist(author) {
 		return fmt.Errorf("pubkey %s doesn't have permission to invite", author)
 	}
 
 	switch type_ {
 	case "invite":
-		if !canInviteMore(author) {
-			return fmt.Errorf("cannot invite more than %d", s.MaxInvitesPerPerson)
+		if !CanInviteMore(author) {
+			return fmt.Errorf("cannot invite more than %d", global.S.MaxInvitesPerPerson)
 		}
 	case "remove":
-		if !isAncestorOf(author, target) {
+		if !IsAncestorOf(author, target) {
 			return fmt.Errorf("insufficient permissions to remove this")
 		}
 	case "drop":
-		if !isAncestorOf(author, target) {
+		if !IsAncestorOf(author, target) {
 			return fmt.Errorf("insufficient permissions to drop this")
 		}
 	}
@@ -97,15 +99,15 @@ func addAction(type_ string, author nostr.PubKey, target nostr.PubKey) error {
 	return appendActionToFile("invite", author, target)
 }
 
-func loadManagement() error {
+func LoadManagement() error {
 	if err := os.MkdirAll("data", 0755); err != nil {
 		return err
 	}
-	file, err := os.Open(filepath.Join(s.DataPath, "management.jsonl"))
+	file, err := os.Open(filepath.Join(global.S.DataPath, "management.jsonl"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			whitelist[*relay.Info.PubKey] = []nostr.PubKey{nostr.ZeroPK}
-			return appendActionToFile("invite", nostr.ZeroPK, *relay.Info.PubKey)
+			Whitelist[global.Master] = []nostr.PubKey{nostr.ZeroPK}
+			return appendActionToFile("invite", nostr.ZeroPK, global.Master)
 		}
 		return err
 	}
@@ -134,11 +136,11 @@ func loadManagement() error {
 func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
 	switch type_ {
 	case "invite":
-		if !slices.Contains(whitelist[target], author) {
-			whitelist[target] = append(whitelist[target], author)
+		if !slices.Contains(Whitelist[target], author) {
+			Whitelist[target] = append(Whitelist[target], author)
 		}
 	case "remove":
-		parents := whitelist[target]
+		parents := Whitelist[target]
 
 		// delete all parents for this that have as their unique parent the author
 		// (even if the ancestorship is from multiple branches)
@@ -155,16 +157,16 @@ func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
 
 		// if all parents of target have been removed also remove it
 		if len(parents) == 0 {
-			delete(whitelist, target)
+			delete(Whitelist, target)
 		} else {
-			whitelist[target] = parents
+			Whitelist[target] = parents
 		}
 	case "drop":
 		queue := []nostr.PubKey{target}
 		dealtwith := make([]nostr.PubKey, 0, 12)
 
 		for _, target := range queue {
-			parents := whitelist[target]
+			parents := Whitelist[target]
 			// add parents to queue
 			// and remove them if possible
 			for i := 0; i < len(parents); {
@@ -184,9 +186,9 @@ func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
 
 			// delete this if it has no parents
 			if len(parents) == 0 {
-				delete(whitelist, target)
+				delete(Whitelist, target)
 			} else {
-				whitelist[target] = parents
+				Whitelist[target] = parents
 			}
 
 			// mark this as dealt with
@@ -195,7 +197,7 @@ func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
 
 		// this is similar to delete, but we delete everybody in the path if they lose all their parents,
 		// not only the target
-		parents := whitelist[target]
+		parents := Whitelist[target]
 
 		// delete all parents for this that have as their unique parent the author
 		// (even if the ancestorship is from multiple branches)
@@ -212,9 +214,9 @@ func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
 
 		// if all parents of target have been removed also remove it
 		if len(parents) == 0 {
-			delete(whitelist, target)
+			delete(Whitelist, target)
 		} else {
-			whitelist[target] = parents
+			Whitelist[target] = parents
 		}
 	}
 }
@@ -229,7 +231,7 @@ func appendActionToFile(actionType string, author, target nostr.PubKey) error {
 	if err != nil {
 		return err
 	}
-	file, err := os.OpenFile(filepath.Join(s.DataPath, "management.jsonl"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(filepath.Join(global.S.DataPath, "management.jsonl"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
@@ -238,5 +240,5 @@ func appendActionToFile(actionType string, author, target nostr.PubKey) error {
 		return err
 	}
 
-	return loadManagement()
+	return LoadManagement()
 }

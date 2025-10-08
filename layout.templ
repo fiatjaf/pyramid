@@ -1,6 +1,9 @@
 package main
 
-import "fiatjaf.com/nostr"
+import (
+	"fiatjaf.com/nostr"
+	"github.com/fiatjaf/pyramid/global"
+)
 
 templ layout(loggedUser nostr.PubKey) {
 	<!DOCTYPE html>
@@ -8,7 +11,7 @@ templ layout(loggedUser nostr.PubKey) {
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			<title>{ s.RelayName }</title>
+			<title>{ global.S.RelayName }</title>
 			<script src="https://cdn.tailwindcss.com"></script>
 			<script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
 			<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.14/dist/_hyperscript.min.js"></script>
@@ -16,9 +19,9 @@ templ layout(loggedUser nostr.PubKey) {
 		</head>
 		<body class="px-3 mx-auto">
 			<div class="mx-auto my-6 text-center">
-				<h1 class="font-bold text-2xl">{ s.RelayName }</h1>
-				if s.RelayDescription != "" {
-					<p class="text-lg">{ s.RelayDescription }</p>
+				<h1 class="font-bold text-2xl">{ global.S.RelayName }</h1>
+				if global.S.RelayDescription != "" {
+					<p class="text-lg">{ global.S.RelayDescription }</p>
 				}
 			</div>
 			<nav class="flex flex-1 items-center justify-center">
@@ -33,7 +36,7 @@ templ layout(loggedUser nostr.PubKey) {
 					class="text-gray-600 hover:bg-gray-200 rounded-md px-3 py-2 font-medium"
 					_={ `
 					on click if my innerText is equal to 'login'
-						get window.nostr.signEvent({created_at: Math.round(Date.now()/1000), kind: 27235, tags: [['domain', '`+ s.Domain+ `']], content: ''})
+						get window.nostr.signEvent({created_at: Math.round(Date.now()/1000), kind: 27235, tags: [['domain', '`+ global.S.Domain+ `']], content: ''})
 						then get JSON.stringify(it)
 						then set cookies['nip98'] to it
 					otherwise

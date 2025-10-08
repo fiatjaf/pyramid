@@ -17,23 +17,12 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/whitelist"
 )
 
-type Settings struct {
-	Port             string `envconfig:"PORT" default:"3334"`
-	Domain           string `envconfig:"DOMAIN" required:"true"`
-	RelayName        string `envconfig:"RELAY_NAME" required:"true"`
-	RelayPubkey      string `envconfig:"RELAY_PUBKEY" required:"true"`
-	RelayDescription string `envconfig:"RELAY_DESCRIPTION"`
-	RelayContact     string `envconfig:"RELAY_CONTACT"`
-	RelayIcon        string `envconfig:"RELAY_ICON"`
-	DataPath         string `envconfig:"DATA_PATH" default:"./data"`
-
-	MaxInvitesPerPerson int `envconfig:"MAX_INVITES_PER_PERSON" default:"3"`
-}
-
 var (
-	s     Settings
 	log   zerolog.Logger
 	db    *lmdb.LMDBBackend
 	relay = khatru.NewRelay()
@@ -43,19 +32,19 @@ var (
 var static embed.FS
 
 func main() {
-	err := envconfig.Process("", &s)
+	err := envconfig.Process("", &global.S)
 	if err != nil {
 		log.Fatal().Err(err).Msg("couldn't process envconfig")
 		return
 	}
 
-	relay.ServiceURL = "wss://" + s.Domain
+	relay.ServiceURL = "wss://" + global.S.Domain
 
 	// enable negentropy
 	relay.Negentropy = true
 
 	// load db
-	db.Path = s.DataPath
+	db = &lmdb.LMDBBackend{Path: global.S.DataPath}
 	if err := db.Init(); err != nil {
 		log.Fatal().Err(err).Msg("failed to initialize database")
 		return
@@ -64,16 +53,17 @@ func main() {
 	log.Debug().Str("path", db.Path).Msg("initialized database")
 
 	// init relay
-	relay.Info.Name = s.RelayName
+	relay.Info.Name = global.S.RelayName
 
-	if pk, err := nostr.PubKeyFromHex(s.RelayPubkey); err != nil {
-		log.Fatal().Err(err).Str("value", s.RelayPubkey).Msg("invalid relay main pubkey")
+	if pk, err := nostr.PubKeyFromHex(global.S.RelayPubkey); err != nil {
+		log.Fatal().Err(err).Str("value", global.S.RelayPubkey).Msg("invalid relay main pubkey")
 	} else {
 		relay.Info.PubKey = &pk
+		global.Master = pk
 	}
-	relay.Info.Description = s.RelayDescription
-	relay.Info.Contact = s.RelayContact
-	relay.Info.Icon = s.RelayIcon
+	relay.Info.Description = global.S.RelayDescription
+	relay.Info.Contact = global.S.RelayContact
+	relay.Info.Icon = global.S.RelayIcon
 	relay.Info.Limitation = &nip11.RelayLimitationDocument{
 		RestrictedWrites: true,
 	}
@@ -101,7 +91,7 @@ func main() {
 	relay.ManagementAPI.ListAllowedPubKeys = listAllowedPubKeysHandler
 
 	// load users registry
-	if err := loadManagement(); err != nil {
+	if err := whitelist.LoadManagement(); err != nil {
 		log.Fatal().Err(err).Msg("failed to load whitelist")
 		return
 	}
@@ -113,17 +103,17 @@ func main() {
 	relay.Router().HandleFunc("/forum/", forumHandler)
 	relay.Router().Handle("/static/", http.FileServer(http.FS(static)))
 	relay.Router().HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-		if s.RelayIcon != "" {
-			http.Redirect(w, r, s.RelayIcon, 302)
+		if global.S.RelayIcon != "" {
+			http.Redirect(w, r, global.S.RelayIcon, 302)
 		} else {
 			http.Redirect(w, r, "/static/icon.png", 302)
 		}
 	})
 	relay.Router().HandleFunc("/", inviteTreeHandler)
 
-	log.Info().Msg("running on http://0.0.0.0:" + s.Port)
+	log.Info().Msg("running on http://0.0.0.0:" + global.S.Port)
 
-	server := &http.Server{Addr: ":" + s.Port, Handler: relay}
+	server := &http.Server{Addr: ":" + global.S.Port, Handler: relay}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	g, ctx := errgroup.WithContext(ctx)

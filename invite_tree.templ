@@ -4,12 +4,14 @@ import (
 	"fiatjaf.com/nostr"
 	"fmt"
 	"slices"
+
+	"github.com/fiatjaf/pyramid/whitelist"
 )
 
 templ inviteTreePage(loggedUser nostr.PubKey) {
 	@layout(loggedUser) {
 		<div>
-			if canInviteMore(loggedUser) {
+			if whitelist.CanInviteMore(loggedUser) {
 				<form
 					hx-post="/add-to-whitelist"
 					hx-trigger="submit"
@@ -40,13 +42,13 @@ templ inviteTreePage(loggedUser nostr.PubKey) {
 
 templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey) {
 	<ul>
-		for pubkey, parents := range whitelist {
+		for pubkey, parents := range whitelist.Whitelist {
 			if slices.Contains(parents, curr) {
 				<li class="ml-6">
 					<a href={ templ.URL("https://njump.me/p/" + pubkey.Hex()) } target="_blank" class="font-mono py-1">
 						<nostr-name pubkey={ pubkey.Hex() }>{ pubkey.Hex() }</nostr-name>
 					</a>
-					if isAncestorOf(loggedUser, pubkey) && loggedUser != nostr.ZeroPK {
+					if whitelist.IsAncestorOf(loggedUser, pubkey) && loggedUser != nostr.ZeroPK {
 						<button
 							class="rounded-md text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 px-2 ml-2 bg-red-100 hover:bg-red-300"
 							hx-post="/remove-from-whitelist"

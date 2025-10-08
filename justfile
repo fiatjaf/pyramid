@@ -1,5 +1,5 @@
 dev:
-    fd 'go|templ' | entr -r bash -c 'just templ && godotenv go run .'
+    fd 'go|templ' | entr -r bash -c 'just templ && go build && godotenv ./pyramid'
 
 build: templ
     CC=musl-gcc go build -ldflags='-linkmode external -extldflags "-static"' -o ./pyramid

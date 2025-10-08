@@ -7,6 +7,7 @@ import (
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/nip19"
+	"github.com/fiatjaf/pyramid/global"
 )
 
 func getLoggedUser(r *http.Request) (nostr.PubKey, bool) {
@@ -14,7 +15,7 @@ func getLoggedUser(r *http.Request) (nostr.PubKey, bool) {
 		if evtj, err := url.QueryUnescape(cookie.Value); err == nil {
 			var evt nostr.Event
 			if err := json.Unmarshal([]byte(evtj), &evt); err == nil {
-				if tag := evt.Tags.Find("domain"); tag != nil && tag[1] == s.Domain {
+				if tag := evt.Tags.Find("domain"); tag != nil && tag[1] == global.S.Domain {
 					if evt.VerifySignature() {
 						return evt.PubKey, true
 					}

@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"fiatjaf.com/nostr"
+
+	whitelist "github.com/fiatjaf/pyramid/whitelist"
 )
 
 func inviteTreeHandler(w http.ResponseWriter, r *http.Request) {
@@ -17,7 +19,7 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 	author, _ := getLoggedUser(r)
 	target := pubkeyFromInput(r.PostFormValue("pubkey"))
 
-	if err := addAction(type_, author, target); err != nil {
+	if err := whitelist.AddAction(type_, author, target); err != nil {
 		http.Error(w, err.Error(), 403)
 		return
 	}
@@ -36,7 +38,7 @@ func cleanupStuffFromExcludedUsersHandler(w http.ResponseWriter, r *http.Request
 
 	count := 0
 	for evt := range db.QueryEvents(nostr.Filter{}, 99999999) {
-		if isPublicKeyInWhitelist(evt.PubKey) {
+		if whitelist.IsPublicKeyInWhitelist(evt.PubKey) {
 			continue
 		}
 
