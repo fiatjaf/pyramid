@@ -10,51 +10,41 @@ import (
 )
 
 func allowPubKeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string) error {
-	loggedUser, ok := khatru.GetAuthed(ctx)
+	author, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")
 	}
 
-	if !canInviteMore(loggedUser) {
-		return fmt.Errorf("cannot invite more than %d", s.MaxInvitesPerPerson)
-	}
-	if err := addToWhitelist(pubkey, loggedUser); err != nil {
-		return fmt.Errorf("failed to add to whitelist: %w", err)
-	}
-
-	return nil
+	return addAction("invite", author, pubkey)
 }
 
 func banPubKeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string) error {
-	loggedUser, ok := khatru.GetAuthed(ctx)
+	author, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")
 	}
 
-	// check if this user is a descendant of the user who issued the delete command
-	if !isAncestorOf(loggedUser, pubkey) {
-		return fmt.Errorf("insufficient permissions to delete this")
-	}
-
-	// if we got here that means we have permission to delete the target
-	delete(whitelist, pubkey)
-
-	// delete all people who were invited by the target
-	removeDescendantsFromWhitelist(pubkey)
-
-	return saveWhitelist()
+	return addAction("remove", author, pubkey)
 }
 
 func listAllowedPubKeysHandler(ctx context.Context) ([]nip86.PubKeyReason, error) {
-	list := make([]nip86.PubKeyReason, len(whitelist))
-	i := 0
-	for pubkey, inviter := range whitelist {
-		reason := fmt.Sprintf("invited by %s", inviter)
-		if inviter == nostr.ZeroPK {
-			reason = "root user"
+	list := make([]nip86.PubKeyReason, 0, len(whitelist))
+	for pubkey, inviters := range whitelist {
+		if len(inviters) == 0 {
+			continue
 		}
-		list[i] = nip86.PubKeyReason{PubKey: pubkey, Reason: reason}
-		i++
+		reason := "invited by "
+		for j, inv := range inviters {
+			if j > 0 {
+				reason += ", "
+			}
+			if inv == nostr.ZeroPK {
+				reason += "root"
+			} else {
+				reason += inv.Hex()
+			}
+		}
+		list = append(list, nip86.PubKeyReason{PubKey: pubkey, Reason: reason})
 	}
 	return list, nil
 }

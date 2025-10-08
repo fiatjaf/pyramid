@@ -12,34 +12,17 @@ func inviteTreeHandler(w http.ResponseWriter, r *http.Request) {
 	inviteTreePage(loggedUser).Render(r.Context(), w)
 }
 
-func addToWhitelistHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser, _ := getLoggedUser(r)
+func actionHandler(w http.ResponseWriter, r *http.Request) {
+	type_ := r.PostFormValue("type")
+	author, _ := getLoggedUser(r)
+	target := pubkeyFromInput(r.PostFormValue("pubkey"))
 
-	pubkey := pubkeyFromInput(r.PostFormValue("pubkey"))
-
-	if !canInviteMore(loggedUser) {
-		http.Error(w, fmt.Sprintf("cannot invite more than %d", s.MaxInvitesPerPerson), 403)
+	if err := addAction(type_, author, target); err != nil {
+		http.Error(w, err.Error(), 403)
 		return
 	}
 
-	if err := addToWhitelist(pubkey, loggedUser); err != nil {
-		http.Error(w, "failed to add to whitelist: "+err.Error(), 500)
-		return
-	}
-
-	inviteTreeComponent(nostr.ZeroPK, loggedUser).Render(r.Context(), w)
-}
-
-func removeFromWhitelistHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser, _ := getLoggedUser(r)
-
-	pubkey := pubkeyFromInput(r.PostFormValue("pubkey"))
-
-	if err := removeFromWhitelist(pubkey, loggedUser); err != nil {
-		http.Error(w, "failed to remove from whitelist: "+err.Error(), 500)
-		return
-	}
-	inviteTreeComponent(nostr.ZeroPK, loggedUser).Render(r.Context(), w)
+	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 }
 
 // this deletes all events from users not in the relay anymore

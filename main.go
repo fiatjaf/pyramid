@@ -3,9 +3,7 @@ package main
 import (
 	"context"
 	"embed"
-	"encoding/json"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -29,29 +27,16 @@ type Settings struct {
 	RelayDescription string `envconfig:"RELAY_DESCRIPTION"`
 	RelayContact     string `envconfig:"RELAY_CONTACT"`
 	RelayIcon        string `envconfig:"RELAY_ICON"`
-	DatabasePath     string `envconfig:"DATABASE_PATH" default:"./db"`
-	UserdataPath     string `envconfig:"USERDATA_PATH" default:"./users.json"`
+	DataPath         string `envconfig:"DATA_PATH" default:"./data"`
 
 	MaxInvitesPerPerson int `envconfig:"MAX_INVITES_PER_PERSON" default:"3"`
 }
 
 var (
-	s  Settings
-	db = &lmdb.LMDBBackend{
-		EnableHLLCacheFor: func(kind nostr.Kind) (useCache bool, skipSavingActualEvent bool) {
-			switch kind {
-			case 7:
-				return true, true
-			case 1111:
-				return true, false
-			default:
-				return false, false
-			}
-		},
-	}
-	log       = zerolog.New(os.Stderr).Output(zerolog.ConsoleWriter{Out: os.Stdout}).With().Timestamp().Logger()
-	whitelist = make(Whitelist)
-	relay     = khatru.NewRelay()
+	s     Settings
+	log   zerolog.Logger
+	db    *lmdb.LMDBBackend
+	relay = khatru.NewRelay()
 )
 
 //go:embed static/*
@@ -70,7 +55,7 @@ func main() {
 	relay.Negentropy = true
 
 	// load db
-	db.Path = s.DatabasePath
+	db.Path = s.DataPath
 	if err := db.Init(); err != nil {
 		log.Fatal().Err(err).Msg("failed to initialize database")
 		return
@@ -116,14 +101,13 @@ func main() {
 	relay.ManagementAPI.ListAllowedPubKeys = listAllowedPubKeysHandler
 
 	// load users registry
-	if err := loadWhitelist(); err != nil {
+	if err := loadManagement(); err != nil {
 		log.Fatal().Err(err).Msg("failed to load whitelist")
 		return
 	}
 
 	// http routes
-	relay.Router().HandleFunc("/add-to-whitelist", addToWhitelistHandler)
-	relay.Router().HandleFunc("/remove-from-whitelist", removeFromWhitelistHandler)
+	relay.Router().HandleFunc("/action", actionHandler)
 	relay.Router().HandleFunc("/cleanup", cleanupStuffFromExcludedUsersHandler)
 	relay.Router().HandleFunc("/reports", reportsViewerHandler)
 	relay.Router().HandleFunc("/forum/", forumHandler)
@@ -151,20 +135,4 @@ func main() {
 	if err := g.Wait(); err != nil {
 		log.Debug().Err(err).Msg("exit reason")
 	}
-}
-
-func getLoggedUser(r *http.Request) (nostr.PubKey, bool) {
-	if cookie, _ := r.Cookie("nip98"); cookie != nil {
-		if evtj, err := url.QueryUnescape(cookie.Value); err == nil {
-			var evt nostr.Event
-			if err := json.Unmarshal([]byte(evtj), &evt); err == nil {
-				if tag := evt.Tags.Find("domain"); tag != nil && tag[1] == s.Domain {
-					if evt.VerifySignature() {
-						return evt.PubKey, true
-					}
-				}
-			}
-		}
-	}
-	return nostr.ZeroPK, false
 }

@@ -3,3 +3,4 @@ pyramid
 .env
 db
 *_templ.go
+data

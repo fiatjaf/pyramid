@@ -3,6 +3,7 @@ package main
 import (
 	"fiatjaf.com/nostr"
 	"fmt"
+	"slices"
 )
 
 templ inviteTreePage(loggedUser nostr.PubKey) {
@@ -37,10 +38,10 @@ templ inviteTreePage(loggedUser nostr.PubKey) {
 	}
 }
 
-templ inviteTreeComponent(inviter nostr.PubKey, loggedUser nostr.PubKey) {
+templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey) {
 	<ul>
-		for pubkey, invitedBy := range whitelist {
-			if invitedBy == inviter {
+		for pubkey, parents := range whitelist {
+			if slices.Contains(parents, curr) {
 				<li class="ml-6">
 					<a href={ templ.URL("https://njump.me/p/" + pubkey.Hex()) } target="_blank" class="font-mono py-1">
 						<nostr-name pubkey={ pubkey.Hex() }>{ pubkey.Hex() }</nostr-name>
