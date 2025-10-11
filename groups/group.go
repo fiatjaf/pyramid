@@ -37,8 +37,9 @@ func (s *State) NewGroup(id string, creator nostr.PubKey) *Group {
 				ID:    id,
 				Relay: "wss://" + s.Domain,
 			},
-			Roles:   s.defaultRoles,
-			Members: make(map[nostr.PubKey][]*nip29.Role, 12),
+			Roles:       s.defaultRoles,
+			Members:     make(map[nostr.PubKey][]*nip29.Role, 12),
+			InviteCodes: make([]string, 0),
 		},
 		last50: make([]nostr.ID, 50),
 	}

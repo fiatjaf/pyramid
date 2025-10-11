@@ -2,7 +2,6 @@ package groups
 
 import (
 	"context"
-	"iter"
 
 	"fiatjaf.com/nostr"
 )
@@ -77,44 +76,31 @@ func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
 		return
 	}
 
-	// react to join request
+	// react to join request (already validated)
 	if event.Kind == nostr.KindSimpleGroupJoinRequest {
-		// if the group is closed these will be ignored
-		if group.Closed {
-			// TODO: allow joining with invite
+		// otherwise immediately add the requester
+		var inviteCode string
+		if ctag := event.Tags.Find("code"); ctag == nil {
+			inviteCode = ctag[1]
+		}
+		addUser := &nostr.Event{
+			CreatedAt: nostr.Now(),
+			Kind:      nostr.KindSimpleGroupPutUser,
+			Tags: nostr.Tags{
+				nostr.Tag{"h", group.Address.ID},
+				nostr.Tag{"p", event.PubKey.Hex()},
+				nostr.Tag{"code", inviteCode},
+			},
+		}
+		if err := addUser.Sign(s.secretKey); err != nil {
+			log.Error().Err(err).Msg("failed to sign add-user event")
 			return
 		}
-
-		// otherwise anyone can join
-		// except for users previously removed
-		next, done := iter.Pull(s.DB.QueryEvents(nostr.Filter{
-			Kinds: []nostr.Kind{nostr.KindSimpleGroupRemoveUser},
-			Tags: nostr.TagMap{
-				"p": []string{event.PubKey.Hex()},
-			},
-		}, 1))
-		rem, isRemoved := next()
-		done()
-		if !isRemoved || rem.Tags.Has("self-removal") {
-			// immediately add the requester
-			addUser := &nostr.Event{
-				CreatedAt: nostr.Now(),
-				Kind:      nostr.KindSimpleGroupPutUser,
-				Tags: nostr.Tags{
-					nostr.Tag{"h", group.Address.ID},
-					nostr.Tag{"p", event.PubKey.Hex()},
-				},
-			}
-			if err := addUser.Sign(s.secretKey); err != nil {
-				log.Error().Err(err).Msg("failed to sign add-user event")
-				return
-			}
-			if _, err := s.Relay.AddEvent(ctx, addUser); err != nil {
-				log.Error().Err(err).Msg("failed to add user who requested to join")
-				return
-			}
-			s.Relay.BroadcastEvent(addUser)
+		if _, err := s.Relay.AddEvent(ctx, addUser); err != nil {
+			log.Error().Err(err).Msg("failed to add user who requested to join")
+			return
 		}
+		s.Relay.BroadcastEvent(addUser)
 	}
 
 	// react to leave request

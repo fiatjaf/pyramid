@@ -21,6 +21,7 @@ var (
 	_ Action = CreateGroup{}
 	_ Action = DeleteEvent{}
 	_ Action = EditMetadata{}
+	_ Action = CreateInvite{}
 )
 
 func PrepareModerationAction(evt nostr.Event) (Action, error) {
@@ -45,8 +46,18 @@ var moderationActionFactories = map[nostr.Kind]func(nostr.Event) (Action, error)
 				RoleNames: tag[2:],
 			})
 		}
+
+		var inviteCode string
+		if ctag := evt.Tags.Find("code"); ctag != nil {
+			inviteCode = ctag[1]
+		}
+
 		if len(targets) > 0 {
-			return PutUser{Targets: targets, When: evt.CreatedAt}, nil
+			return PutUser{
+				Targets:    targets,
+				InviteCode: inviteCode,
+				When:       evt.CreatedAt,
+			}, nil
 		}
 		return nil, fmt.Errorf("missing 'p' tags")
 	},
@@ -129,6 +140,18 @@ var moderationActionFactories = map[nostr.Kind]func(nostr.Event) (Action, error)
 	nostr.KindSimpleGroupDeleteGroup: func(evt nostr.Event) (Action, error) {
 		return DeleteGroup{When: evt.CreatedAt}, nil
 	},
+	nostr.KindSimpleGroupCreateInvite: func(evt nostr.Event) (Action, error) {
+		codes := make([]string, 0)
+		for tag := range evt.Tags.FindAll("code") {
+			codes = append(codes, tag[1])
+		}
+		if len(codes) == 0 {
+			return nil, fmt.Errorf("missing 'code' tags")
+		} else if len(codes) > 10 {
+			return nil, fmt.Errorf("too many 'code' tags")
+		}
+		return CreateInvite{Codes: codes}, nil
+	},
 }
 
 type DeleteEvent struct {
@@ -144,8 +167,9 @@ type PubKeyRoles struct {
 }
 
 type PutUser struct {
-	Targets []PubKeyRoles
-	When    nostr.Timestamp
+	Targets    []PubKeyRoles
+	InviteCode string
+	When       nostr.Timestamp
 }
 
 func (_ PutUser) Name() string { return "put-user" }
@@ -159,6 +183,13 @@ func (a PutUser) Apply(group *nip29.Group) {
 			roles = append(roles, group.GetRoleByName(roleName))
 		}
 		group.Members[target.PubKey] = roles
+
+		if a.InviteCode != "" {
+			if idx := slices.Index(group.InviteCodes, a.InviteCode); idx != -1 {
+				group.InviteCodes[idx] = group.InviteCodes[len(group.InviteCodes)-1]
+				group.InviteCodes = group.InviteCodes[0 : len(group.InviteCodes)-1]
+			}
+		}
 	}
 }
 
@@ -230,4 +261,13 @@ func (a DeleteGroup) Apply(group *nip29.Group) {
 	group.LastMetadataUpdate = a.When
 	group.LastAdminsUpdate = a.When
 	group.LastMembersUpdate = a.When
+}
+
+type CreateInvite struct {
+	Codes []string
+}
+
+func (_ CreateInvite) Name() string { return "create-invite" }
+func (a CreateInvite) Apply(group *nip29.Group) {
+	group.InviteCodes = append(group.InviteCodes, a.Codes...)
 }
