@@ -3,9 +3,11 @@ module github.com/fiatjaf/pyramid
 go 1.24.2
 
 require (
+	fiatjaf.com/lib v0.3.2
 	fiatjaf.com/nostr v0.0.0-20250915112729-805003b39b5d
 	github.com/a-h/templ v0.3.943
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/puzpuzpuz/xsync/v3 v3.5.1
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/sync v0.16.0
@@ -37,7 +39,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/puzpuzpuz/xsync/v3 v3.5.1 // indirect
 	github.com/rs/cors v1.11.1 // indirect
 	github.com/savsgio/gotils v0.0.0-20250408102913-196191ec6287 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect

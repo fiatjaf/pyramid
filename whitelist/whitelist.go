@@ -73,9 +73,10 @@ func hasSingleRootAncestor(ancestor nostr.PubKey, target nostr.PubKey) bool {
 }
 
 type managementAction struct {
-	Type   string `json:"type"`
-	Author string `json:"author"`
-	Target string `json:"target"`
+	Type   string          `json:"type"`
+	Author string          `json:"author"`
+	Target string          `json:"target"`
+	When   nostr.Timestamp `json:"when"`
 }
 
 func AddAction(type_ string, author nostr.PubKey, target nostr.PubKey) error {
@@ -189,6 +190,7 @@ func appendActionToFile(actionType string, author, target nostr.PubKey) error {
 		Type:   actionType,
 		Author: author.Hex(),
 		Target: target.Hex(),
+		When:   nostr.Now(),
 	}
 	b, err := json.Marshal(action)
 	if err != nil {

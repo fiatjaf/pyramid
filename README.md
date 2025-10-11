@@ -20,6 +20,7 @@ RELAY_DESCRIPTION="a relay for me and my friends"
 RELAY_PUBKEY="<my-pubkey-as-hex>"
 RELAY_ICON="https://www.vectorkhazana.com/assets/images/products/Friend1.jpg"
 MAX_INVITES_PER_PERSON=10
+GROUPS_PRIVATE_KEY="<a-random-secret-key-as-hex>"
 ```
 
 ### development

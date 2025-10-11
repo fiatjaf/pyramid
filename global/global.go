@@ -1,9 +1,12 @@
 package global
 
 import (
+	"os"
+
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/sdk"
+	"github.com/rs/zerolog"
 )
 
 type Settings struct {
@@ -17,6 +20,10 @@ type Settings struct {
 	DataPath         string `envconfig:"DATA_PATH" default:"./data"`
 
 	MaxInvitesPerPerson int `envconfig:"MAX_INVITES_PER_PERSON" default:"3"`
+
+	GroupsPrivateKeyHex string   `envconfig:"GROUPS_PRIVATE_KEY"`
+	GroupsCreatorRole   string   `envconfig:"GROUPS_CREATOR_ROLE" default:"pharaoh"`
+	GroupsDefaultRoles  []string `envconfig:"GROUPS_OTHER_ROLES" default:"vizier"`
 }
 
 var (
@@ -25,3 +32,5 @@ var (
 	Master nostr.PubKey
 	MMMM   *mmm.MultiMmapManager
 )
+
+var Log = zerolog.New(os.Stderr).Output(zerolog.ConsoleWriter{Out: os.Stdout}).With().Timestamp().Logger()

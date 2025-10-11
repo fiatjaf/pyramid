@@ -16,16 +16,18 @@ import (
 	"fiatjaf.com/nostr/nip11"
 	"fiatjaf.com/nostr/sdk"
 	"github.com/kelseyhightower/envconfig"
-	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/groups"
+	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/whitelist"
 )
 
 var (
-	log   = zerolog.New(os.Stderr).Output(zerolog.ConsoleWriter{Out: os.Stdout}).With().Timestamp().Logger()
 	relay = khatru.NewRelay()
+	log   = global.Log
 )
 
 //go:embed static/*
@@ -68,7 +70,35 @@ func main() {
 	global.Nostr = sdk.NewSystem()
 	global.Nostr.Store = db
 
-	// init relay
+	// setup additional indexing layers
+	internalDB := &mmm.IndexingLayer{}
+	if err := global.MMMM.EnsureLayer("internal", internalDB); err != nil {
+		log.Fatal().Err(err).Msg("failed to setup internal indexing layer")
+		return
+	}
+
+	groupsDB := &mmm.IndexingLayer{}
+	if err := global.MMMM.EnsureLayer("groups", groupsDB); err != nil {
+		log.Fatal().Err(err).Msg("failed to setup groups indexing layer")
+		return
+	}
+
+	favoritesDB := &mmm.IndexingLayer{}
+	if err := global.MMMM.EnsureLayer("favorites", favoritesDB); err != nil {
+		log.Fatal().Err(err).Msg("failed to setup favorites indexing layer")
+		return
+	}
+
+	// init relays
+	internalRelay := internal.NewRelay(internalDB)
+	favoritesRelay := favorites.NewRelay(favoritesDB)
+
+	groupsRelay, err := groups.NewRelay(groupsDB)
+	if err != nil {
+		log.Warn().Err(err).Msg("groups relay couldn't be initialized")
+	}
+
+	// init main relay
 	relay.Info.Name = global.S.RelayName
 
 	if pk, err := nostr.PubKeyFromHex(global.S.RelayPubkey); err != nil {
@@ -98,6 +128,7 @@ func main() {
 		policies.PreventTooManyIndexableTags(9, []nostr.Kind{3}, nil),
 		policies.PreventTooManyIndexableTags(1200, nil, []nostr.Kind{3}),
 		policies.RestrictToSpecifiedKinds(true, supportedKinds...),
+		policies.RejectUnprefixedNostrReferences,
 		rejectEventsFromUsersNotInWhitelist,
 		validateAndFilterReports,
 	)
@@ -129,7 +160,15 @@ func main() {
 
 	log.Info().Msg("running on http://0.0.0.0:" + global.S.Port)
 
-	server := &http.Server{Addr: ":" + global.S.Port, Handler: relay}
+	mux := http.NewServeMux()
+	mux.Handle("/", relay)
+	mux.Handle("/internal/", http.StripPrefix("/internal", internalRelay))
+	if groupsRelay != nil {
+		mux.Handle("/groups/", http.StripPrefix("/groups", groupsRelay))
+	}
+	mux.Handle("/favorites/", http.StripPrefix("/favorites", favoritesRelay))
+
+	server := &http.Server{Addr: ":" + global.S.Port, Handler: mux}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	g, ctx := errgroup.WithContext(ctx)
