@@ -7,7 +7,7 @@ import (
 
 templ layout(loggedUser nostr.PubKey) {
 	<!DOCTYPE html>
-	<html x-data="{ darkMode: localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches) }" x-init="$watch('darkMode', val => { localStorage.setItem('theme', val ? 'dark' : 'light'); if (val) { document.documentElement.classList.add('dark') } else { document.documentElement.classList.remove('dark') } }); if (darkMode) { document.documentElement.classList.add('dark') }" :class="darkMode && 'dark'" class="transition-colors duration-300">
+	<html :class="darkMode && 'dark'" class="transition-colors duration-300">
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -17,7 +17,7 @@ templ layout(loggedUser nostr.PubKey) {
 				tailwind.config = { darkMode: 'class' }
 			</script>
 			<script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
-			<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+			<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.14/dist/_hyperscript.min.js"></script>
 			<script src="https://cdn.jsdelivr.net/npm/nostr-web-components@0.0.12/dist/nostr-name.js"></script>
 		</head>
 		<body class="min-h-screen bg-stone-50 dark:stone-900 text-stone-900 dark:text-stone-100 transition-colors duration-300 flex flex-col">
@@ -37,7 +37,7 @@ templ layout(loggedUser nostr.PubKey) {
 					</div>
 					<nav class="flex flex-wrap gap-2 items-center justify-center pb-4">
 						<a href="/" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" hx-boost="true" hx-target="main" hx-select="main">invite tree</a>
-						<a target="_blank" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" x-data x-bind:href="`https://jumble.social/?r=${location.hostname}`">browse</a>
+						<a target="_blank" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" _="on load set my href to `https://jumble.social/?r=${location.hostname}`">browse</a>
 						<a href="/reports" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" hx-boost="true" hx-target="main" hx-select="main">reports</a>
 						<a href="/favorites" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" hx-boost="true" hx-target="main" hx-select="main">favorites</a>
 						<a href="/internal" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" hx-boost="true" hx-target="main" hx-select="main">internal</a>
@@ -45,7 +45,21 @@ templ layout(loggedUser nostr.PubKey) {
 						if loggedUser == *relay.Info.PubKey {
 							<a href="/cleanup" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors">clear stuff</a>
 						}
-						<a href="#" class="px-4 py-2 rounded-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 text-white shadow-md hover:shadow-lg transition-all" data-domain={ global.S.Domain } x-data @click.prevent="async () => { if ($el.innerText.trim() === 'login') { const event = await window.nostr.signEvent({created_at: Math.round(Date.now()/1000), kind: 27235, tags: [['domain', $el.dataset.domain]], content: ''}); document.cookie = 'nip98=' + JSON.stringify(event) + '; path=/'; } else { document.cookie = 'nip98=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'; } location.reload(); }">
+						<a
+							href="#"
+							class="px-4 py-2 rounded-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 text-white shadow-md hover:shadow-lg transition-all"
+							data-domain={ global.S.Domain }
+							_={ `
+					on click if my innerText is equal to 'login'
+						get window.nostr.signEvent({created_at: Math.round(Date.now()/1000), kind: 27235, tags: [['domain', '`+ global.S.Domain+ `']], content: ''})
+						then get JSON.stringify(it)
+						then set cookies['nip98'] to it
+					otherwise
+						call cookies.clear('nip98')
+					end
+					then call location.reload()
+				` }
+						>
 							if loggedUser != nostr.ZeroPK {
 								logout
 							} else {

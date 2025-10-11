@@ -17,9 +17,8 @@ templ inviteTreePage(loggedUser nostr.PubKey) {
 					hx-post="/action"
 					hx-trigger="submit"
 					hx-target="#tree"
-					x-data
-					@htmx:after-request="if ($event.detail.successful) $el.reset()"
-					class="flex gap-3"
+					_="on htmx:afterRequest(elt, successful) if successful and elt is I call I.reset()"
+					class="flex justify-center"
 				>
 					<input
 						type="text"
