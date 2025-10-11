@@ -10,32 +10,33 @@ import (
 
 templ inviteTreePage(loggedUser nostr.PubKey) {
 	@layout(loggedUser) {
-		<div>
+		<div class="max-w-2xl mx-auto">
 			if whitelist.CanInviteMore(loggedUser) {
+				<h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">invite new member</h2>
 				<form
 					hx-post="/action"
 					hx-trigger="submit"
 					hx-target="#tree"
 					x-data
 					@htmx:after-request="if ($event.detail.successful) $el.reset()"
-					class="flex justify-center"
+					class="flex gap-3"
 				>
 					<input
 						type="text"
 						name="target"
 						placeholder="npub1..."
-						class="w-96 rounded-md border-0 p-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
+						class="flex-1 rounded-xl border-0 px-4 py-3 text-gray-900 dark:text-gray-100 dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-blue-600 dark:focus:ring-blue-400 transition-all duration-200"
 					/>
 					<input type="hidden" name="type" value="invite"/>
 					<button
 						type="submit"
-						class="rounded-md text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 ml-2 p-2 bg-white hover:bg-gray-50"
+						class="rounded-xl px-6 py-3 font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg transition-all duration-200 transform hover:scale-105"
 					>
 						invite
 					</button>
 				</form>
 			}
-			<div id="tree" class="mt-3 flex justify-center">
+			<div id="tree" class="text-gray-700 dark:text-gray-300">
 				@inviteTreeComponent(nostr.ZeroPK, loggedUser)
 			</div>
 		</div>
@@ -46,25 +47,27 @@ templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey) {
 	<ul>
 		for pubkey, parents := range whitelist.Whitelist {
 			if slices.Contains(parents, curr) {
-				<li class="ml-6">
-					<a
-						href={ templ.URL("https://njump.me/p/" + pubkey.Hex()) }
-						target="_blank"
-						class="font-mono py-1"
-					>
-						<nostr-name pubkey={ pubkey.Hex() }>{ pubkey.Hex() }</nostr-name>
-					</a>
-					if whitelist.IsAncestorOf(loggedUser, pubkey) && loggedUser != nostr.ZeroPK {
-						<button
-							class="rounded-md text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 px-2 ml-2 bg-red-100 hover:bg-red-300"
-							hx-post="/action"
-							hx-trigger="click"
-							hx-target="#tree"
-							hx-vals={ fmt.Sprintf(`{"target": "%s", "type": "drop"}`, pubkey.Hex()) }
+				<li class="ml-6 py-1 group">
+					<div class="flex items-center gap-2">
+						<a
+							href={ templ.URL("https://njump.me/p/" + pubkey.Hex()) }
+							target="_blank"
+							class="font-mono text-sm hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
 						>
-							drop
-						</button>
-					}
+							<nostr-name pubkey={ pubkey.Hex() }>{ pubkey.Hex() }</nostr-name>
+						</a>
+						if whitelist.IsAncestorOf(loggedUser, pubkey) && loggedUser != nostr.ZeroPK {
+							<button
+								class="opacity-0 group-hover:opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 transition-all duration-200"
+								hx-post="/action"
+								hx-trigger="click"
+								hx-target="#tree"
+								hx-vals={ fmt.Sprintf(`{"target": "%s", "type": "drop"}`, pubkey.Hex()) }
+							>
+								drop
+							</button>
+						}
+					</div>
 					@inviteTreeComponent(pubkey, loggedUser)
 				</li>
 			}

@@ -61,6 +61,21 @@ func reportsViewerHandler(w http.ResponseWriter, r *http.Request) {
 	reportsPage(events, loggedUser).Render(r.Context(), w)
 }
 
+func favoritesPageHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := getLoggedUser(r)
+	favoritesPage(loggedUser).Render(r.Context(), w)
+}
+
+func internalPageHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := getLoggedUser(r)
+	internalPage(loggedUser).Render(r.Context(), w)
+}
+
+func groupsPageHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := getLoggedUser(r)
+	groupsPage(loggedUser).Render(r.Context(), w)
+}
+
 func forumHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `<!doctype html>
 <html>
