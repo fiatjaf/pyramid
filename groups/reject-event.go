@@ -114,7 +114,7 @@ func (s *State) RejectEvent(ctx context.Context, event nostr.Event) (reject bool
 	// restrict invalid moderation actions
 	if nip29.ModerationEventKinds.Includes(event.Kind) {
 		//  check if the moderation event author has sufficient permissions to perform this action
-		action, err := PrepareModerationAction(event)
+		action, err := nip29.PrepareModerationAction(event)
 		if err != nil {
 			return true, "error: invalid moderation action: " + err.Error()
 		}

@@ -29,7 +29,7 @@ type State struct {
 	defaultRoles            []*nip29.Role
 	groupCreatorDefaultRole *nip29.Role
 
-	AllowAction func(ctx context.Context, group nip29.Group, role *nip29.Role, action Action) bool
+	AllowAction func(ctx context.Context, group nip29.Group, role *nip29.Role, action nip29.Action) bool
 }
 
 type Options struct {

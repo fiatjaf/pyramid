@@ -73,7 +73,7 @@ func (s *State) loadGroupsFromDB(ctx context.Context) error {
 		}
 		for i := len(events) - 1; i >= 0; i-- {
 			evt := events[i]
-			act, err := PrepareModerationAction(evt)
+			act, err := nip29.PrepareModerationAction(evt)
 			if err != nil {
 				return err
 			}

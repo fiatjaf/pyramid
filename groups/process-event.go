@@ -4,11 +4,12 @@ import (
 	"context"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/nip29"
 )
 
 func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
 	// apply moderation action
-	if action, err := PrepareModerationAction(event); err == nil {
+	if action, err := nip29.PrepareModerationAction(event); err == nil {
 		// get group (or create it)
 		var group *Group
 		if event.Kind == nostr.KindSimpleGroupCreateGroup {
