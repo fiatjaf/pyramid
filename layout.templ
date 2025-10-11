@@ -14,7 +14,7 @@ templ layout(loggedUser nostr.PubKey) {
 			<title>{ global.S.RelayName }</title>
 			<script src="https://cdn.tailwindcss.com"></script>
 			<script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
-			<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.14/dist/_hyperscript.min.js"></script>
+			<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 			<script src="https://cdn.jsdelivr.net/npm/nostr-web-components@0.0.12/dist/nostr-name.js"></script>
 		</head>
 		<body class="px-3 mx-auto">
@@ -26,7 +26,7 @@ templ layout(loggedUser nostr.PubKey) {
 			</div>
 			<nav class="flex flex-1 items-center justify-center">
 				<a href="/" class="text-gray-600 hover:bg-gray-200 rounded-md px-3 py-2 font-medium" hx-boost="true" hx-target="main" hx-select="main">invite tree</a>
-				<a target="_blank" class="text-gray-600 hover:bg-gray-200 rounded-md px-3 py-2 font-medium" _="on load set my href to `https://jumble.social/?r=${location.hostname}`">browse</a>
+				<a target="_blank" class="text-gray-600 hover:bg-gray-200 rounded-md px-3 py-2 font-medium" x-data x-bind:href="`https://jumble.social/?r=${location.hostname}`">browse</a>
 				<a href="/reports" class="text-gray-600 hover:bg-gray-200 rounded-md px-3 py-2 font-medium" hx-boost="true" hx-target="main" hx-select="main">reports</a>
 				if loggedUser == *relay.Info.PubKey {
 					<a href="/cleanup" class="text-gray-600 hover:bg-gray-200 rounded-md px-3 py-2 font-medium">clear stuff</a>
@@ -34,16 +34,17 @@ templ layout(loggedUser nostr.PubKey) {
 				<a
 					href="#"
 					class="text-gray-600 hover:bg-gray-200 rounded-md px-3 py-2 font-medium"
-					_={ `
-					on click if my innerText is equal to 'login'
-						get window.nostr.signEvent({created_at: Math.round(Date.now()/1000), kind: 27235, tags: [['domain', '`+ global.S.Domain+ `']], content: ''})
-						then get JSON.stringify(it)
-						then set cookies['nip98'] to it
-					otherwise
-						call cookies.clear('nip98')
-					end
-					then call location.reload()
-				` }
+					data-domain={ global.S.Domain }
+					x-data
+					@click.prevent="async () => {
+						if ($el.innerText.trim() === 'login') {
+							const event = await window.nostr.signEvent({created_at: Math.round(Date.now()/1000), kind: 27235, tags: [['domain', $el.dataset.domain]], content: ''});
+							document.cookie = 'nip98=' + JSON.stringify(event) + '; path=/';
+						} else {
+							document.cookie = 'nip98=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+						}
+						location.reload();
+					}"
 				>
 					if loggedUser != nostr.ZeroPK {
 						logout
