@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"fiatjaf.com/nostr"
@@ -73,6 +74,11 @@ func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
 			return true, "restricted: must be a relay member"
 		},
 	)
+
+	relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		loggedUser, _ := global.GetLoggedUser(r)
+		internalPage(loggedUser).Render(r.Context(), w)
+	})
 
 	return relay
 }

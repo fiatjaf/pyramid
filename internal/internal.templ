@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"fiatjaf.com/nostr"
@@ -6,7 +6,7 @@ import (
 )
 
 templ internalPage(loggedUser nostr.PubKey) {
-	@layout(loggedUser) {
+	@global.Layout(loggedUser) {
 		<div class="max-w-3xl mx-auto">
 			<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-xl p-8">
 				<div class="flex items-center gap-3 mb-6">

@@ -3,6 +3,7 @@ package favorites
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"fiatjaf.com/nostr"
@@ -72,6 +73,11 @@ func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
 			return true, "restricted: you're not a relay member"
 		},
 	)
+
+	relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		loggedUser, _ := global.GetLoggedUser(r)
+		favoritesPage(loggedUser).Render(r.Context(), w)
+	})
 
 	return relay
 }

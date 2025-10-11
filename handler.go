@@ -11,13 +11,13 @@ import (
 )
 
 func inviteTreeHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser, _ := getLoggedUser(r)
+	loggedUser, _ := global.GetLoggedUser(r)
 	inviteTreePage(loggedUser).Render(r.Context(), w)
 }
 
 func actionHandler(w http.ResponseWriter, r *http.Request) {
 	type_ := r.PostFormValue("type")
-	author, _ := getLoggedUser(r)
+	author, _ := global.GetLoggedUser(r)
 	target := pubkeyFromInput(r.PostFormValue("target"))
 
 	if err := whitelist.AddAction(type_, author, target); err != nil {
@@ -30,7 +30,7 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 
 // this deletes all events from users not in the relay anymore
 func cleanupStuffFromExcludedUsersHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser, _ := getLoggedUser(r)
+	loggedUser, _ := global.GetLoggedUser(r)
 
 	if loggedUser != *relay.Info.PubKey {
 		http.Error(w, "unauthorized, only the relay owner can do this", 403)
@@ -55,25 +55,10 @@ func cleanupStuffFromExcludedUsersHandler(w http.ResponseWriter, r *http.Request
 }
 
 func reportsViewerHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser, _ := getLoggedUser(r)
+	loggedUser, _ := global.GetLoggedUser(r)
 
 	events := global.Nostr.Store.QueryEvents(nostr.Filter{Kinds: []nostr.Kind{1984}}, 52)
 	reportsPage(events, loggedUser).Render(r.Context(), w)
-}
-
-func favoritesPageHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser, _ := getLoggedUser(r)
-	favoritesPage(loggedUser).Render(r.Context(), w)
-}
-
-func internalPageHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser, _ := getLoggedUser(r)
-	internalPage(loggedUser).Render(r.Context(), w)
-}
-
-func groupsPageHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser, _ := getLoggedUser(r)
-	groupsPage(loggedUser).Render(r.Context(), w)
 }
 
 func forumHandler(w http.ResponseWriter, r *http.Request) {

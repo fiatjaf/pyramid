@@ -1,17 +1,14 @@
-package main
+package global
 
-import (
-	"fiatjaf.com/nostr"
-	"github.com/fiatjaf/pyramid/global"
-)
+import "fiatjaf.com/nostr"
 
-templ layout(loggedUser nostr.PubKey) {
+templ Layout(loggedUser nostr.PubKey) {
 	<!DOCTYPE html>
 	<html x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }" x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))" :class="{ 'dark': darkMode }">
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			<title>{ global.S.RelayName }</title>
+			<title>{ S.RelayName }</title>
 			<script src="https://cdn.tailwindcss.com"></script>
 			<script>tailwind.config = { darkMode: 'class' }</script>
 			<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -22,9 +19,9 @@ templ layout(loggedUser nostr.PubKey) {
 				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div class="flex items-center justify-between py-6">
 						<div class="flex-1">
-							<h1 class="font-bold text-3xl text-blue-600 dark:text-blue-400">{ global.S.RelayName }</h1>
-							if global.S.RelayDescription != "" {
-								<p class="text-sm text-stone-600 dark:text-stone-400 mt-1">{ global.S.RelayDescription }</p>
+							<h1 class="font-bold text-3xl text-blue-600 dark:text-blue-400">{ S.RelayName }</h1>
+							if S.RelayDescription != "" {
+								<p class="text-sm text-stone-600 dark:text-stone-400 mt-1">{ S.RelayDescription }</p>
 							}
 						</div>
 						<button @click="darkMode = !darkMode" class="ml-4 p-2.5 rounded-lg bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600" aria-label="Toggle dark mode">
@@ -39,7 +36,7 @@ templ layout(loggedUser nostr.PubKey) {
 						<a href="/favorites" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">favorites</a>
 						<a href="/internal" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">internal</a>
 						<a href="/groups" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">groups</a>
-						if loggedUser == *relay.Info.PubKey {
+						if loggedUser == Master {
 							<a href="/cleanup" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">clear stuff</a>
 						}
 						<button
@@ -87,7 +84,7 @@ templ layout(loggedUser nostr.PubKey) {
 							const event = await window.nostr.signEvent({
 								created_at: Math.round(Date.now() / 1000),
 								kind: 27235,
-								tags: [['domain', '{ global.S.Domain }']],
+								tags: [['domain', location.host]],
 								content: ''
 							});
 							setCookie('nip98', JSON.stringify(event));

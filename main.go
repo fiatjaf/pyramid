@@ -146,9 +146,6 @@ func main() {
 	relay.Router().HandleFunc("/action", actionHandler)
 	relay.Router().HandleFunc("/cleanup", cleanupStuffFromExcludedUsersHandler)
 	relay.Router().HandleFunc("/reports", reportsViewerHandler)
-	relay.Router().HandleFunc("/favorites", favoritesPageHandler)
-	relay.Router().HandleFunc("/internal", internalPageHandler)
-	relay.Router().HandleFunc("/groups", groupsPageHandler)
 	relay.Router().HandleFunc("/forum/", forumHandler)
 	relay.Router().Handle("/static/", http.FileServer(http.FS(static)))
 	relay.Router().HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {

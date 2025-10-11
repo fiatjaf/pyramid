@@ -8,7 +8,7 @@ import (
 )
 
 templ reportsPage(reports iter.Seq[nostr.Event], loggedUser nostr.PubKey) {
-	@layout(loggedUser) {
+	@global.Layout(loggedUser) {
 		<div class="max-w-3xl mx-auto">
 			<div class="space-y-4">
 				for report := range reports {

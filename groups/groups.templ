@@ -1,9 +1,12 @@
-package main
+package groups
 
-import "fiatjaf.com/nostr"
+import (
+	"fiatjaf.com/nostr"
+	"github.com/fiatjaf/pyramid/global"
+)
 
 templ groupsPage(loggedUser nostr.PubKey) {
-	@layout(loggedUser) {
+	@global.Layout(loggedUser) {
 		<div class="max-w-3xl mx-auto">
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">
