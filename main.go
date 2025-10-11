@@ -92,7 +92,6 @@ func main() {
 	// init relays
 	internalRelay := internal.NewRelay(internalDB)
 	favoritesRelay := favorites.NewRelay(favoritesDB)
-
 	groupsRelay, err := groups.NewRelay(groupsDB)
 	if err != nil {
 		log.Warn().Err(err).Msg("groups relay couldn't be initialized")
@@ -165,11 +164,11 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", relay)
-	mux.Handle("/internal/", http.StripPrefix("/internal", internalRelay))
+	mux.Handle("/internal", internalRelay)
 	if groupsRelay != nil {
-		mux.Handle("/groups/", http.StripPrefix("/groups", groupsRelay))
+		mux.Handle("/groups", groupsRelay)
 	}
-	mux.Handle("/favorites/", http.StripPrefix("/favorites", favoritesRelay))
+	mux.Handle("/favorites", favoritesRelay)
 
 	server := &http.Server{Addr: ":" + global.S.Port, Handler: mux}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

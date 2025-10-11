@@ -7,7 +7,7 @@ import (
 
 templ favoritesPage(loggedUser nostr.PubKey) {
 	@layout(loggedUser) {
-		<div class="max-w-2xl mx-auto">
+		<div class="max-w-3xl mx-auto">
 			<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-xl p-8">
 				<div class="flex items-center gap-3 mb-6">
 					<span class="text-4xl">⭐</span>
@@ -29,7 +29,7 @@ templ favoritesPage(loggedUser nostr.PubKey) {
 						<a
 							href={ templ.SafeURL("https://jumble.social/?r=favorites." + global.S.Domain) }
 							target="_blank"
-							class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
+							class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transform hover:scale-105"
 						>
 							<span>browse favorites</span>
 							<span>→</span>

@@ -9,7 +9,7 @@ import (
 
 templ reportsPage(reports iter.Seq[nostr.Event], loggedUser nostr.PubKey) {
 	@layout(loggedUser) {
-		<div class="max-w-2xl mx-auto">
+		<div class="max-w-3xl mx-auto">
 			<div class="space-y-4">
 				for report := range reports {
 					<div>
@@ -30,7 +30,7 @@ templ reportsPage(reports iter.Seq[nostr.Event], loggedUser nostr.PubKey) {
 }
 
 templ eventReportComponent(e nostr.Tag, target nostr.Event, report nostr.Event) {
-	<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+	<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 hover:shadow-xl transform hover:-translate-y-1">
 		<div class="flex justify-between items-start mb-3">
 			<div class="flex items-center gap-2">
 				<span class="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-1 rounded-full text-sm font-semibold">📢</span>
@@ -59,7 +59,7 @@ templ eventReportComponent(e nostr.Tag, target nostr.Event, report nostr.Event) 
 }
 
 templ profileReportComponent(p nostr.Tag, report nostr.Event) {
-	<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+	<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 hover:shadow-xl transform hover:-translate-y-1">
 		<div class="flex justify-between items-start mb-3">
 			<div class="flex items-center gap-2">
 				<span class="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-3 py-1 rounded-full text-sm font-semibold">👤</span>

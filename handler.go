@@ -93,7 +93,7 @@ func forumHandler(w http.ResponseWriter, r *http.Request) {
     <meta name="base-path" content="/forum" />
   </head>
   <body
-    class="bg-slate-100 transition-colors duration-200 dark:bg-gray-900 dark:text-white"
+    class="bg-slate-100 dark:bg-gray-900 dark:text-white"
   >
     <div id="app"></div>
   </body>

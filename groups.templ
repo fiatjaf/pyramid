@@ -5,10 +5,6 @@ import "fiatjaf.com/nostr"
 templ groupsPage(loggedUser nostr.PubKey) {
 	@layout(loggedUser) {
 		<div class="max-w-3xl mx-auto">
-			<div class="flex items-center gap-3 mb-6">
-				<span class="text-2xl">👥</span>
-				<h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100">groups relay</h1>
-			</div>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">
 					the groups relay implements NIP-29, providing moderated group chat functionality. create and manage communities with fine-grained permissions and moderation tools.

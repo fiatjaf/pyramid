@@ -7,78 +7,100 @@ import (
 
 templ layout(loggedUser nostr.PubKey) {
 	<!DOCTYPE html>
-	<html :class="darkMode && 'dark'" class="transition-colors duration-300">
+	<html x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }" x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))" :class="{ 'dark': darkMode }">
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<title>{ global.S.RelayName }</title>
 			<script src="https://cdn.tailwindcss.com"></script>
-			<script>
-				tailwind.config = { darkMode: 'class' }
-			</script>
-			<script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
-			<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.14/dist/_hyperscript.min.js"></script>
+			<script>tailwind.config = { darkMode: 'class' }</script>
+			<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 			<script src="https://cdn.jsdelivr.net/npm/nostr-web-components@0.0.12/dist/nostr-name.js"></script>
 		</head>
-		<body class="min-h-screen bg-stone-50 dark:stone-900 text-stone-900 dark:text-stone-100 transition-colors duration-300 flex flex-col">
+		<body class="min-h-screen bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100 flex flex-col">
 			<header class="bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm border-b border-stone-200 dark:border-stone-700 sticky top-0 z-50 shadow-sm">
 				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div class="flex items-center justify-between py-6">
 						<div class="flex-1">
-							<h1 class="font-bold text-3xl bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">{ global.S.RelayName }</h1>
+							<h1 class="font-bold text-3xl text-blue-600 dark:text-blue-400">{ global.S.RelayName }</h1>
 							if global.S.RelayDescription != "" {
 								<p class="text-sm text-stone-600 dark:text-stone-400 mt-1">{ global.S.RelayDescription }</p>
 							}
 						</div>
-						<button @click="darkMode = !darkMode" class="ml-4 p-2.5 rounded-lg bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600 transition-colors" aria-label="Toggle dark mode">
+						<button @click="darkMode = !darkMode" class="ml-4 p-2.5 rounded-lg bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600" aria-label="Toggle dark mode">
 							<svg x-show="!darkMode" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
 							<svg x-show="darkMode" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
 						</button>
 					</div>
 					<nav class="flex flex-wrap gap-2 items-center justify-center pb-4">
-						<a href="/" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" hx-boost="true" hx-target="main" hx-select="main">invite tree</a>
-						<a target="_blank" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" _="on load set my href to `https://jumble.social/?r=${location.hostname}`">browse</a>
-						<a href="/reports" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" hx-boost="true" hx-target="main" hx-select="main">reports</a>
-						<a href="/favorites" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" hx-boost="true" hx-target="main" hx-select="main">favorites</a>
-						<a href="/internal" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" hx-boost="true" hx-target="main" hx-select="main">internal</a>
-						<a href="/groups" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" hx-boost="true" hx-target="main" hx-select="main">groups</a>
+						<a href="/" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">invite tree</a>
+						<a target="_blank" :href="`https://jumble.social/?r=${location.hostname}`" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">browse</a>
+						<a href="/reports" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">reports</a>
+						<a href="/favorites" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">favorites</a>
+						<a href="/internal" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">internal</a>
+						<a href="/groups" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">groups</a>
 						if loggedUser == *relay.Info.PubKey {
-							<a href="/cleanup" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors">clear stuff</a>
+							<a href="/cleanup" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">clear stuff</a>
 						}
-						<a
-							href="#"
-							class="px-4 py-2 rounded-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 text-white shadow-md hover:shadow-lg transition-all"
-							data-domain={ global.S.Domain }
-							_={ `
-					on click if my innerText is equal to 'login'
-						get window.nostr.signEvent({created_at: Math.round(Date.now()/1000), kind: 27235, tags: [['domain', '`+ global.S.Domain+ `']], content: ''})
-						then get JSON.stringify(it)
-						then set cookies['nip98'] to it
-					otherwise
-						call cookies.clear('nip98')
-					end
-					then call location.reload()
-				` }
+						<button
+							@click="handleAuth($el)"
+							class="px-4 py-2 rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white shadow-md hover:shadow-lg"
 						>
 							if loggedUser != nostr.ZeroPK {
 								logout
 							} else {
 								login
 							}
-						</a>
+						</button>
 					</nav>
 				</div>
 			</header>
-			<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
+			<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow dark:bg-stone-900">
 				{ children... }
 			</main>
 			<footer class="mt-auto border-t border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-800/50 backdrop-blur-sm">
 				<div class="max-w-7xl mx-auto px-4 py-6 text-center">
-					<p class="text-sm text-stone-600 dark:text-stone-400">powered by <a target="_blank" href="https://github.com/fiatjaf/pyramid" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline transition-colors">pyramid</a></p>
+					<p class="text-sm text-stone-600 dark:text-stone-400">powered by <a target="_blank" href="https://github.com/fiatjaf/pyramid" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline">pyramid</a></p>
 				</div>
 			</footer>
 			<script>window.wnjParams = { position: 'bottom', startHidden: true, compactMode: true }</script>
 			<script src="https://cdn.jsdelivr.net/npm/window.nostr.js@0.4.7/dist/window.nostr.min.js"></script>
+			<script>
+				function getCookie(name) {
+					const value = `; ${document.cookie}`;
+					const parts = value.split(`; ${name}=`);
+					if (parts.length === 2) return parts.pop().split(';').shift();
+				}
+
+				function setCookie(name, value) {
+					document.cookie = `${name}=${value}; path=/`;
+				}
+
+				function clearCookie(name) {
+					document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+				}
+
+				async function handleAuth(el) {
+					const isLogin = el.innerText.toLowerCase() === 'login';
+					if (isLogin) {
+						try {
+							const event = await window.nostr.signEvent({
+								created_at: Math.round(Date.now() / 1000),
+								kind: 27235,
+								tags: [['domain', '{ global.S.Domain }']],
+								content: ''
+							});
+							setCookie('nip98', JSON.stringify(event));
+						} catch (e) {
+							console.error('login failed:', e);
+							return;
+						}
+					} else {
+						clearCookie('nip98');
+					}
+					location.reload();
+				}
+			</script>
 		</body>
 	</html>
 }
