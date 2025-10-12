@@ -93,8 +93,10 @@ func main() {
 	internalRelay := internal.NewRelay(internalDB)
 	favoritesRelay := favorites.NewRelay(favoritesDB)
 	groupsRelay, err := groups.NewRelay(groupsDB)
-	if err != nil {
-		log.Warn().Err(err).Msg("groups relay couldn't be initialized")
+	if err == nil {
+		global.GroupsRelayEnabled = true
+	} else {
+		log.Info().Err(err).Msg("groups relay couldn't be initialized")
 	}
 
 	// init main relay

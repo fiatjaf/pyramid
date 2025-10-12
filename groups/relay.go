@@ -2,6 +2,7 @@ package groups
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -83,6 +84,11 @@ func NewRelay(db *mmm.IndexingLayer) (*khatru.Relay, error) {
 	)
 
 	relay.OnEventSaved = state.ProcessEvent
+
+	relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		loggedUser, _ := global.GetLoggedUser(r)
+		groupsPage(loggedUser).Render(r.Context(), w)
+	})
 
 	return relay, nil
 }

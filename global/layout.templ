@@ -2,6 +2,8 @@ package global
 
 import "fiatjaf.com/nostr"
 
+var GroupsRelayEnabled = false
+
 templ Layout(loggedUser nostr.PubKey) {
 	<!DOCTYPE html>
 	<html x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }" x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))" :class="{ 'dark': darkMode }">
@@ -35,7 +37,9 @@ templ Layout(loggedUser nostr.PubKey) {
 						<a href="/reports" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">reports</a>
 						<a href="/favorites" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">favorites</a>
 						<a href="/internal" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">internal</a>
-						<a href="/groups" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">groups</a>
+						if GroupsRelayEnabled {
+							<a href="/groups" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">groups</a>
+						}
 						if loggedUser == Master {
 							<a href="/cleanup" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">clear stuff</a>
 						}

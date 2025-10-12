@@ -8,33 +8,31 @@ import (
 templ internalPage(loggedUser nostr.PubKey) {
 	@global.Layout(loggedUser) {
 		<div class="max-w-3xl mx-auto">
-			<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-xl p-8">
-				<div class="flex items-center gap-3 mb-6">
-					<h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100">internal relay</h1>
+			<div class="flex items-center gap-3 mb-6">
+				<h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100">internal relay</h1>
+			</div>
+			<div class="space-y-4 text-gray-700 dark:text-gray-300">
+				<p class="text-lg leading-relaxed">
+					the internal relay is your private space for personal notes, drafts, and encrypted messages. content here is only accessible to you.
+				</p>
+				<div class="bg-purple-50/50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4">
+					<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">features:</h2>
+					<ul class="list-disc list-inside space-y-1 text-sm">
+						<li>stores private notes and drafts</li>
+						<li>keeps your personal bookmarks secure</li>
+						<li>perfect for sensitive information</li>
+						<li>encrypted end-to-end</li>
+					</ul>
 				</div>
-				<div class="space-y-4 text-gray-700 dark:text-gray-300">
-					<p class="text-lg leading-relaxed">
-						the internal relay is your private space for personal notes, drafts, and encrypted messages. content here is only accessible to you.
-					</p>
-					<div class="bg-purple-50/50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4">
-						<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">features:</h2>
-						<ul class="list-disc list-inside space-y-1 text-sm">
-							<li>stores private notes and drafts</li>
-							<li>keeps your personal bookmarks secure</li>
-							<li>perfect for sensitive information</li>
-							<li>encrypted end-to-end</li>
-						</ul>
-					</div>
-					<div class="pt-4">
-						<a
-							href={ templ.SafeURL("https://jumble.social/?r=internal." + global.S.Domain) }
-							target="_blank"
-							class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transform hover:scale-105"
-						>
-							<span>browse internal</span>
-							<span>→</span>
-						</a>
-					</div>
+				<div class="pt-4">
+					<a
+						href={ templ.SafeURL("https://jumble.social/?r=internal." + global.S.Domain) }
+						target="_blank"
+						class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transform hover:scale-105"
+					>
+						<span>browse internal</span>
+						<span>→</span>
+					</a>
 				</div>
 			</div>
 		</div>
