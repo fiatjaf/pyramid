@@ -25,7 +25,7 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	inviteTreeComponent(nostr.ZeroPK, author).Render(r.Context(), w)
+	http.Redirect(w, r, "/", 302)
 }
 
 // this deletes all events from users not in the relay anymore

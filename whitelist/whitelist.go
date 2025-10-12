@@ -64,7 +64,7 @@ func hasSingleRootAncestor(ancestor nostr.PubKey, target nostr.PubKey) bool {
 	}
 
 	for _, parent := range parents {
-		if parent != ancestor && !hasSingleRootAncestor(ancestor, parent) {
+		if !hasSingleRootAncestor(ancestor, parent) {
 			return false
 		}
 	}
@@ -148,46 +148,55 @@ func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
 			Whitelist[target] = append(Whitelist[target], author)
 		}
 	case "drop":
-		parents, _ := Whitelist[target]
+		parents := Whitelist[target]
 
-		// check all the parents
+		// remove parent links that trace back to author
 		for i := 0; i < len(parents); {
-			parent := parents[i]
-
-			// for all the parents that are dependent on the author, remove the link
-			if hasSingleRootAncestor(author, parent) {
-				// swap-delete
+			if hasSingleRootAncestor(author, parents[i]) {
 				parents[i] = parents[len(parents)-1]
-				parents = parents[0 : len(parents)-1]
+				parents = parents[:len(parents)-1]
 			} else {
 				i++
 			}
 		}
 
-		// delete this only if it has no parent links left
-		if len(parents) > 0 {
-			Whitelist[target] = parents
-		} else {
+		// if target has no parents left, remove it and cascade
+		if len(parents) == 0 {
 			delete(Whitelist, target)
 
-			// since we've deleted it, delete all its unique children
-			toDelete := make([]nostr.PubKey, 0, 5)
-			for node := range Whitelist {
-				if hasSingleRootAncestor(target, node) {
-					toDelete = append(toDelete, node)
+			// recursively remove nodes that only have target as ancestor
+			var removeDescendants func(nostr.PubKey)
+			removeDescendants = func(dropped nostr.PubKey) {
+				for node, nodeParents := range Whitelist {
+					// remove links from dropped node to this node
+					for i := 0; i < len(nodeParents); {
+						if nodeParents[i] == dropped {
+							nodeParents[i] = nodeParents[len(nodeParents)-1]
+							nodeParents = nodeParents[:len(nodeParents)-1]
+						} else {
+							i++
+						}
+					}
+
+					// if node has no parents left, remove it and recurse
+					if len(nodeParents) == 0 {
+						delete(Whitelist, node)
+						removeDescendants(node)
+					} else {
+						Whitelist[node] = nodeParents
+					}
 				}
 			}
-
-			for _, node := range toDelete {
-				delete(Whitelist, node)
-			}
+			removeDescendants(target)
+		} else {
+			Whitelist[target] = parents
 		}
 	}
 }
 
-func appendActionToFile(actionType string, author, target nostr.PubKey) error {
+func appendActionToFile(type_ string, author, target nostr.PubKey) error {
 	action := managementAction{
-		Type:   actionType,
+		Type:   type_,
 		Author: author.Hex(),
 		Target: target.Hex(),
 		When:   nostr.Now(),

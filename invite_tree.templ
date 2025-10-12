@@ -54,7 +54,7 @@ templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey) {
 							<nostr-name pubkey={ pubkey.Hex() } class="text-lg">{ pubkey.Hex() }</nostr-name>
 						</a>
 						if whitelist.IsAncestorOf(loggedUser, pubkey) && loggedUser != nostr.ZeroPK {
-							<form method="post" action="/action" style="display: inline;">
+							<form method="post" action="/action" class="inline">
 								<input type="hidden" name="target" value={ pubkey.Hex() }/>
 								<input type="hidden" name="type" value="drop"/>
 								<button
