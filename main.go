@@ -148,6 +148,8 @@ func main() {
 	relay.Router().HandleFunc("/action", actionHandler)
 	relay.Router().HandleFunc("/cleanup", cleanupStuffFromExcludedUsersHandler)
 	relay.Router().HandleFunc("/reports", reportsViewerHandler)
+	relay.Router().HandleFunc("/settings", settingsHandler)
+	relay.Router().HandleFunc("/settings.json", jsonSettingsHandler)
 	relay.Router().HandleFunc("/forum/", forumHandler)
 	relay.Router().Handle("/static/", http.FileServer(http.FS(static)))
 	relay.Router().HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {

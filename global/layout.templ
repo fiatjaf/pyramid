@@ -33,7 +33,7 @@ templ Layout(loggedUser nostr.PubKey) {
 					</div>
 					<nav class="flex flex-wrap gap-2 items-center justify-center pb-4">
 						<a href="/" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">invite tree</a>
-						<a target="_blank" :href="`https://jumble.social/?r=${location.hostname}`" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">browse</a>
+						<a id="browse-link" target="_blank" href="https://jumble.social/?r=" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">browse</a>
 						<a href="/reports" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">reports</a>
 						<a href="/favorites" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">favorites</a>
 						<a href="/internal" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">internal</a>
@@ -41,7 +41,7 @@ templ Layout(loggedUser nostr.PubKey) {
 							<a href="/groups" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">groups</a>
 						}
 						if loggedUser == Master {
-							<a href="/cleanup" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">clear stuff</a>
+							<a href="/settings" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">settings</a>
 						}
 						<button
 							@click="handleAuth($el)"
@@ -80,6 +80,23 @@ templ Layout(loggedUser nostr.PubKey) {
 				function clearCookie(name) {
 					document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 				}
+
+				// load browse link from settings
+				fetch('/settings.json')
+					.then(r => r.json())
+					.then(settings => {
+						const browseLink = document.getElementById('browse-link');
+						if (browseLink && settings.browse_uri) {
+							browseLink.href = settings.browse_uri.replace('{url}', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 3).join('/')));
+						}
+					})
+					.catch(() => {
+						// fallback to default
+						const browseLink = document.getElementById('browse-link');
+						if (browseLink) {
+							browseLink.href = `https://jumble.social/?r=${location.hostname}`;
+						}
+					});
 
 				async function handleAuth(el) {
 					const isLogin = el.innerText.toLowerCase() === 'login';
