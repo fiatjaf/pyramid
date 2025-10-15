@@ -61,32 +61,40 @@ func main() {
 	}
 	defer global.MMMM.Close()
 
-	db := &mmm.IndexingLayer{}
-	if err := global.MMMM.EnsureLayer("main", db); err != nil {
+	var db *mmm.IndexingLayer
+	if layer, err := global.MMMM.EnsureLayer("main"); err != nil {
 		log.Fatal().Err(err).Msg("failed to setup main indexing layer")
 		return
+	} else {
+		db = layer
 	}
 
 	global.Nostr = sdk.NewSystem()
 	global.Nostr.Store = db
 
 	// setup additional indexing layers
-	internalDB := &mmm.IndexingLayer{}
-	if err := global.MMMM.EnsureLayer("internal", internalDB); err != nil {
+	var internalDB *mmm.IndexingLayer
+	if layer, err := global.MMMM.EnsureLayer("internal"); err != nil {
 		log.Fatal().Err(err).Msg("failed to setup internal indexing layer")
 		return
+	} else {
+		internalDB = layer
 	}
 
-	groupsDB := &mmm.IndexingLayer{}
-	if err := global.MMMM.EnsureLayer("groups", groupsDB); err != nil {
+	var groupsDB *mmm.IndexingLayer
+	if layer, err := global.MMMM.EnsureLayer("groups"); err != nil {
 		log.Fatal().Err(err).Msg("failed to setup groups indexing layer")
 		return
+	} else {
+		groupsDB = layer
 	}
 
-	favoritesDB := &mmm.IndexingLayer{}
-	if err := global.MMMM.EnsureLayer("favorites", favoritesDB); err != nil {
+	var favoritesDB *mmm.IndexingLayer
+	if layer, err := global.MMMM.EnsureLayer("favorites"); err != nil {
 		log.Fatal().Err(err).Msg("failed to setup favorites indexing layer")
 		return
+	} else {
+		favoritesDB = layer
 	}
 
 	// init relays
