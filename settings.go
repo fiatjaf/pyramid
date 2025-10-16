@@ -9,7 +9,10 @@ import (
 )
 
 type UserSettings struct {
-	BrowseURI string `json:"browse_uri"`
+	BrowseURI       string `json:"browse_uri"`
+	BackgroundColor string `json:"background_color"`
+	TextColor       string `json:"text_color"`
+	AccentColor     string `json:"accent_color"`
 }
 
 func getUserSettingsPath() string {
@@ -18,7 +21,10 @@ func getUserSettingsPath() string {
 
 func loadUserSettings() (UserSettings, error) {
 	config := UserSettings{
-		BrowseURI: "https://jumble.social/?r={url}", // default
+		BrowseURI:       "https://jumble.social/?r={url}", // default
+		BackgroundColor: "#fafaf9",                         // stone-50
+		TextColor:       "#1c1917",                         // stone-900
+		AccentColor:     "#3b82f6",                         // blue-500
 	}
 
 	data, err := os.ReadFile(getUserSettingsPath())

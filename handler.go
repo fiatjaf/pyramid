@@ -86,7 +86,10 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		// save settings
 		settings := UserSettings{
-			BrowseURI: r.PostFormValue("browse_uri"),
+			BrowseURI:       r.PostFormValue("browse_uri"),
+			BackgroundColor: r.PostFormValue("background_color"),
+			TextColor:       r.PostFormValue("text_color"),
+			AccentColor:     r.PostFormValue("accent_color"),
 		}
 
 		if err := saveUserSettings(settings); err != nil {

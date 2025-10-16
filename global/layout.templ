@@ -6,7 +6,17 @@ var GroupsRelayEnabled = false
 
 templ Layout(loggedUser nostr.PubKey) {
 	<!DOCTYPE html>
-	<html x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }" x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))" :class="{ 'dark': darkMode }">
+	<html x-data="{ darkMode: localStorage.getItem('darkMode') === 'true', hasCustomTheme: false }" x-init="
+		hasCustomTheme = !!localStorage.getItem('themeColors');
+		if (hasCustomTheme) {
+			const colors = JSON.parse(localStorage.getItem('themeColors'));
+			document.documentElement.style.setProperty('--accent-color', colors.accentColor);
+			document.documentElement.style.setProperty('--bg-color', colors.backgroundColor);
+			document.documentElement.style.setProperty('--text-color', colors.textColor);
+		}
+		$watch('darkMode', val => localStorage.setItem('darkMode', val));
+		window.addEventListener('theme-updated', () => { hasCustomTheme = !!localStorage.getItem('themeColors'); });
+	" :class="{ 'dark': darkMode && !hasCustomTheme }">
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -16,36 +26,38 @@ templ Layout(loggedUser nostr.PubKey) {
 			<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 			<script src="https://cdn.jsdelivr.net/npm/nostr-web-components@0.0.12/dist/nostr-name.js"></script>
 		</head>
-		<body class="min-h-screen bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100 flex flex-col">
-			<header class="bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm border-b border-stone-200 dark:border-stone-700 sticky top-0 z-50 shadow-sm">
+		<body class="min-h-screen flex flex-col transition-colors" :style="hasCustomTheme ? `background-color: var(--bg-color); color: var(--text-color)` : ''" :class="!hasCustomTheme ? 'bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100' : ''">
+			<header class="bg-white/90 dark:bg-stone-800/90 backdrop-blur-sm sticky top-0 z-50 shadow-sm border-b border-stone-300 transition-colors">
 				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div class="flex items-center justify-between py-6">
 						<div class="flex-1">
-							<h1 class="font-bold text-3xl text-blue-600 dark:text-blue-400">{ S.RelayName }</h1>
+							<h1 class="font-bold text-3xl transition-colors" :style="hasCustomTheme ? `color: var(--accent-color)` : ''" :class="!hasCustomTheme ? 'text-blue-600 dark:text-blue-400' : ''">{ S.RelayName }</h1>
 							if S.RelayDescription != "" {
 								<p class="text-sm text-stone-600 dark:text-stone-400 mt-1">{ S.RelayDescription }</p>
 							}
 						</div>
-						<button @click="darkMode = !darkMode" class="ml-4 p-2.5 rounded-lg bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600" aria-label="Toggle dark mode">
-							<svg x-show="!darkMode" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-							<svg x-show="darkMode" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+						<button @click="darkMode = !darkMode" x-show="!hasCustomTheme" class="ml-4 p-2.5 rounded-lg bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600 transition-colors" aria-label="Toggle dark mode">
+							<svg x-show="darkMode" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+							<svg x-show="!darkMode" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
 						</button>
 					</div>
 					<nav class="flex flex-wrap gap-2 items-center justify-center pb-4">
-						<a href="/" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">invite tree</a>
-						<a id="browse-link" target="_blank" href="https://jumble.social/?r=" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">browse</a>
-						<a href="/reports" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">reports</a>
-						<a href="/favorites" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">favorites</a>
-						<a href="/internal" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">internal</a>
+						<a href="/" class="hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" :style="hasCustomTheme ? `color: var(--text-color)` : ''" :class="!hasCustomTheme ? 'text-stone-700 dark:text-stone-300' : ''">invite tree</a>
+						<a id="browse-link" target="_blank" href="https://jumble.social/?r=" class="hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" :style="hasCustomTheme ? `color: var(--text-color)` : ''" :class="!hasCustomTheme ? 'text-stone-700 dark:text-stone-300' : ''">browse</a>
+						<a href="/reports" class="hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" :style="hasCustomTheme ? `color: var(--text-color)` : ''" :class="!hasCustomTheme ? 'text-stone-700 dark:text-stone-300' : ''">reports</a>
+						<a href="/favorites" class="hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" :style="hasCustomTheme ? `color: var(--text-color)` : ''" :class="!hasCustomTheme ? 'text-stone-700 dark:text-stone-300' : ''">favorites</a>
+						<a href="/internal" class="hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" :style="hasCustomTheme ? `color: var(--text-color)` : ''" :class="!hasCustomTheme ? 'text-stone-700 dark:text-stone-300' : ''">internal</a>
 						if GroupsRelayEnabled {
-							<a href="/groups" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">groups</a>
+							<a href="/groups" class="hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" :style="hasCustomTheme ? `color: var(--text-color)` : ''" :class="!hasCustomTheme ? 'text-stone-700 dark:text-stone-300' : ''">groups</a>
 						}
 						if loggedUser == Master {
-							<a href="/settings" class="text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium">settings</a>
+							<a href="/settings" class="hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg px-4 py-2 font-medium transition-colors" :style="hasCustomTheme ? `color: var(--text-color)` : ''" :class="!hasCustomTheme ? 'text-stone-700 dark:text-stone-300' : ''">settings</a>
 						}
 						<button
 							@click="handleAuth($el)"
-							class="px-4 py-2 rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white shadow-md hover:shadow-lg"
+							class="px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg transition-colors"
+							:style="hasCustomTheme ? `background-color: var(--accent-color)` : ''"
+							:class="!hasCustomTheme ? 'bg-blue-500 hover:bg-blue-600' : ''"
 						>
 							if loggedUser != nostr.ZeroPK {
 								logout
@@ -56,12 +68,12 @@ templ Layout(loggedUser nostr.PubKey) {
 					</nav>
 				</div>
 			</header>
-			<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow dark:bg-stone-900">
+			<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
 				{ children... }
 			</main>
-			<footer class="mt-auto border-t border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-800/50 backdrop-blur-sm">
+			<footer class="mt-auto bg-white/50 dark:bg-stone-800/50 backdrop-blur-sm border-t border-stone-300 transition-colors">
 				<div class="max-w-7xl mx-auto px-4 py-6 text-center">
-					<p class="text-sm text-stone-600 dark:text-stone-400">powered by <a target="_blank" href="https://github.com/fiatjaf/pyramid" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline">pyramid</a></p>
+					<p class="text-sm text-stone-600 dark:text-stone-400">powered by <a target="_blank" href="https://github.com/fiatjaf/pyramid" class="hover:underline transition-colors" :style="hasCustomTheme ? `color: var(--accent-color)` : ''" :class="!hasCustomTheme ? 'text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300' : ''">pyramid</a></p>
 				</div>
 			</footer>
 			<script>window.wnjParams = { position: 'bottom', startHidden: true, compactMode: true }</script>
@@ -85,6 +97,7 @@ templ Layout(loggedUser nostr.PubKey) {
 				fetch('/settings.json')
 					.then(r => r.json())
 					.then(settings => {
+						// update browse link
 						const browseLink = document.getElementById('browse-link');
 						if (browseLink && settings.browse_uri) {
 							browseLink.href = settings.browse_uri.replace('{url}', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 3).join('/')));
