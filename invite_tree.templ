@@ -17,7 +17,14 @@ templ inviteTreePage(loggedUser nostr.PubKey) {
 					action="/action"
 					class="flex items-center gap-3 mb-6"
 				>
-					<label class="text-sm font-medium text-gray-700 dark:text-gray-300">invite new member: </label>
+					<label
+						class="text-sm font-medium"
+						if global.Settings.HasThemeColors() {
+							class="text-[var(--text-color)]"
+						} else {
+							class="text-gray-700 dark:text-gray-300"
+						}
+					>invite new member: </label>
 					<input
 						type="text"
 						name="target"
@@ -27,13 +34,23 @@ templ inviteTreePage(loggedUser nostr.PubKey) {
 					<input type="hidden" name="type" value="invite"/>
 					<button
 						type="submit"
-						class="rounded-lg px-4 py-1.5 text-sm font-semibold bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white shadow-lg transform hover:scale-105"
+						class={
+							"rounded-lg px-4 py-1.5 text-sm font-semibold text-white shadow-lg transform hover:scale-105",
+							templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
+							templ.KV("bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600", !global.Settings.HasThemeColors()),
+						}
 					>
 						invite
 					</button>
 				</form>
 			}
-			<div class="text-gray-700 dark:text-gray-300">
+			<div
+				if global.Settings.HasThemeColors() {
+					class="text-[var(--text-color)]"
+				} else {
+					class="text-gray-700 dark:text-gray-300"
+				}
+			>
 				@inviteTreeComponent(nostr.ZeroPK, loggedUser)
 			</div>
 		</div>
@@ -49,9 +66,17 @@ templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey) {
 						<a
 							href={ templ.URL("https://njump.me/p/" + pubkey.Hex()) }
 							target="_blank"
-							class="font-mono text-sm hover:text-blue-600 dark:hover:text-blue-400"
+							class="font-mono text-sm"
 						>
-							<nostr-name pubkey={ pubkey.Hex() } class="text-lg">{ pubkey.Hex() }</nostr-name>
+							<span
+								if global.Settings.HasThemeColors() {
+									class="text-[var(--text-color)]"
+								} else {
+									class="text-gray-700 dark:text-gray-300"
+								}
+							>
+								<nostr-name pubkey={ pubkey.Hex() } class="text-lg">{ pubkey.Hex() }</nostr-name>
+							</span>
 						</a>
 						if whitelist.IsAncestorOf(loggedUser, pubkey) && loggedUser != nostr.ZeroPK {
 							<form method="post" action="/action" class="inline">
@@ -59,7 +84,7 @@ templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey) {
 								<input type="hidden" name="type" value="drop"/>
 								<button
 									type="submit"
-									class="opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400"
+									class="opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-red-400/10 hover:bg-red-400/20 text-red-400/80 dark:text-red-400/80"
 								>
 									drop
 								</button>

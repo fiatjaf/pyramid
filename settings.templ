@@ -6,11 +6,15 @@ import (
 	"github.com/fiatjaf/pyramid/global"
 )
 
-templ settingsPage(loggedUser nostr.PubKey, settings UserSettings) {
+templ settingsPage(loggedUser nostr.PubKey) {
 	@global.Layout(loggedUser) {
 		<div class="max-w-4xl mx-auto">
 			<h2 class="text-2xl font-bold mb-6 dark:text-stone-100">settings</h2>
-			<form method="POST" action="/settings" class="space-y-6" x-data={ fmt.Sprintf(`{
+			<form
+				method="POST"
+				action="/settings"
+				class="space-y-6"
+				x-data={ fmt.Sprintf(`{
 				browseUri: '%s',
 				accentColor: '%s',
 				backgroundColor: '%s',
@@ -19,61 +23,54 @@ templ settingsPage(loggedUser nostr.PubKey, settings UserSettings) {
 					document.documentElement.style.setProperty('--accent-color', this.accentColor);
 					document.documentElement.style.setProperty('--bg-color', this.backgroundColor);
 					document.documentElement.style.setProperty('--text-color', this.textColor);
-					localStorage.setItem('themeColors', JSON.stringify({
-						accentColor: this.accentColor,
-						backgroundColor: this.backgroundColor,
-						textColor: this.textColor
-					}));
-					window.dispatchEvent(new CustomEvent('theme-updated'));
 				}
-			}`, settings.BrowseURI, settings.AccentColor, settings.BackgroundColor, settings.TextColor) } x-init="updateTheme()">
+			}`, global.Settings.BrowseURI, global.Settings.AccentColor, global.Settings.BackgroundColor, global.Settings.TextColor) }
+				x-init="updateTheme()"
+			>
 				<!-- Browse Client Setting -->
-				<div class="bg-white dark:bg-stone-800 rounded-lg p-6 shadow-sm border border-stone-300">
-					<label class="block text-sm font-medium mb-2 dark:text-stone-300">browse client url</label>
-					<p class="text-sm text-stone-600 dark:text-stone-400 mb-3">pattern for the "browse" link. use { "{" }url{ "}" } as placeholder for the relay url.</p>
-					<div>
-						<input
-							type="text"
-							name="browse_uri"
-							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-3"
-							x-model="browseUri"
-						/>
-						<div class="flex flex-wrap gap-2">
-							<button
-								type="button"
-								@click="browseUri = 'https://jumble.social/?r={url}'"
-								class="px-3 py-1 text-sm rounded bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600"
-							>
-								jumble
-							</button>
-							<button
-								type="button"
-								@click="browseUri = 'https://yakihonne.com/r/content?r={url}'"
-								class="px-3 py-1 text-sm rounded bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600"
-							>
-								yakihonne
-							</button>
-							<button
-								type="button"
-								@click="browseUri = 'https://nosotros.app/feed?relay={url}&kind=1&limit=30&type=relayfeed'"
-								class="px-3 py-1 text-sm rounded bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600"
-							>
-								nosotros
-							</button>
-							<button
-								type="button"
-								@click="browseUri = 'https://coracle.social/relays/{url}'"
-								class="px-3 py-1 text-sm rounded bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600"
-							>
-								coracle
-							</button>
-						</div>
+				<label class="block text-sm font-medium mb-2 dark:text-stone-300">browse client url</label>
+				<p class="text-sm text-stone-600 dark:text-stone-400 mb-3">pattern for the "browse" link. use { "{" }url{ "}" } as placeholder for the relay url.</p>
+				<div>
+					<input
+						type="text"
+						name="browse_uri"
+						class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-3"
+						x-model="browseUri"
+					/>
+					<div class="flex flex-wrap gap-2">
+						<button
+							type="button"
+							@click="browseUri = 'https://jumble.social/?r={url}'"
+							class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500 transition-colors"
+						>
+							jumble
+						</button>
+						<button
+							type="button"
+							@click="browseUri = 'https://yakihonne.com/r/content?r={url}'"
+							class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500 transition-colors"
+						>
+							yakihonne
+						</button>
+						<button
+							type="button"
+							@click="browseUri = 'https://nosotros.app/feed?relay={url}&kind=1&limit=30&type=relayfeed'"
+							class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500 transition-colors"
+						>
+							nosotros
+						</button>
+						<button
+							type="button"
+							@click="browseUri = 'https://coracle.social/relays/{url}'"
+							class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500 transition-colors"
+						>
+							coracle
+						</button>
 					</div>
 				</div>
-				<!-- Theme Colors Section -->
-				<div class="bg-white dark:bg-stone-800 rounded-lg p-6 shadow-sm border border-stone-300">
+				<div class="mt-8">
+					<!-- Theme Colors Section -->
 					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">theme colors</h3>
-					<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">customize colors in real-time. changes override dark/light mode.</p>
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 						<div>
 							<label class="block text-sm font-medium mb-2 dark:text-stone-300">accent color</label>
@@ -106,33 +103,30 @@ templ settingsPage(loggedUser nostr.PubKey, settings UserSettings) {
 							/>
 						</div>
 					</div>
-				</div>
-				<!-- Save Button -->
-				<div class="flex justify-end">
-					<button
-						type="submit"
-						class="px-6 py-2 rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white shadow-md hover:shadow-lg transition-colors"
-					>
-						save settings
-					</button>
+					<div class="flex justify-end mt-4">
+						<button
+							type="submit"
+							class="px-6 py-2 rounded-lg font-semibold bg-stone-700 hover:bg-stone-800 dark:bg-stone-600 dark:hover:bg-stone-500 text-white shadow-md hover:shadow-lg transition-colors"
+						>
+							save settings
+						</button>
+					</div>
 				</div>
 			</form>
-			<!-- Danger Zone -->
-			if loggedUser == global.Master {
-				<div class="mt-8 bg-red-50 dark:bg-red-900/20 rounded-lg p-6 border border-red-200 dark:border-red-800">
-					<h3 class="text-lg font-semibold text-red-800 dark:text-red-400 mb-3">danger zone</h3>
-					<p class="text-sm text-red-700 dark:text-red-300 mb-4">
-						this action will permanently delete all events from users not in the whitelist.
-					</p>
-					<a
-						href="/cleanup"
-						class="inline-block px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
-						onclick="return confirm('are you sure you want to delete all events from non-whitelisted users? this cannot be undone.')"
-					>
-						clear stuff from excluded users
-					</a>
-				</div>
-			}
+			<!-- cleanup Section -->
+			<div class="mt-8">
+				<h3 class="text-lg font-semibold dark:text-stone-200 mb-3">cleanup</h3>
+				<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
+					permanently delete all events from users not in the whitelist.
+				</p>
+				<a
+					href="/cleanup"
+					class="inline-block px-4 py-2 rounded bg-stone-700 hover:bg-stone-800 dark:bg-stone-600 dark:hover:bg-stone-500 text-white font-medium transition-colors"
+					onclick="return confirm('are you sure you want to delete all events from non-whitelisted users? this cannot be undone.')"
+				>
+					clear stuff from excluded users
+				</a>
+			</div>
 		</div>
 	}
 }

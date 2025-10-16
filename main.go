@@ -15,7 +15,6 @@ import (
 	"fiatjaf.com/nostr/khatru/policies"
 	"fiatjaf.com/nostr/nip11"
 	"fiatjaf.com/nostr/sdk"
-	"github.com/kelseyhightower/envconfig"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/fiatjaf/pyramid/favorites"
@@ -34,9 +33,8 @@ var (
 var static embed.FS
 
 func main() {
-	err := envconfig.Process("", &global.S)
-	if err != nil {
-		log.Fatal().Err(err).Msg("couldn't process envconfig")
+	if err := global.Init(); err != nil {
+		log.Fatal().Err(err).Msg("couldn't initialize")
 		return
 	}
 
@@ -157,7 +155,6 @@ func main() {
 	relay.Router().HandleFunc("/cleanup", cleanupStuffFromExcludedUsersHandler)
 	relay.Router().HandleFunc("/reports", reportsViewerHandler)
 	relay.Router().HandleFunc("/settings", settingsHandler)
-	relay.Router().HandleFunc("/settings.json", jsonSettingsHandler)
 	relay.Router().HandleFunc("/forum/", forumHandler)
 	relay.Router().Handle("/static/", http.FileServer(http.FS(static)))
 	relay.Router().HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {

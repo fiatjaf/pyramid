@@ -20,16 +20,17 @@ templ favoritesPage(loggedUser nostr.PubKey) {
 						<li>syncs across all your nostr clients</li>
 					</ul>
 				</div>
-				<div class="pt-4">
-					<a
-						href={ templ.SafeURL("https://jumble.social/?r=favorites." + global.S.Domain) }
-						target="_blank"
-						class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transform hover:scale-105"
-					>
-						<span>browse favorites</span>
-						<span>→</span>
-					</a>
-				</div>
+				<a
+					href={ templ.SafeURL("https://jumble.social/?r=favorites." + global.S.Domain) }
+					target="_blank"
+					class={
+						"inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105",
+						templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
+						templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
+					}
+				>
+					browse favorites →
+				</a>
 			</div>
 		</div>
 	}

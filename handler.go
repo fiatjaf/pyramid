@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -62,19 +61,6 @@ func reportsViewerHandler(w http.ResponseWriter, r *http.Request) {
 	reportsPage(events, loggedUser).Render(r.Context(), w)
 }
 
-func jsonSettingsHandler(w http.ResponseWriter, r *http.Request) {
-	config, err := loadUserSettings()
-	if err != nil {
-		http.Error(w, "failed to load config", 500)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(config); err != nil {
-		http.Error(w, "failed to encode config", 500)
-	}
-}
-
 func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 
@@ -84,15 +70,12 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodPost {
-		// save settings
-		settings := UserSettings{
+		if err := global.SaveUserSettings(global.UserSettings{
 			BrowseURI:       r.PostFormValue("browse_uri"),
 			BackgroundColor: r.PostFormValue("background_color"),
 			TextColor:       r.PostFormValue("text_color"),
 			AccentColor:     r.PostFormValue("accent_color"),
-		}
-
-		if err := saveUserSettings(settings); err != nil {
+		}); err != nil {
 			http.Error(w, "failed to save config: "+err.Error(), 500)
 			return
 		}
@@ -101,14 +84,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// load and display settings
-	config, err := loadUserSettings()
-	if err != nil {
-		http.Error(w, "failed to load config: "+err.Error(), 500)
-		return
-	}
-
-	settingsPage(loggedUser, config).Render(r.Context(), w)
+	settingsPage(loggedUser).Render(r.Context(), w)
 }
 
 func forumHandler(w http.ResponseWriter, r *http.Request) {

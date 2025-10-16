@@ -28,10 +28,13 @@ templ internalPage(loggedUser nostr.PubKey) {
 					<a
 						href={ templ.SafeURL("https://jumble.social/?r=internal." + global.S.Domain) }
 						target="_blank"
-						class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transform hover:scale-105"
+						class={
+							"inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105",
+							templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
+							templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
+						}
 					>
-						<span>browse internal</span>
-						<span>→</span>
+						browse internal →
 					</a>
 				</div>
 			</div>
