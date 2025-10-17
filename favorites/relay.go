@@ -19,10 +19,10 @@ func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
 	relay := khatru.NewRelay()
 
 	relay.ServiceURL = "wss://" + global.S.Domain + "/favorites"
-	relay.Info.Name = global.S.RelayName + " - favorites"
+	relay.Info.Name = global.Settings.RelayName + " - favorites"
 	relay.Info.Description = "posts manually curated by the members. to curate just republish any chosen event here."
-	relay.Info.Contact = global.S.RelayContact
-	relay.Info.Icon = global.S.RelayIcon
+	relay.Info.Contact = global.Settings.RelayContact
+	relay.Info.Icon = global.Settings.RelayIcon
 
 	relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 

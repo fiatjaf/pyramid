@@ -15,12 +15,6 @@ Relay members can **invite** others to join and they can also **drop** anyone be
 ```
 PORT=3002
 DOMAIN=0.0.0.0:3002
-RELAY_NAME="myfriends"
-RELAY_DESCRIPTION="a relay for me and my friends"
-RELAY_PUBKEY="<my-pubkey-as-hex>"
-RELAY_ICON="https://www.vectorkhazana.com/assets/images/products/Friend1.jpg"
-MAX_INVITES_PER_PERSON=10
-GROUPS_PRIVATE_KEY="<a-random-secret-key-as-hex>"
 ```
 
 ### development
@@ -43,7 +37,7 @@ SyslogIdentifier=pyramid
 User=myname
 Group=myname
 WorkingDirectory=/root/pyramid
-Environment=PORT=4002 DOMAIN=pyramid.myname.com RELAY_NAME=whatever ETC='fill the other values'
+Environment=PORT=4002 DOMAIN=pyramid.myname.com
 
 [Unit]
 StartLimitIntervalSec=10min

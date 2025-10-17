@@ -20,7 +20,7 @@ templ Layout(loggedUser nostr.PubKey) {
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			<title>{ S.RelayName }</title>
+			<title>{ Settings.RelayName }</title>
 			<script src="https://cdn.tailwindcss.com"></script>
 			<script>tailwind.config = { darkMode: 'class' }</script>
 			<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -39,9 +39,9 @@ templ Layout(loggedUser nostr.PubKey) {
 								class={ "font-bold text-3xl",
 									templ.KV("text-[var(--accent-color)]", Settings.HasThemeColors()),
 									templ.KV("text-blue-600 dark:text-blue-400", !Settings.HasThemeColors()) }
-							>{ S.RelayName }</h1>
-							if S.RelayDescription != "" {
-								<p class="text-sm text-stone-600 dark:text-stone-400 mt-1">{ S.RelayDescription }</p>
+							>{ Settings.RelayName }</h1>
+							if Settings.RelayDescription != "" {
+								<p class="text-sm text-stone-600 dark:text-stone-400 mt-1">{ Settings.RelayDescription }</p>
 							}
 						</div>
 						if !Settings.HasThemeColors() {
@@ -61,14 +61,14 @@ templ Layout(loggedUser nostr.PubKey) {
 							}
 						>invite tree</a>
 						<a
-							target="_blank"
-							id="browse-link"
-							href={ Settings.BrowseURI }
 							class={
 								"rounded-lg px-4 py-2 font-medium",
 								templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
 								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
 							}
+							target="_blank"
+							href={ Settings.BrowseURI }
+							x-init="$el.href = $el.href.replace('{url}', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 3).join('/')))"
 						>browse</a>
 						<a
 							href="/reports"
@@ -166,10 +166,6 @@ templ Layout(loggedUser nostr.PubKey) {
 				function clearCookie(name) {
 					document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 				}
-
-				// update browse link with current host
-				const browseLink = document.getElementById('browse-link');
-				browseLink.href = browseLink.href.replace('{url}', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 3).join('/')));
 
 				async function handleAuth(el) {
 					const isLogin = el.innerText.toLowerCase() === 'login';

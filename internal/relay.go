@@ -31,10 +31,10 @@ func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
 	relay := khatru.NewRelay()
 
 	relay.ServiceURL = "wss://" + global.S.Domain + "/internal"
-	relay.Info.Name = global.S.RelayName + " - internal"
+	relay.Info.Name = global.Settings.RelayName + " - internal"
 	relay.Info.Description = "internal discussions between relay members, unavailable to the external world"
-	relay.Info.Contact = global.S.RelayContact
-	relay.Info.Icon = global.S.RelayIcon
+	relay.Info.Contact = global.Settings.RelayContact
+	relay.Info.Icon = global.Settings.RelayIcon
 	relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
 	relay.UseEventstore(db, 500)

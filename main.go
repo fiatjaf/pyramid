@@ -106,7 +106,7 @@ func main() {
 	}
 
 	// init main relay
-	relay.Info.Name = global.S.RelayName
+	relay.Info.Name = global.Settings.RelayName
 
 	if pk, err := nostr.PubKeyFromHex(global.S.RelayPubkey); err != nil {
 		log.Fatal().Err(err).Str("value", global.S.RelayPubkey).Msg("invalid relay main pubkey")
@@ -114,9 +114,9 @@ func main() {
 		relay.Info.PubKey = &pk
 		global.Master = pk
 	}
-	relay.Info.Description = global.S.RelayDescription
-	relay.Info.Contact = global.S.RelayContact
-	relay.Info.Icon = global.S.RelayIcon
+	relay.Info.Description = global.Settings.RelayDescription
+	relay.Info.Contact = global.Settings.RelayContact
+	relay.Info.Icon = global.Settings.RelayIcon
 	relay.Info.Limitation = &nip11.RelayLimitationDocument{
 		RestrictedWrites: true,
 	}
@@ -158,8 +158,8 @@ func main() {
 	relay.Router().HandleFunc("/forum/", forumHandler)
 	relay.Router().Handle("/static/", http.FileServer(http.FS(static)))
 	relay.Router().HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-		if global.S.RelayIcon != "" {
-			http.Redirect(w, r, global.S.RelayIcon, 302)
+		if global.Settings.RelayIcon != "" {
+			http.Redirect(w, r, global.Settings.RelayIcon, 302)
 		} else {
 			http.Redirect(w, r, "/static/icon.png", 302)
 		}

@@ -9,11 +9,88 @@ import (
 templ settingsPage(loggedUser nostr.PubKey) {
 	@global.Layout(loggedUser) {
 		<div class="max-w-4xl mx-auto">
-			<h2 class="text-2xl font-bold mb-6 dark:text-stone-100">settings</h2>
 			<form
 				method="POST"
 				action="/settings"
-				class="space-y-6"
+				class="space-y-6 mt-8"
+				x-data={ `{
+					relayName: '` + global.Settings.RelayName + `',
+					relayDescription: '` + global.Settings.RelayDescription + `',
+					relayContact: '` + global.Settings.RelayContact + `',
+					relayIcon: '` + global.Settings.RelayIcon + `',
+					saved: false,
+					async saveSettings() {
+						const response = await fetch('/settings', {
+							method: 'POST',
+							body: new URLSearchParams(new FormData(this.$refs.form))
+						})
+						if (response.ok) {
+							this.saved = true;
+							setTimeout(() => this.saved = false, 2000)
+						}
+					}
+				}` }
+				x-ref="form"
+			>
+				<!-- Relay Information -->
+				<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">relay information</h3>
+				<div class="space-y-4">
+					<div>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay name</label>
+						<input
+							type="text"
+							name="relay_name"
+							placeholder="pyramidal relay of..."
+							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+							x-model="relayName"
+							@blur="saveSettings()"
+						/>
+					</div>
+					<div>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay description</label>
+						<textarea
+							name="relay_description"
+							rows="2"
+							placeholder="my family and other weirdos"
+							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+							x-model="relayDescription"
+							@blur="saveSettings()"
+						></textarea>
+					</div>
+					<div>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay icon url</label>
+						<input
+							type="text"
+							name="relay_icon"
+							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+							x-model="relayIcon"
+							@blur="saveSettings()"
+						/>
+					</div>
+					<div>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay contact</label>
+						<input
+							type="text"
+							name="relay_contact"
+							placeholder="tag me on nostr or email@email.com"
+							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+							x-model="relayContact"
+							@blur="saveSettings()"
+						/>
+					</div>
+				</div>
+				<div
+					x-show="saved"
+					x-transition
+					class="text-sm text-green-600 dark:text-green-400 font-medium"
+				>
+					saved!
+				</div>
+			</form>
+			<form
+				method="POST"
+				action="/settings"
+				class="space-y-6 mt-8"
 				x-data={ `{
 				accentColor: '`+global.Settings.AccentColor+`',
 				backgroundColor: '`+global.Settings.BackgroundColor+`',

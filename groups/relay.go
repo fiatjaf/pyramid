@@ -21,10 +21,10 @@ func NewRelay(db *mmm.IndexingLayer) (*khatru.Relay, error) {
 	relay := khatru.NewRelay()
 
 	relay.ServiceURL = "wss://" + global.S.Domain + "/groups"
-	relay.Info.Name = global.S.RelayName + " - Groups"
-	relay.Info.Description = global.S.RelayDescription + " - Groups relay"
-	relay.Info.Contact = global.S.RelayContact
-	relay.Info.Icon = global.S.RelayIcon
+	relay.Info.Name = global.Settings.RelayName + " - Groups"
+	relay.Info.Description = global.Settings.RelayDescription + " - Groups relay"
+	relay.Info.Contact = global.Settings.RelayContact
+	relay.Info.Icon = global.Settings.RelayIcon
 	relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
 	masterKey, err := nostr.SecretKeyFromHex(global.S.GroupsPrivateKeyHex)

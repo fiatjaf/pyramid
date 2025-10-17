@@ -84,6 +84,14 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				settings.TextColor = v[0]
 			case "accent_color":
 				settings.AccentColor = v[0]
+			case "relay_name":
+				settings.RelayName = v[0]
+			case "relay_description":
+				settings.RelayDescription = v[0]
+			case "relay_contact":
+				settings.RelayContact = v[0]
+			case "relay_icon":
+				settings.RelayIcon = v[0]
 			}
 		}
 
