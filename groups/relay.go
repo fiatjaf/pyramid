@@ -29,7 +29,10 @@ func NewRelay(db *mmm.IndexingLayer) http.Handler {
 	masterKey, err := nostr.SecretKeyFromHex(global.Settings.GroupsPrivateKey)
 	if err != nil {
 		mux := http.NewServeMux()
-		mux.HandleFunc("/", handleRoot)
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			loggedUser, _ := global.GetLoggedUser(r)
+			groupsPage(loggedUser, nil).Render(r.Context(), w)
+		})
 		return mux
 	}
 
@@ -79,12 +82,10 @@ func NewRelay(db *mmm.IndexingLayer) http.Handler {
 
 	relay.OnEventSaved = state.ProcessEvent
 
-	relay.Router().HandleFunc("/", handleRoot)
+	relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		loggedUser, _ := global.GetLoggedUser(r)
+		groupsPage(loggedUser, state).Render(r.Context(), w)
+	})
 
 	return relay
-}
-
-func handleRoot(w http.ResponseWriter, r *http.Request) {
-	loggedUser, _ := global.GetLoggedUser(r)
-	groupsPage(loggedUser).Render(r.Context(), w)
 }
