@@ -31,12 +31,12 @@ templ Layout(loggedUser nostr.PubKey) {
 			templ.KV("bg-[var(--bg-color)]", Settings.HasThemeColors()),
 			templ.KV("bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100", !Settings.HasThemeColors()) }
 		>
-			<header class="bg-white/60 dark:bg-stone-800/90 backdrop-blur-sm sticky top-0 z-50 shadow-sm border-b border-stone-300 transition-colors">
+			<header class="bg-white/60 dark:bg-stone-800/90 backdrop-blur-sm sticky top-0 z-50 shadow-sm border-b border-stone-300">
 				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div class="flex items-center justify-between py-6">
 						<div class="flex-1">
 							<h1
-								class={ "font-bold text-3xl transition-colors",
+								class={ "font-bold text-3xl",
 									templ.KV("text-[var(--accent-color)]", Settings.HasThemeColors()),
 									templ.KV("text-blue-600 dark:text-blue-400", !Settings.HasThemeColors()) }
 							>{ S.RelayName }</h1>
@@ -134,7 +134,7 @@ templ Layout(loggedUser nostr.PubKey) {
 			<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
 				{ children... }
 			</main>
-			<footer class="mt-auto bg-white/50 dark:bg-stone-800/50 backdrop-blur-sm border-t border-stone-300 transition-colors">
+			<footer class="mt-auto bg-white/50 dark:bg-stone-800/50 backdrop-blur-sm border-t border-stone-300">
 				<div class="max-w-7xl mx-auto px-4 py-6 text-center">
 					<p class="text-sm text-stone-600 dark:text-stone-400">
 						powered by

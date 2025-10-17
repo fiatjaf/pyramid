@@ -70,12 +70,23 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodPost {
-		if err := global.SaveUserSettings(global.UserSettings{
-			BrowseURI:       r.PostFormValue("browse_uri"),
-			BackgroundColor: r.PostFormValue("background_color"),
-			TextColor:       r.PostFormValue("text_color"),
-			AccentColor:     r.PostFormValue("accent_color"),
-		}); err != nil {
+		settings := global.Settings
+		r.ParseForm()
+
+		for k, v := range r.PostForm {
+			switch k {
+			case "browse_uri":
+				settings.BrowseURI = v[0]
+			case "background_color":
+				settings.BackgroundColor = v[0]
+			case "text_color":
+				settings.TextColor = v[0]
+			case "accent_color":
+				settings.AccentColor = v[0]
+			}
+		}
+
+		if err := global.SaveUserSettings(settings); err != nil {
 			http.Error(w, "failed to save config: "+err.Error(), 500)
 			return
 		}
