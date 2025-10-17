@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"fiatjaf.com/nostr"
 
@@ -91,7 +92,9 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Redirect(w, r, "/settings", 302)
+		if strings.Contains(r.Header.Get("Accept"), "text/html") {
+			http.Redirect(w, r, "/settings", 302)
+		}
 		return
 	}
 
