@@ -10,14 +10,15 @@ templ favoritesPage(loggedUser nostr.PubKey) {
 		<div class="max-w-3xl mx-auto">
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">
-					the favorites relay stores your bookmarked content from across nostr. when you favorite a post, it's automatically saved here for easy access later.
+					the favorites relay is a place for members of the relay to curate a feed of interesting notes from the outside.
 				</p>
 				<div class="bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
 					<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">how it works:</h2>
 					<ul class="list-disc list-inside space-y-1 text-sm">
-						<li>saves all your favorited posts and reactions</li>
-						<li>provides quick access to your bookmarked content</li>
-						<li>syncs across all your nostr clients</li>
+						<li>a member is browsing through nostr</li>
+						<li>they see a note that they think will be interesting to the other members</li>
+						<li>they use the "republish to" (or equivalent) functionality to send the note to /favorites</li>
+						<li>other members (and anyone) can browse the /favorites feed</li>
 					</ul>
 				</div>
 				<a
