@@ -84,6 +84,7 @@ templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey) {
 								<input type="hidden" name="type" value="drop"/>
 								<button
 									type="submit"
+									onclick="return confirm('really drop this user and its descendants?')"
 									class="opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-red-400/10 hover:bg-red-400/20 text-red-400/80 dark:text-red-400/80"
 								>
 									drop
