@@ -9,7 +9,7 @@ import (
 )
 
 templ inviteTreePage(loggedUser nostr.PubKey) {
-	@global.Layout(loggedUser) {
+	@global.Layout(loggedUser, "invite-tree") {
 		<div class="max-w-3xl mx-auto">
 			if whitelist.CanInviteMore(loggedUser) {
 				<form

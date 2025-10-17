@@ -155,6 +155,9 @@ func main() {
 	relay.Router().HandleFunc("/cleanup", cleanupStuffFromExcludedUsersHandler)
 	relay.Router().HandleFunc("/reports", reportsViewerHandler)
 	relay.Router().HandleFunc("/settings", settingsHandler)
+	relay.Router().HandleFunc("POST /upload-icon", uploadIconHandler)
+	relay.Router().HandleFunc("/icon.png", iconHandler)
+	relay.Router().HandleFunc("/icon.jpg", iconHandler)
 	relay.Router().HandleFunc("/forum/", forumHandler)
 	relay.Router().Handle("/static/", http.FileServer(http.FS(static)))
 	relay.Router().HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {

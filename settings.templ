@@ -7,18 +7,16 @@ import (
 )
 
 templ settingsPage(loggedUser nostr.PubKey) {
-	@global.Layout(loggedUser) {
+	@global.Layout(loggedUser, "settings") {
 		<div class="max-w-4xl mx-auto">
-			<form
-				method="POST"
-				action="/settings"
-				class="space-y-6 mt-8"
+			<div
 				x-data={ `{
 					relayName: '` + global.Settings.RelayName + `',
 					relayDescription: '` + global.Settings.RelayDescription + `',
 					relayContact: '` + global.Settings.RelayContact + `',
 					relayIcon: '` + global.Settings.RelayIcon + `',
 					saved: false,
+                    uploadError: null,
 					async saveSettings() {
 						const response = await fetch('/settings', {
 							method: 'POST',
@@ -28,65 +26,115 @@ templ settingsPage(loggedUser nostr.PubKey) {
 							this.saved = true;
 							setTimeout(() => this.saved = false, 2000)
 						}
+					},
+					async uploadIcon() {
+						const file = this.$refs.iconFile.files[0];
+						if (!file) return;
+
+						this.uploadError = '';
+
+						if (file.size > 5 * 1024 * 1024) {
+							this.uploadError = 'file must be under 5MB';
+							this.$refs.iconFile.value = '';
+							return;
+						}
+
+						if (!['image/png', 'image/jpeg'].includes(file.type)) {
+							this.uploadError = 'file must be PNG or JPEG';
+							this.$refs.iconFile.value = '';
+							return;
+						}
+
+						setTimeout(() => this.$refs.iconFile.parentNode.submit(), 1)
 					}
 				}` }
-				x-ref="form"
 			>
-				<!-- Relay Information -->
-				<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">relay information</h3>
-				<div class="space-y-4">
-					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay name</label>
-						<input
-							type="text"
-							name="relay_name"
-							placeholder="pyramidal relay of..."
-							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-							x-model="relayName"
-							@blur="saveSettings()"
-						/>
-					</div>
-					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay description</label>
-						<textarea
-							name="relay_description"
-							rows="2"
-							placeholder="my family and other weirdos"
-							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-							x-model="relayDescription"
-							@blur="saveSettings()"
-						></textarea>
-					</div>
-					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay icon url</label>
-						<input
-							type="text"
-							name="relay_icon"
-							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-							x-model="relayIcon"
-							@blur="saveSettings()"
-						/>
-					</div>
-					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay contact</label>
-						<input
-							type="text"
-							name="relay_contact"
-							placeholder="tag me on nostr or email@email.com"
-							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-							x-model="relayContact"
-							@blur="saveSettings()"
-						/>
-					</div>
-				</div>
-				<div
-					x-show="saved"
-					x-transition
-					class="text-sm text-green-600 dark:text-green-400 font-medium"
+				<form
+					method="POST"
+					action="/settings"
+					class="space-y-6 mt-8"
+					x-ref="form"
 				>
-					saved!
-				</div>
-			</form>
+					<!-- Relay Information -->
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">relay information</h3>
+					<div class="space-y-4">
+						<div>
+							<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay name</label>
+							<input
+								type="text"
+								name="relay_name"
+								placeholder="pyramidal relay of..."
+								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+								x-model="relayName"
+								@blur="saveSettings()"
+							/>
+						</div>
+						<div>
+							<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay description</label>
+							<textarea
+								name="relay_description"
+								rows="2"
+								placeholder="my family and other weirdos"
+								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+								x-model="relayDescription"
+								@blur="saveSettings()"
+							></textarea>
+						</div>
+						<div>
+							<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay icon url</label>
+							<div class="flex gap-2">
+								<input
+									type="text"
+									name="relay_icon"
+									class="flex-1 px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+									x-model="relayIcon"
+									@blur="saveSettings()"
+								/>
+								<button
+									type="button"
+									@click="$refs.iconFile.click()"
+									class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+								>
+									upload
+								</button>
+							</div>
+							<div
+								x-show="uploadError"
+								x-transition
+								class="text-sm text-red-600 dark:text-red-400 font-medium mt-2"
+								x-text="uploadError"
+							></div>
+						</div>
+						<div>
+							<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay contact</label>
+							<input
+								type="text"
+								name="relay_contact"
+								placeholder="tag me on nostr or email@email.com"
+								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+								x-model="relayContact"
+								@blur="saveSettings()"
+							/>
+						</div>
+					</div>
+					<div
+						x-show="saved"
+						x-transition
+						class="text-sm text-green-600 dark:text-green-400 font-medium"
+					>
+						saved!
+					</div>
+				</form>
+				<form method="POST" action="/upload-icon" enctype="multipart/form-data" class="hidden">
+					<input
+						type="file"
+						x-ref="iconFile"
+						@change="uploadIcon()"
+						accept="image/png,image/jpeg"
+						name="file"
+					/>
+				</form>
+			</div>
 			<form
 				method="POST"
 				action="/settings"
@@ -202,7 +250,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					<button
 						type="button"
 						@click="resetTheme()"
-						class="px-4 py-2 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
+						class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
 					>
 						reset
 					</button>

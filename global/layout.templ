@@ -4,7 +4,7 @@ import "fiatjaf.com/nostr"
 
 var GroupsRelayEnabled = false
 
-templ Layout(loggedUser nostr.PubKey) {
+templ Layout(loggedUser nostr.PubKey, currentPage string) {
 	<!DOCTYPE html>
 	<html
 		if Settings.HasThemeColors() {
@@ -34,18 +34,23 @@ templ Layout(loggedUser nostr.PubKey) {
 			<header class="bg-white/60 dark:bg-stone-800/90 backdrop-blur-sm sticky top-0 z-50 shadow-sm border-b border-stone-300">
 				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div class="flex items-center justify-between py-6">
-						<div class="flex-1">
+						if Settings.RelayIcon != "" {
+							<img class="h-12 mr-4" src={ Settings.RelayIcon }/>
+						}
+						<div class="flex-1 mr-auto">
 							<h1
-								class={ "font-bold text-3xl",
+								class={
+									"font-bold text-3xl",
 									templ.KV("text-[var(--accent-color)]", Settings.HasThemeColors()),
-									templ.KV("text-blue-600 dark:text-blue-400", !Settings.HasThemeColors()) }
+									templ.KV("text-blue-600 dark:text-blue-400", !Settings.HasThemeColors()),
+								}
 							>{ Settings.RelayName }</h1>
 							if Settings.RelayDescription != "" {
-								<p class="text-sm text-stone-600 dark:text-stone-400 mt-1">{ Settings.RelayDescription }</p>
+								<p class="text-sm text-stone-600 dark:text-stone-400">{ Settings.RelayDescription }</p>
 							}
 						</div>
 						if !Settings.HasThemeColors() {
-							<button @click="darkMode = !darkMode" class="ml-4 p-2.5 rounded-lg bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600" aria-label="Toggle dark mode">
+							<button @click="darkMode = !darkMode" class="ml-auto p-2.5 rounded-lg bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600" aria-label="Toggle dark mode">
 								<svg x-show="darkMode" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
 								<svg x-show="!darkMode" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
 							</button>
@@ -58,6 +63,7 @@ templ Layout(loggedUser nostr.PubKey) {
 								"rounded-lg px-4 py-2 font-medium",
 								templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
 								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+								templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "invite-tree"),
 							}
 						>invite tree</a>
 						<a
@@ -76,6 +82,7 @@ templ Layout(loggedUser nostr.PubKey) {
 								"rounded-lg px-4 py-2 font-medium",
 								templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
 								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+								templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "reports"),
 							}
 						>reports</a>
 						<a
@@ -84,6 +91,7 @@ templ Layout(loggedUser nostr.PubKey) {
 								"rounded-lg px-4 py-2 font-medium",
 								templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
 								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+								templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites"),
 							}
 						>favorites</a>
 						<a
@@ -92,6 +100,7 @@ templ Layout(loggedUser nostr.PubKey) {
 								"rounded-lg px-4 py-2 font-medium",
 								templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
 								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+								templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "internal"),
 							}
 						>internal</a>
 						if GroupsRelayEnabled {
@@ -101,6 +110,7 @@ templ Layout(loggedUser nostr.PubKey) {
 									"rounded-lg px-4 py-2 font-medium",
 									templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
 									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "groups"),
 								}
 							>groups</a>
 						}
@@ -111,6 +121,7 @@ templ Layout(loggedUser nostr.PubKey) {
 									"rounded-lg px-4 py-2 font-medium",
 									templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
 									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "settings"),
 								}
 							>settings</a>
 						}

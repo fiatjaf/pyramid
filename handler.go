@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"fiatjaf.com/nostr"
@@ -107,6 +110,107 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	settingsPage(loggedUser).Render(r.Context(), w)
+}
+
+func uploadIconHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if loggedUser != global.Master {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", 405)
+		return
+	}
+
+	// parse multipart form with 5MB max
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		http.Error(w, "file too large or invalid form", 400)
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "no file provided", 400)
+		return
+	}
+	defer file.Close()
+
+	// validate file size
+	if header.Size > 5<<20 {
+		http.Error(w, "file exceeds 5MB limit", 400)
+		return
+	}
+
+	// validate content type
+	contentType := header.Header.Get("Content-Type")
+	var ext string
+	switch contentType {
+	case "image/png":
+		ext = "png"
+	case "image/jpeg", "image/jpg":
+		ext = "jpg"
+	default:
+		http.Error(w, "only PNG and JPEG files are allowed", 400)
+		return
+	}
+
+	// read file content
+	fileBytes, err := io.ReadAll(io.LimitReader(file, header.Size))
+	if err != nil {
+		http.Error(w, "failed to read file", 500)
+		return
+	}
+
+	// save to data directory
+	iconPath := filepath.Join(global.S.DataPath, "icon."+ext)
+	if err := os.WriteFile(iconPath, fileBytes, 0644); err != nil {
+		http.Error(w, "failed to save file", 500)
+		return
+	}
+
+	// remove old icon file if different extension
+	otherExt := "jpg"
+	if ext == "jpg" {
+		otherExt = "png"
+	}
+	os.Remove(filepath.Join(global.S.DataPath, "icon."+otherExt))
+
+	// update settings with new icon URL
+	settings := global.Settings
+	settings.RelayIcon = r.Header.Get("Origin") + "/icon." + ext
+	if err := global.SaveUserSettings(settings); err != nil {
+		http.Error(w, "failed to update settings", 500)
+		return
+	}
+
+	if strings.Contains(r.Header.Get("Accept"), "text/html") {
+		http.Redirect(w, r, "/settings", 302)
+	}
+}
+
+func iconHandler(w http.ResponseWriter, r *http.Request) {
+	ext := r.URL.Path[len("/icon."):]
+	if ext != "png" && ext != "jpg" {
+		http.NotFound(w, r)
+		return
+	}
+
+	iconPath := filepath.Join(global.S.DataPath, "icon."+ext)
+	if _, err := os.Stat(iconPath); os.IsNotExist(err) {
+		http.NotFound(w, r)
+		return
+	}
+
+	contentType := "image/png"
+	if ext == "jpg" {
+		contentType = "image/jpeg"
+	}
+	w.Header().Set("Content-Type", contentType)
+
+	http.ServeFile(w, r, iconPath)
 }
 
 func forumHandler(w http.ResponseWriter, r *http.Request) {
