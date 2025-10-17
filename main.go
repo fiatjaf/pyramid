@@ -98,12 +98,7 @@ func main() {
 	// init relays
 	internalRelay := internal.NewRelay(internalDB)
 	favoritesRelay := favorites.NewRelay(favoritesDB)
-	groupsRelay, err := groups.NewRelay(groupsDB)
-	if err == nil {
-		global.GroupsRelayEnabled = true
-	} else {
-		log.Info().Err(err).Msg("groups relay couldn't be initialized")
-	}
+	groupsRelay := groups.NewRelay(groupsDB)
 
 	// init main relay
 	relay.Info.Name = global.Settings.RelayName
@@ -156,6 +151,7 @@ func main() {
 	relay.Router().HandleFunc("/reports", reportsViewerHandler)
 	relay.Router().HandleFunc("/settings", settingsHandler)
 	relay.Router().HandleFunc("POST /upload-icon", uploadIconHandler)
+	relay.Router().HandleFunc("POST /groups/enable", enableGroupsHandler)
 	relay.Router().HandleFunc("/icon.png", iconHandler)
 	relay.Router().HandleFunc("/icon.jpg", iconHandler)
 	relay.Router().HandleFunc("/forum/", forumHandler)
@@ -174,9 +170,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/", relay)
 	mux.Handle("/internal", internalRelay)
-	if groupsRelay != nil {
-		mux.Handle("/groups", groupsRelay)
-	}
+	mux.Handle("/groups", groupsRelay)
 	mux.Handle("/favorites", favoritesRelay)
 
 	server := &http.Server{Addr: ":" + global.S.Port, Handler: mux}

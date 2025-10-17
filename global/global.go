@@ -19,10 +19,6 @@ var (
 		DataPath    string `envconfig:"DATA_PATH" default:"./data"`
 
 		MaxInvitesPerPerson int `envconfig:"MAX_INVITES_PER_PERSON" default:"3"`
-
-		GroupsPrivateKeyHex string   `envconfig:"GROUPS_PRIVATE_KEY"`
-		GroupsCreatorRole   string   `envconfig:"GROUPS_CREATOR_ROLE" default:"pharaoh"`
-		GroupsDefaultRoles  []string `envconfig:"GROUPS_OTHER_ROLES" default:"vizier"`
 	}
 	Nostr    *sdk.System
 	Master   nostr.PubKey

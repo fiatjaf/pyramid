@@ -2,8 +2,6 @@ package global
 
 import "fiatjaf.com/nostr"
 
-var GroupsRelayEnabled = false
-
 templ Layout(loggedUser nostr.PubKey, currentPage string) {
 	<!DOCTYPE html>
 	<html
@@ -103,17 +101,15 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "internal"),
 							}
 						>internal</a>
-						if GroupsRelayEnabled {
-							<a
-								href="/groups"
-								class={
-									"rounded-lg px-4 py-2 font-medium",
-									templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
-									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "groups"),
-								}
-							>groups</a>
-						}
+						<a
+							href="/groups"
+							class={
+								"rounded-lg px-4 py-2 font-medium",
+								templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
+								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+								templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "groups"),
+							}
+						>groups</a>
 						if loggedUser == Master {
 							<a
 								href="/settings"

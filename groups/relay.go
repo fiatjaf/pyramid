@@ -1,7 +1,6 @@
 package groups
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -17,7 +16,7 @@ import (
 
 var log = global.Log.With().Str("relay", "groups").Logger()
 
-func NewRelay(db *mmm.IndexingLayer) (*khatru.Relay, error) {
+func NewRelay(db *mmm.IndexingLayer) http.Handler {
 	relay := khatru.NewRelay()
 
 	relay.ServiceURL = "wss://" + global.S.Domain + "/groups"
@@ -27,29 +26,24 @@ func NewRelay(db *mmm.IndexingLayer) (*khatru.Relay, error) {
 	relay.Info.Icon = global.Settings.RelayIcon
 	relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
-	masterKey, err := nostr.SecretKeyFromHex(global.S.GroupsPrivateKeyHex)
+	masterKey, err := nostr.SecretKeyFromHex(global.Settings.GroupsPrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("missing or invalid groups master key: %w", err)
+		mux := http.NewServeMux()
+		mux.HandleFunc("/", handleRoot)
+		return mux
 	}
 
 	creatorRole := &nip29.Role{
-		Name:        strings.TrimSpace(global.S.GroupsCreatorRole),
+		Name:        strings.TrimSpace(global.Settings.GroupsDefaultPrimaryRole),
 		Description: "the master role",
 	}
 
-	defaultRoles := make([]*nip29.Role, 1, len(global.S.GroupsDefaultRoles)+1)
-	defaultRoles[0] = creatorRole
-	for _, name := range global.S.GroupsDefaultRoles {
-		name = strings.TrimSpace(name)
-
-		if name == creatorRole.Name {
-			continue
-		}
-
-		defaultRoles = append(defaultRoles, &nip29.Role{
-			Name:        name,
+	defaultRoles := []*nip29.Role{
+		creatorRole,
+		{
+			Name:        strings.TrimSpace(global.Settings.GroupsDefaultSecondaryRole),
 			Description: "a non-master role",
-		})
+		},
 	}
 
 	state := NewState(Options{
@@ -85,10 +79,12 @@ func NewRelay(db *mmm.IndexingLayer) (*khatru.Relay, error) {
 
 	relay.OnEventSaved = state.ProcessEvent
 
-	relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		loggedUser, _ := global.GetLoggedUser(r)
-		groupsPage(loggedUser).Render(r.Context(), w)
-	})
+	relay.Router().HandleFunc("/", handleRoot)
 
-	return relay, nil
+	return relay
+}
+
+func handleRoot(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+	groupsPage(loggedUser).Render(r.Context(), w)
 }

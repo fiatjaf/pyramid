@@ -21,6 +21,82 @@ templ groupsPage(loggedUser nostr.PubKey) {
 					</ul>
 				</div>
 			</div>
+			if loggedUser == global.Master {
+				<div class="mt-8">
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">groups configuration</h3>
+					if global.Settings.GroupsPrivateKey == "" {
+						<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
+							groups functionality is currently disabled. click the button below to generate a secret key and enable groups.
+						</p>
+						<form method="POST" action="/groups/enable">
+							<button
+								type="submit"
+								class="px-6 py-2 rounded-lg font-semibold bg-stone-700 hover:bg-stone-800 dark:bg-stone-600 dark:hover:bg-stone-500 text-white shadow-md hover:shadow-lg"
+							>
+								enable groups
+							</button>
+						</form>
+					} else {
+						<form
+							method="POST"
+							action="/settings"
+							class="space-y-4"
+							x-data={ `{
+								primaryRole: '` + global.Settings.GroupsDefaultPrimaryRole + `',
+								secondaryRole: '` + global.Settings.GroupsDefaultSecondaryRole + `',
+								saved: false,
+								async saveSettings() {
+									const response = await fetch('/settings', {
+										method: 'POST',
+										body: new URLSearchParams(new FormData(this.$refs.form))
+									});
+									if (response.ok) {
+										this.saved = true;
+										setTimeout(() => this.saved = false, 2000);
+									}
+								}
+							}` }
+							x-ref="form"
+						>
+							<div>
+								<label for="groups_default_primary_role" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+									default primary role
+								</label>
+								<input
+									type="text"
+									id="groups_default_primary_role"
+									name="groups_default_primary_role"
+									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
+									x-model="primaryRole"
+									@blur="saveSettings()"
+									required
+								/>
+							</div>
+							<div>
+								<label for="groups_default_secondary_role" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+									default secondary role
+								</label>
+								<input
+									type="text"
+									id="groups_default_secondary_role"
+									name="groups_default_secondary_role"
+									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
+									x-model="secondaryRole"
+									@blur="saveSettings()"
+									required
+								/>
+							</div>
+							<div
+								x-show="saved"
+								x-transition
+								class="text-sm text-green-600 dark:text-green-400 font-medium"
+							>
+								saved!
+							</div>
+						</form>
+					}
+				</div>
+			}
 		</div>
 	}
 }

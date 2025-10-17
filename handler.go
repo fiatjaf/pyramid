@@ -36,7 +36,7 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 func cleanupStuffFromExcludedUsersHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 
-	if loggedUser != *relay.Info.PubKey {
+	if loggedUser != global.Master {
 		http.Error(w, "unauthorized, only the relay owner can do this", 403)
 		return
 	}
@@ -95,6 +95,10 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				settings.RelayContact = v[0]
 			case "relay_icon":
 				settings.RelayIcon = v[0]
+			case "groups_default_primary_role":
+				settings.GroupsDefaultPrimaryRole = strings.TrimSpace(v[0])
+			case "groups_default_secondary_role":
+				settings.GroupsDefaultSecondaryRole = strings.TrimSpace(v[0])
 			}
 		}
 
@@ -104,7 +108,11 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if strings.Contains(r.Header.Get("Accept"), "text/html") {
-			http.Redirect(w, r, "/settings", 302)
+			if r.Referer() != "" && strings.Contains(r.Referer(), "/groups") {
+				http.Redirect(w, r, "/groups", 302)
+			} else {
+				http.Redirect(w, r, "/settings", 302)
+			}
 		}
 		return
 	}
@@ -189,6 +197,33 @@ func uploadIconHandler(w http.ResponseWriter, r *http.Request) {
 	if strings.Contains(r.Header.Get("Accept"), "text/html") {
 		http.Redirect(w, r, "/settings", 302)
 	}
+}
+
+func enableGroupsHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if loggedUser != global.Master {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", 405)
+		return
+	}
+
+	settings := global.Settings
+	secretKey := nostr.Generate()
+	settings.GroupsPrivateKey = secretKey.Hex()
+	settings.GroupsDefaultPrimaryRole = "admin"
+	settings.GroupsDefaultSecondaryRole = "moderator"
+
+	if err := global.SaveUserSettings(settings); err != nil {
+		http.Error(w, "failed to save settings: "+err.Error(), 500)
+		return
+	}
+
+	http.Redirect(w, r, "/groups", 302)
 }
 
 func iconHandler(w http.ResponseWriter, r *http.Request) {
