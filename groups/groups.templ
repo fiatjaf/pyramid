@@ -32,74 +32,20 @@ templ groupsPage(loggedUser nostr.PubKey, state *State) {
 						<form method="POST" action="/groups/enable">
 							<button
 								type="submit"
-								class="px-6 py-2 rounded-lg font-semibold bg-stone-700 hover:bg-stone-800 dark:bg-stone-600 dark:hover:bg-stone-500 text-white shadow-md hover:shadow-lg"
+								class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
 							>
 								enable groups
 							</button>
 						</form>
 					} else {
-						<form
-							method="POST"
-							action="/settings"
-							class="space-y-4"
-							x-data={ `{
-								primaryRole: '` + global.Settings.GroupsDefaultPrimaryRole + `',
-								secondaryRole: '` + global.Settings.GroupsDefaultSecondaryRole + `',
-								saved: false,
-								async saveSettings() {
-									const response = await fetch('/settings', {
-										method: 'POST',
-										body: new URLSearchParams(new FormData(this.$refs.form))
-									});
-									if (response.ok) {
-										this.saved = true;
-										setTimeout(() => this.saved = false, 2000);
-									}
-								}
-							}` }
-							x-ref="form"
-						>
-							<div>
-								<label for="groups_default_primary_role" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-									default primary role
-								</label>
-								<input
-									type="text"
-									id="groups_default_primary_role"
-									name="groups_default_primary_role"
-									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
-									x-model="primaryRole"
-									@blur="saveSettings()"
-									required
-								/>
-							</div>
-							<div>
-								<label for="groups_default_secondary_role" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-									default secondary role
-								</label>
-								<input
-									type="text"
-									id="groups_default_secondary_role"
-									name="groups_default_secondary_role"
-									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
-									x-model="secondaryRole"
-									@blur="saveSettings()"
-									required
-								/>
-							</div>
-							<div
-								x-show="saved"
-								x-transition
-								class="text-sm text-green-600 dark:text-green-400 font-medium"
-							>
-								saved!
-							</div>
-						</form>
+						<p class="text-sm text-stone-600 dark:text-stone-400">
+							groups functionality is enabled.
+						</p>
 					}
 				</div>
 			}
 			// groups table section
-			if loggedUser == global.Master && state != nil {
+			if state != nil {
 				<div class="mt-8">
 					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">existing groups</h3>
 					if state.Groups.Size() == 0 {
@@ -109,50 +55,272 @@ templ groupsPage(loggedUser nostr.PubKey, state *State) {
 							<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
 								<thead class="bg-stone-50 dark:bg-stone-800">
 									<tr>
-										<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">group</th>
-										<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">members</th>
-										<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">moderators</th>
+										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">group</th>
+										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">members</th>
+										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">moderators</th>
+										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">closed</th>
+										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">private</th>
 									</tr>
 								</thead>
 								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
 									for _, group := range state.Groups.Range {
-										<tr>
-											<td class="px-4 py-3 text-sm">
-												<span
-													class="font-medium text-stone-900 dark:text-stone-100"
-													if group.About != "" {
+										if loggedUser == global.Master || !group.Private {
+											<tr>
+												<td class="px-4 py-3 text-sm text-center">
+													<span
+														class="font-medium text-stone-900 dark:text-stone-100"
 														title={ group.About }
-													}
-												>{ group.Name }</span>
-											</td>
-											<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">{ fmt.Sprint(len(group.Members)) }</td>
-											<td class="px-4 py-3 text-sm">
-												<div class="space-y-1">
-													for pubkey, roles := range group.Members {
-														if len(roles) > 0 {
-															<div class="flex items-center gap-2">
-																<nostr-name pubkey={ pubkey.Hex() } class="text-stone-700 dark:text-stone-300">{ pubkey.Hex() }</nostr-name>
-																<span class="text-xs text-stone-500 dark:text-stone-500">
-																	(
-																	for i, role := range roles {
-																		if i > 0 {
-																			, 
+													>{ group.Name }</span>
+												</td>
+												<td class="px-4 py-3 text-sm text-center text-stone-600 dark:text-stone-400">{ fmt.Sprint(len(group.Members)) }</td>
+												<td class="px-4 py-3 text-sm text-center">
+													<div class="space-y-1">
+														for pubkey, roles := range group.Members {
+															if len(roles) > 0 {
+																<div class="flex items-center gap-2">
+																	<nostr-name pubkey={ pubkey.Hex() } class="text-stone-700 dark:text-stone-300">{ pubkey.Hex() }</nostr-name>
+																	<span class="text-xs text-stone-500 dark:text-stone-500">
+																		(
+																		for i, role := range roles {
+																			if i > 0 {
+																				,
+																			}
+																			{ role.Name }
 																		}
-																		{ role.Name }
-																	}
-																	)
-																</span>
-															</div>
+																		)
+																	</span>
+																</div>
+															}
 														}
+													</div>
+												</td>
+												<td class="px-4 py-3 text-sm text-center">
+													if group.Closed {
+														☑
+													} else {
+														☐
 													}
-												</div>
-											</td>
-										</tr>
+												</td>
+												<td class="px-4 py-3 text-sm text-center">
+													if group.Private {
+														☑
+													} else {
+														☐
+													}
+												</td>
+											</tr>
+										}
 									}
 								</tbody>
 							</table>
 						</div>
 					}
+				</div>
+			}
+			// create new group form - visible for all logged relay members
+			if loggedUser != nostr.ZeroPK {
+				<div
+					class="mt-8"
+					x-data="{
+							groupName: '',
+							description: '',
+							imageUrl: '',
+							closed: false,
+							private: false,
+							creating: false,
+							async createGroup() {
+								if (!window.nostr) {
+									alert('nostr extension not found');
+									return;
+								}
+
+								if (!this.groupName.trim()) {
+									alert('group name is required');
+									return;
+								}
+
+								try {
+									creating = true;
+
+									let groupId = ''
+									for (groupId = ''; groupId.length < 10;) groupId += '23456789cfghjmpqrvwx'[(Math.random() * 20) | 0];
+
+									// create-group event
+									await this.publishEvent(await window.nostr.signEvent({
+										kind: 9007,
+										created_at: Math.floor(Date.now() / 1000),
+										tags: [
+											['h', groupId]
+										],
+										content: ''
+									}));
+
+									// edit-metadata event
+									const metadataContent = JSON.stringify({
+									});
+
+									await this.publishEvent(await window.nostr.signEvent({
+										kind: 9002,
+										created_at: Math.floor(Date.now() / 1000),
+										tags: [
+											['h', groupId],
+											['name', this.groupName],
+											...(this.description ? [['about', this.description]] : []),
+											...(this.imageUrl ? [['picture', this.imageUrl]] : []),
+											...(this.closed ? [['closed']] : [['open']]),
+											...(this.private ? [['private']] : [['public']])
+										],
+										content: ''
+									}));
+
+									alert('group created successfully!');
+									window.location.reload();
+								} catch (error) {
+									console.error('error creating group:', error);
+									alert('failed to create group: ' + error.message);
+								} finally {
+									creating = false
+								}
+							},
+							async publishEvent(event) {
+								return new Promise((resolve, reject) => {
+									const ws = new WebSocket(window.location.href.replace('ws', 'http'));
+									let timeout = setTimeout(() => {
+										ws.close();
+										reject(new Error('timeout waiting for relay response'));
+									}, 5000);
+
+									ws.onopen = () => {
+										ws.send(JSON.stringify(['EVENT', event]));
+									};
+
+									ws.onmessage = async (msg) => {
+										const message = JSON.parse(msg.data);
+										switch (message[0]) {
+											case 'OK': {
+												if (message[3].startsWith('auth-required:')) {
+													await new Promise(resolve => setTimeout(resolve, 500));
+													ws.send(JSON.stringify(['EVENT', event]));
+												} else if (message[2] === true && message[1] === event.id) {
+													resolve();
+													clearTimeout(timeout);
+													ws.onmessage = null
+													ws.close();
+												} else if (message[2] === false) {
+													reject(new Error(message[3] || 'event rejected by relay'));
+													clearTimeout(timeout);
+													ws.onmessage = null
+													ws.close();
+												}
+												break;
+											}
+											case 'AUTH': {
+												ws.send(JSON.stringify(['AUTH', await window.nostr.signEvent({
+													created_at: Math.round(Date.now() / 1000),
+													kind: 22242,
+													content: '',
+													tags: [
+														['relay', window.location.href
+															.replace('http://', 'https://')
+															.replace('http', 'ws')
+														],
+														['challenge', message[1]]
+													]
+												})]));
+												break;
+											}
+										}
+									};
+
+									ws.onerror = () => {
+										clearTimeout(timeout);
+										ws.close();
+										reject(new Error('websocket connection error'));
+									};
+								});
+							}
+						}"
+				>
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">create new group</h3>
+					<form
+						class="space-y-6"
+						@submit.prevent="createGroup()"
+					>
+						<div class="space-y-4">
+							<div>
+								<label for="group_name" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+									group name <span class="text-red-500">*</span>
+								</label>
+								<input
+									type="text"
+									id="group_name"
+									name="group_name"
+									x-model="groupName"
+									required
+									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
+								/>
+							</div>
+							<div>
+								<label for="group_description" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+									description
+								</label>
+								<textarea
+									id="group_description"
+									name="description"
+									x-model="description"
+									rows="2"
+									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
+								></textarea>
+							</div>
+							<div>
+								<label for="group_image" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+									image url
+								</label>
+								<input
+									type="url"
+									id="group_image"
+									name="image_url"
+									x-model="imageUrl"
+									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
+								/>
+							</div>
+						</div>
+						<div class="space-y-3">
+							<div class="flex items-center">
+								<input
+									type="checkbox"
+									id="group_closed"
+									name="closed"
+									x-model="closed"
+									@change="if (!closed) private = false"
+									class="h-4 w-4 rounded border-stone-300 text-stone-600 focus:ring-stone-500"
+								/>
+								<label for="group_closed" class="ml-2 text-sm text-stone-700 dark:text-stone-300">
+									closed (only invited users can join)
+								</label>
+							</div>
+							<div class="flex items-center">
+								<input
+									type="checkbox"
+									id="group_private"
+									name="private"
+									x-model="private"
+									@change="if (private) closed = true"
+									class="h-4 w-4 rounded border-stone-300 text-stone-600 focus:ring-stone-500"
+								/>
+								<label for="group_private" class="ml-2 text-sm text-stone-700 dark:text-stone-300">
+									private (only members can read)
+								</label>
+							</div>
+						</div>
+						<button
+							type="submit"
+							class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+							:disabled="creating"
+						>
+							create group
+						</button>
+					</form>
 				</div>
 			}
 		</div>

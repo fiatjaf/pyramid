@@ -95,10 +95,6 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				settings.RelayContact = v[0]
 			case "relay_icon":
 				settings.RelayIcon = v[0]
-			case "groups_default_primary_role":
-				settings.GroupsDefaultPrimaryRole = strings.TrimSpace(v[0])
-			case "groups_default_secondary_role":
-				settings.GroupsDefaultSecondaryRole = strings.TrimSpace(v[0])
 			}
 		}
 
@@ -215,8 +211,6 @@ func enableGroupsHandler(w http.ResponseWriter, r *http.Request) {
 	settings := global.Settings
 	secretKey := nostr.Generate()
 	settings.GroupsPrivateKey = secretKey.Hex()
-	settings.GroupsDefaultPrimaryRole = "admin"
-	settings.GroupsDefaultSecondaryRole = "moderator"
 
 	if err := global.SaveUserSettings(settings); err != nil {
 		http.Error(w, "failed to save settings: "+err.Error(), 500)

@@ -1,7 +1,6 @@
 package groups
 
 import (
-	"context"
 	"sync"
 	"sync/atomic"
 
@@ -31,26 +30,37 @@ func (g *Group) AnyOfTheseIsAMember(pubkeys []nostr.PubKey) bool {
 
 // NewGroup creates a new group from scratch (but doesn't store it in the groups map)
 func (s *State) NewGroup(id string, creator nostr.PubKey) *Group {
+	creatorRole := &nip29.Role{
+		Name:        PRIMARY_ROLE_NAME,
+		Description: "",
+	}
+
 	group := &Group{
 		Group: nip29.Group{
 			Address: nip29.GroupAddress{
 				ID:    id,
 				Relay: "wss://" + s.Domain,
 			},
-			Roles:       s.defaultRoles,
+			Roles: []*nip29.Role{
+				creatorRole,
+				{
+					Name:        SECONDARY_ROLE_NAME,
+					Description: "",
+				},
+			},
 			Members:     make(map[nostr.PubKey][]*nip29.Role, 12),
 			InviteCodes: make([]string, 0),
 		},
 		last50: make([]nostr.ID, 50),
 	}
 
-	group.Members[creator] = []*nip29.Role{s.groupCreatorDefaultRole}
+	group.Members[creator] = []*nip29.Role{creatorRole}
 
 	return group
 }
 
 // loadGroupsFromDB loads all the group metadata from all the past action messages.
-func (s *State) loadGroupsFromDB(ctx context.Context) error {
+func (s *State) loadGroupsFromDB() error {
 	for evt := range s.DB.QueryEvents(nostr.Filter{
 		Kinds: []nostr.Kind{
 			nostr.KindSimpleGroupCreateGroup,

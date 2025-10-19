@@ -69,7 +69,7 @@ func (s *State) RejectEvent(ctx context.Context, event nostr.Event) (reject bool
 		if group.Closed {
 			if ctag := event.Tags.Find("code"); ctag == nil || !slices.Contains(group.Group.InviteCodes, ctag[1]) {
 				group.mu.RUnlock()
-				return true, "restricted: group is closed"
+				return true, "restricted: group is closed, you need an invite code"
 			}
 		}
 
@@ -96,6 +96,7 @@ func (s *State) RejectEvent(ctx context.Context, event nostr.Event) (reject bool
 		}
 
 		group.mu.RUnlock()
+		return false, ""
 	}
 
 	// aside from that only members can write
@@ -123,12 +124,88 @@ func (s *State) RejectEvent(ctx context.Context, event nostr.Event) (reject bool
 		roles, _ := group.Members[event.PubKey]
 		group.mu.RUnlock()
 
-		if s.AllowAction != nil {
-			for _, role := range roles {
-				if s.AllowAction(ctx, group.Group, role, action) {
-					// if any roles allow it, we are good
-					return false, ""
+		// check if user is admin or moderator, any of those will serve (let's keep it simple for now)
+		if len(roles) == 0 {
+			return true, "restricted: insufficient permissions"
+		}
+
+		// disallow moderators from deleting anything from other moderators or from the admin
+		if !slices.ContainsFunc(roles, func(r *nip29.Role) bool { return r.Name == PRIMARY_ROLE_NAME }) {
+			if del, ok := action.(nip29.DeleteEvent); ok {
+				authors := make([]nostr.PubKey, 0, len(del.Targets))
+				for target := range s.DB.QueryEvents(nostr.Filter{IDs: del.Targets}, 500) {
+					if !slices.Contains(authors, target.PubKey) {
+						authors = append(authors, target.PubKey)
+					}
 				}
+				group.mu.RLock()
+				for _, author := range authors {
+					authorRoles, _ := group.Members[author]
+					for _, authorRole := range authorRoles {
+						if authorRole.Name == PRIMARY_ROLE_NAME {
+							group.mu.RUnlock()
+							return true, "can't delete messages from an admin"
+						}
+					}
+				}
+				group.mu.RUnlock()
+				return true, ""
+			}
+		}
+
+		// disallow useless states
+		switch a := action.(type) {
+		case nip29.CreateInvite:
+			if !group.Closed {
+				return true, "no need to create invites in open groups"
+			}
+		case nip29.EditMetadata:
+			if group.Private {
+				if a.ClosedValue != nil && *a.ClosedValue == false {
+					return true, "can't make a private group open"
+				}
+				if a.PrivateValue != nil && *a.PrivateValue == false {
+					return true, "can't make a private group public"
+				}
+			}
+			if a.PrivateValue != nil && *a.PrivateValue == true &&
+				!(group.Closed || (a.ClosedValue != nil && *a.ClosedValue == true)) {
+				return true, "a private group must also be made closed"
+			}
+		case nip29.PutUser:
+			ineffective := true
+			group.mu.RLock()
+			for _, t := range a.Targets {
+				if currentRoles, isMember := group.Members[t.PubKey]; !isMember || !sameRoles(currentRoles, t.RoleNames) {
+					ineffective = false
+					break
+				}
+			}
+			if ineffective {
+				return true, "all targets are members already"
+			}
+			group.mu.RUnlock()
+		case nip29.RemoveUser:
+			ineffective := true
+			group.mu.RLock()
+			for _, t := range a.Targets {
+				if _, isMember := group.Members[t]; isMember {
+					ineffective = false
+					break
+				}
+			}
+			if ineffective {
+				return true, "all targets have left already"
+			}
+			group.mu.RUnlock()
+		case nip29.DeleteEvent:
+			ineffective := true
+			for range s.DB.QueryEvents(nostr.Filter{IDs: a.Targets}, 500) {
+				ineffective = false
+				break
+			}
+			if ineffective {
+				return true, "none of the targets exist in this relay"
 			}
 		}
 	}

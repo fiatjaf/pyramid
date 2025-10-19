@@ -2,23 +2,22 @@ package groups
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
-	"fiatjaf.com/nostr/nip29"
 
 	"github.com/fiatjaf/pyramid/global"
 )
 
-var log = global.Log.With().Str("relay", "groups").Logger()
+var (
+	log   = global.Log.With().Str("relay", "groups").Logger()
+	relay = khatru.NewRelay()
+)
 
 func NewRelay(db *mmm.IndexingLayer) http.Handler {
-	relay := khatru.NewRelay()
-
 	relay.ServiceURL = "wss://" + global.S.Domain + "/groups"
 	relay.Info.Name = global.Settings.RelayName + " - Groups"
 	relay.Info.Description = global.Settings.RelayDescription + " - Groups relay"
@@ -36,25 +35,10 @@ func NewRelay(db *mmm.IndexingLayer) http.Handler {
 		return mux
 	}
 
-	creatorRole := &nip29.Role{
-		Name:        strings.TrimSpace(global.Settings.GroupsDefaultPrimaryRole),
-		Description: "the master role",
-	}
-
-	defaultRoles := []*nip29.Role{
-		creatorRole,
-		{
-			Name:        strings.TrimSpace(global.Settings.GroupsDefaultSecondaryRole),
-			Description: "a non-master role",
-		},
-	}
-
 	state := NewState(Options{
-		Domain:                  global.S.Domain,
-		DB:                      db,
-		SecretKey:               masterKey,
-		GroupCreatorDefaultRole: creatorRole,
-		DefaultRoles:            defaultRoles,
+		Domain:    global.S.Domain,
+		DB:        db,
+		SecretKey: masterKey,
 	})
 
 	relay.UseEventstore(db, 500)

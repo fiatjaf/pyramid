@@ -16,7 +16,6 @@ func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
 			// if it's a group creation event we create the group first
 			groupId := GetGroupIDFromEvent(event)
 			group = s.NewGroup(groupId, event.PubKey)
-			group.Roles = s.defaultRoles
 			s.Groups.Store(groupId, group)
 		} else {
 			group = s.GetGroupFromEvent(event)
@@ -67,7 +66,7 @@ func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
 		}[event.Kind] {
 			evt := toBroadcast()
 			evt.Sign(s.secretKey)
-			s.Relay.BroadcastEvent(&evt)
+			relay.BroadcastEvent(evt)
 		}
 	}
 
@@ -84,7 +83,7 @@ func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
 		if ctag := event.Tags.Find("code"); ctag == nil {
 			inviteCode = ctag[1]
 		}
-		addUser := &nostr.Event{
+		addUser := nostr.Event{
 			CreatedAt: nostr.Now(),
 			Kind:      nostr.KindSimpleGroupPutUser,
 			Tags: nostr.Tags{
@@ -97,18 +96,18 @@ func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
 			log.Error().Err(err).Msg("failed to sign add-user event")
 			return
 		}
-		if _, err := s.Relay.AddEvent(ctx, addUser); err != nil {
+		if _, err := relay.AddEvent(ctx, addUser); err != nil {
 			log.Error().Err(err).Msg("failed to add user who requested to join")
 			return
 		}
-		s.Relay.BroadcastEvent(addUser)
+		relay.BroadcastEvent(addUser)
 	}
 
 	// react to leave request
 	if event.Kind == nostr.KindSimpleGroupLeaveRequest {
 		if _, isMember := group.Members[event.PubKey]; isMember {
 			// immediately remove the requester
-			removeUser := &nostr.Event{
+			removeUser := nostr.Event{
 				CreatedAt: nostr.Now(),
 				Kind:      nostr.KindSimpleGroupRemoveUser,
 				Tags: nostr.Tags{
@@ -121,11 +120,11 @@ func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
 				log.Error().Err(err).Msg("failed to sign remove-user event")
 				return
 			}
-			if _, err := s.Relay.AddEvent(ctx, removeUser); err != nil {
+			if _, err := relay.AddEvent(ctx, removeUser); err != nil {
 				log.Error().Err(err).Msg("failed to remove user who requested to leave")
 				return
 			}
-			s.Relay.BroadcastEvent(removeUser)
+			relay.BroadcastEvent(removeUser)
 		}
 	}
 

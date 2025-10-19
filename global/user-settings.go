@@ -16,10 +16,7 @@ type UserSettings struct {
 	RelayContact     string `json:"relay_contact"`
 	RelayIcon        string `json:"relay_icon"`
 
-	// groups configuration
-	GroupsPrivateKey           string `json:"groups_private_key"`
-	GroupsDefaultPrimaryRole   string `json:"groups_default_primary_role"`
-	GroupsDefaultSecondaryRole string `json:"groups_default_secondary_role"`
+	GroupsPrivateKey string `json:"groups_private_key"`
 }
 
 func (us UserSettings) HasThemeColors() bool {
