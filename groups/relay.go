@@ -17,7 +17,7 @@ var (
 	relay = khatru.NewRelay()
 )
 
-func NewRelay(db *mmm.IndexingLayer) http.Handler {
+func NewRelay(db *mmm.IndexingLayer) (*khatru.Relay, http.Handler) {
 	relay.ServiceURL = "wss://" + global.S.Domain + "/groups"
 	relay.Info.Name = global.Settings.RelayName + " - Groups"
 	relay.Info.Description = global.Settings.RelayDescription + " - Groups relay"
@@ -32,7 +32,7 @@ func NewRelay(db *mmm.IndexingLayer) http.Handler {
 			loggedUser, _ := global.GetLoggedUser(r)
 			groupsPage(loggedUser, nil).Render(r.Context(), w)
 		})
-		return mux
+		return nil, mux
 	}
 
 	state := NewState(Options{
@@ -98,5 +98,5 @@ func NewRelay(db *mmm.IndexingLayer) http.Handler {
 		groupsPage(loggedUser, state).Render(r.Context(), w)
 	})
 
-	return relay
+	return relay, relay
 }

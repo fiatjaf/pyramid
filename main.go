@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"slices"
 	"syscall"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
 	"fiatjaf.com/nostr/nip11"
+	"fiatjaf.com/nostr/nip29"
 	"fiatjaf.com/nostr/sdk"
 	"golang.org/x/sync/errgroup"
 
@@ -24,10 +26,7 @@ import (
 	"github.com/fiatjaf/pyramid/whitelist"
 )
 
-var (
-	relay = khatru.NewRelay()
-	log   = global.Log
-)
+var log = global.Log
 
 //go:embed static/*
 var static embed.FS
@@ -43,10 +42,11 @@ func main() {
 		return
 	}
 
-	relay.ServiceURL = "wss://" + global.S.Domain
+	root := khatru.NewRouter()
+	root.Relay.ServiceURL = "wss://" + global.S.Domain
 
 	// enable negentropy
-	relay.Negentropy = true
+	root.Relay.Negentropy = true
 
 	// load db
 	global.MMMM = &mmm.MultiMmapManager{
@@ -98,25 +98,26 @@ func main() {
 	// init relays
 	internalRelay := internal.NewRelay(internalDB)
 	favoritesRelay := favorites.NewRelay(favoritesDB)
-	groupsRelay := groups.NewRelay(groupsDB)
+	groupsRelay, groupsHttpHandler := groups.NewRelay(groupsDB)
 
 	// init main relay
-	relay.Info.Name = global.Settings.RelayName
+	root.Relay.Info.Name = global.Settings.RelayName
 
 	if pk, err := nostr.PubKeyFromHex(global.S.RelayPubkey); err != nil {
 		log.Fatal().Err(err).Str("value", global.S.RelayPubkey).Msg("invalid relay main pubkey")
 	} else {
-		relay.Info.PubKey = &pk
+		root.Relay.Info.PubKey = &pk
 		global.Master = pk
 	}
-	relay.Info.Description = global.Settings.RelayDescription
-	relay.Info.Contact = global.Settings.RelayContact
-	relay.Info.Icon = global.Settings.RelayIcon
-	relay.Info.Limitation = &nip11.RelayLimitationDocument{
+	root.Relay.Info.Description = global.Settings.RelayDescription
+	root.Relay.Info.Contact = global.Settings.RelayContact
+	root.Relay.Info.Icon = global.Settings.RelayIcon
+	root.Relay.Info.Limitation = &nip11.RelayLimitationDocument{
 		RestrictedWrites: true,
 	}
-	relay.Info.Software = "https://github.com/fiatjaf/pyramid"
+	root.Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
+	relay := khatru.NewRelay()
 	relay.UseEventstore(db, 500)
 	relay.OnRequest = policies.SeqRequest(
 		policies.NoComplexFilters,
@@ -135,9 +136,9 @@ func main() {
 		validateAndFilterReports,
 	)
 
-	relay.ManagementAPI.AllowPubKey = allowPubKeyHandler
-	relay.ManagementAPI.BanPubKey = banPubKeyHandler
-	relay.ManagementAPI.ListAllowedPubKeys = listAllowedPubKeysHandler
+	root.Relay.ManagementAPI.AllowPubKey = allowPubKeyHandler
+	root.Relay.ManagementAPI.BanPubKey = banPubKeyHandler
+	root.Relay.ManagementAPI.ListAllowedPubKeys = listAllowedPubKeysHandler
 
 	// load users registry
 	if err := whitelist.LoadManagement(); err != nil {
@@ -146,32 +147,53 @@ func main() {
 	}
 
 	// http routes
-	relay.Router().HandleFunc("/action", actionHandler)
-	relay.Router().HandleFunc("/cleanup", cleanupStuffFromExcludedUsersHandler)
-	relay.Router().HandleFunc("/reports", reportsViewerHandler)
-	relay.Router().HandleFunc("/settings", settingsHandler)
-	relay.Router().HandleFunc("POST /upload-icon", uploadIconHandler)
-	relay.Router().HandleFunc("POST /enable-groups", enableGroupsHandler)
-	relay.Router().HandleFunc("/icon.png", iconHandler)
-	relay.Router().HandleFunc("/icon.jpg", iconHandler)
-	relay.Router().HandleFunc("/forum/", forumHandler)
-	relay.Router().Handle("/static/", http.FileServer(http.FS(static)))
-	relay.Router().HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+	root.Relay.Router().HandleFunc("/action", actionHandler)
+	root.Relay.Router().HandleFunc("/cleanup", cleanupStuffFromExcludedUsersHandler)
+	root.Relay.Router().HandleFunc("/reports", reportsViewerHandler)
+	root.Relay.Router().HandleFunc("/settings", settingsHandler)
+	root.Relay.Router().HandleFunc("POST /upload-icon", uploadIconHandler)
+	root.Relay.Router().HandleFunc("POST /enable-groups", enableGroupsHandler)
+	root.Relay.Router().HandleFunc("/icon.png", iconHandler)
+	root.Relay.Router().HandleFunc("/icon.jpg", iconHandler)
+	root.Relay.Router().HandleFunc("/forum/", forumHandler)
+	root.Relay.Router().Handle("/static/", http.FileServer(http.FS(static)))
+	root.Relay.Router().HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		if global.Settings.RelayIcon != "" {
 			http.Redirect(w, r, global.Settings.RelayIcon, 302)
 		} else {
 			http.Redirect(w, r, "/static/icon.png", 302)
 		}
 	})
-	relay.Router().HandleFunc("/{$}", inviteTreeHandler)
+	root.Relay.Router().HandleFunc("/{$}", inviteTreeHandler)
+
+	// route nostr requests for nip29 groups to the groupsRelay directly
+	root.Route().
+		Event(func(evt *nostr.Event) bool { return evt.Tags.Find("h") != nil }).
+		Req(func(filter nostr.Filter) bool {
+			if filter.Tags["h"] != nil {
+				return true
+			}
+
+			for _, kind := range filter.Kinds {
+				if slices.Contains(nip29.MetadataEventKinds, kind) {
+					return true
+				}
+			}
+
+			return false
+		}).
+		Relay(groupsRelay)
+	// (all the others go to the root relay)
+	root.Route().
+		Relay(relay)
 
 	log.Info().Msg("running on http://0.0.0.0:" + global.S.Port)
 
 	mux := http.NewServeMux()
-	mux.Handle("/", relay)
 	mux.Handle("/internal/", http.StripPrefix("/internal", internalRelay))
-	mux.Handle("/groups/", http.StripPrefix("/groups", groupsRelay))
+	mux.Handle("/groups/", http.StripPrefix("/groups", groupsHttpHandler))
 	mux.Handle("/favorites/", http.StripPrefix("/favorites", favoritesRelay))
+	mux.Handle("/", root)
 
 	server := &http.Server{Addr: ":" + global.S.Port, Handler: mux}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
