@@ -1,0 +1,121 @@
+package groups
+
+import (
+	"fiatjaf.com/nostr"
+	"fmt"
+	"github.com/fiatjaf/pyramid/global"
+	"net/url"
+)
+
+templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Event) {
+	@global.Layout(loggedUser, "groups") {
+		<div class="max-w-4xl mx-auto">
+			<div class="p-6 space-y-6">
+				// group header with picture and metadata
+				<div class="flex items-start gap-4">
+					if group.Picture != "" {
+						<img
+							src={ group.Picture }
+							alt={ group.Name }
+							class="w-20 h-20 rounded-lg object-cover"
+						/>
+					}
+					<div class="flex-1">
+						<h1 class="text-2xl font-bold text-stone-900 dark:text-stone-100 mb-2">{ group.Name }</h1>
+						if group.About != "" {
+							<p class="text-stone-600 dark:text-stone-400">{ group.About }</p>
+						}
+					</div>
+				</div>
+				// status flags
+				<div class="flex gap-4">
+					<div class="flex items-center gap-2">
+						<span class="text-sm text-stone-600 dark:text-stone-400">closed:</span>
+						if group.Closed {
+							☑
+						} else {
+							☐
+						}
+					</div>
+					<div class="flex items-center gap-2">
+						<span class="text-sm text-stone-600 dark:text-stone-400">private:</span>
+						if group.Private {
+							☑
+						} else {
+							☐
+						}
+					</div>
+				</div>
+				// admins section
+				<div>
+					<h2 class="text-lg font-semibold mb-3 dark:text-stone-200">admins</h2>
+					<div class="space-y-2">
+						for pubkey, roles := range group.Members {
+							if len(roles) > 0 {
+								<div class="flex items-center gap-2">
+									<nostr-name pubkey={ pubkey.Hex() } class="text-stone-700 dark:text-stone-300">{ pubkey.Hex() }</nostr-name>
+									<span class="text-xs text-stone-500 dark:text-stone-500">
+										(
+										for i, role := range roles {
+											if i > 0 {
+												,
+											}
+											{ role.Name }
+										}
+										)
+									</span>
+								</div>
+							}
+						}
+					</div>
+				</div>
+				// members section
+				<div>
+					<h2 class="text-lg font-semibold mb-3 dark:text-stone-200">members ({ fmt.Sprint(len(group.Members)) })</h2>
+					<div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+						for pubkey := range group.Members {
+							<div>
+								<nostr-name pubkey={ pubkey.Hex() } class="text-stone-700 dark:text-stone-300">{ pubkey.Hex() }</nostr-name>
+							</div>
+						}
+					</div>
+				</div>
+				// external links
+				<div>
+					<h2 class="text-lg font-semibold mb-3 dark:text-stone-200">view on other clients</h2>
+					<div class="flex gap-3">
+						<a
+							href={ "https://chachi.chat/" + url.PathEscape(group.Address.Relay) + "/" + group.Address.ID }
+							target="_blank"
+							rel="noopener noreferrer"
+							class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
+						>
+							chachi.chat
+						</a>
+						<a
+							href={ "https://app.flotilla.social/spaces/" + url.PathEscape(group.Address.Relay) + "/" + group.Address.ID }
+							target="_blank"
+							rel="noopener noreferrer"
+							class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
+						>
+							flotilla.social
+						</a>
+					</div>
+				</div>
+				// recent events
+				if len(events) > 0 {
+					<div>
+						<h2 class="text-lg font-semibold mb-3 dark:text-stone-200">recent events</h2>
+						<div class="space-y-3">
+							for _, evt := range events {
+								<div class="border border-stone-200 dark:border-stone-700 rounded-lg p-3">
+									<nostr-event-json event={ evt.String() }></nostr-event-json>
+								</div>
+							}
+						</div>
+					</div>
+				}
+			</div>
+		</div>
+	}
+}

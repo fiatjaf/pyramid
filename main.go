@@ -151,7 +151,7 @@ func main() {
 	relay.Router().HandleFunc("/reports", reportsViewerHandler)
 	relay.Router().HandleFunc("/settings", settingsHandler)
 	relay.Router().HandleFunc("POST /upload-icon", uploadIconHandler)
-	relay.Router().HandleFunc("POST /groups/enable", enableGroupsHandler)
+	relay.Router().HandleFunc("POST /enable-groups", enableGroupsHandler)
 	relay.Router().HandleFunc("/icon.png", iconHandler)
 	relay.Router().HandleFunc("/icon.jpg", iconHandler)
 	relay.Router().HandleFunc("/forum/", forumHandler)
@@ -169,9 +169,9 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", relay)
-	mux.Handle("/internal", internalRelay)
-	mux.Handle("/groups", groupsRelay)
-	mux.Handle("/favorites", favoritesRelay)
+	mux.Handle("/internal/", http.StripPrefix("/internal", internalRelay))
+	mux.Handle("/groups/", http.StripPrefix("/groups", groupsRelay))
+	mux.Handle("/favorites/", http.StripPrefix("/favorites", favoritesRelay))
 
 	server := &http.Server{Addr: ":" + global.S.Port, Handler: mux}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

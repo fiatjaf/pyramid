@@ -66,6 +66,33 @@ func NewRelay(db *mmm.IndexingLayer) http.Handler {
 
 	relay.OnEventSaved = state.ProcessEvent
 
+	relay.Router().HandleFunc("/{groupId}", func(w http.ResponseWriter, r *http.Request) {
+		loggedUser, _ := global.GetLoggedUser(r)
+		groupId := r.PathValue("groupId")
+
+		group, exists := state.Groups.Load(groupId)
+		if !exists {
+			http.NotFound(w, r)
+			return
+		}
+		if group.Private && loggedUser != global.Master && !group.AnyOfTheseIsAMember([]nostr.PubKey{loggedUser}) {
+			http.NotFound(w, r) // fake 404
+			return
+		}
+
+		// query last 5 events for this group
+		events := make([]nostr.Event, 0, 5)
+		for evt := range state.DB.QueryEvents(nostr.Filter{
+			Kinds: []nostr.Kind{9, 11, 1111, 31922, 31923},
+			Tags:  nostr.TagMap{"h": []string{groupId}},
+			Limit: 5,
+		}, 5) {
+			events = append(events, evt)
+		}
+
+		groupDetailPage(loggedUser, group, events).Render(r.Context(), w)
+	})
+
 	relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		groupsPage(loggedUser, state).Render(r.Context(), w)

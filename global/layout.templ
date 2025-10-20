@@ -84,7 +84,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							}
 						>reports</a>
 						<a
-							href="/favorites"
+							href="/favorites/"
 							class={
 								"rounded-lg px-4 py-2 font-medium",
 								templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
@@ -93,7 +93,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							}
 						>favorites</a>
 						<a
-							href="/internal"
+							href="/internal/"
 							class={
 								"rounded-lg px-4 py-2 font-medium",
 								templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
@@ -102,7 +102,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							}
 						>internal</a>
 						<a
-							href="/groups"
+							href="/groups/"
 							class={
 								"rounded-lg px-4 py-2 font-medium",
 								templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),

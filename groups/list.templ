@@ -29,7 +29,7 @@ templ groupsPage(loggedUser nostr.PubKey, state *State) {
 						<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
 							groups functionality is currently disabled. click the button below to generate a secret key and enable groups.
 						</p>
-						<form method="POST" action="/groups/enable">
+						<form method="POST" action="/enable-groups">
 							<button
 								type="submit"
 								class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
@@ -55,6 +55,7 @@ templ groupsPage(loggedUser nostr.PubKey, state *State) {
 							<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
 								<thead class="bg-stone-50 dark:bg-stone-800">
 									<tr>
+										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">group id</th>
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">group</th>
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">members</th>
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">moderators</th>
@@ -67,10 +68,17 @@ templ groupsPage(loggedUser nostr.PubKey, state *State) {
 										if loggedUser == global.Master || !group.Private {
 											<tr>
 												<td class="px-4 py-3 text-sm text-center">
-													<span
-														class="font-medium text-stone-900 dark:text-stone-100"
+													<a
+														href={ "/groups/" + group.Address.ID }
+														class="text-stone-600 dark:text-stone-400 hover:underline"
+													>{ group.Address.ID }</a>
+												</td>
+												<td class="px-4 py-3 text-sm text-center">
+													<a
+														href={ "/groups/" + group.Address.ID }
+														class="font-medium text-stone-900 dark:text-stone-100 hover:underline"
 														title={ group.About }
-													>{ group.Name }</span>
+													>{ group.Name }</a>
 												</td>
 												<td class="px-4 py-3 text-sm text-center text-stone-600 dark:text-stone-400">{ fmt.Sprint(len(group.Members)) }</td>
 												<td class="px-4 py-3 text-sm text-center">
@@ -117,6 +125,83 @@ templ groupsPage(loggedUser nostr.PubKey, state *State) {
 					}
 				</div>
 			}
+			// my groups section
+			if loggedUser != nostr.ZeroPK {
+				<div class="mt-8">
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">my groups</h3>
+					<div class="overflow-x-auto">
+						<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
+							<thead class="bg-stone-50 dark:bg-stone-800">
+								<tr>
+									<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">group id</th>
+									<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">group</th>
+									<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">members</th>
+									<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">moderators</th>
+									<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">closed</th>
+									<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">private</th>
+								</tr>
+							</thead>
+							<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
+								for _, group := range state.Groups.Range {
+									if _, isMember := group.Members[loggedUser]; isMember {
+										<tr>
+											<td class="px-4 py-3 text-sm text-center">
+												<a
+													href={ "/groups/" + group.Address.ID }
+													class="text-stone-600 dark:text-stone-400 hover:underline"
+												>{ group.Address.ID }</a>
+											</td>
+											<td class="px-4 py-3 text-sm text-center">
+												<a
+													href={ "/groups/" + group.Address.ID }
+													class="font-medium text-stone-900 dark:text-stone-100 hover:underline"
+													title={ group.About }
+												>{ group.Name }</a>
+											</td>
+											<td class="px-4 py-3 text-sm text-center text-stone-600 dark:text-stone-400">{ fmt.Sprint(len(group.Members)) }</td>
+											<td class="px-4 py-3 text-sm text-center">
+												<div class="space-y-1">
+													for pubkey, roles := range group.Members {
+														if len(roles) > 0 {
+															<div class="flex items-center gap-2">
+																<nostr-name pubkey={ pubkey.Hex() } class="text-stone-700 dark:text-stone-300">{ pubkey.Hex() }</nostr-name>
+																<span class="text-xs text-stone-500 dark:text-stone-500">
+																	(
+																	for i, role := range roles {
+																		if i > 0 {
+																			,
+																		}
+																		{ role.Name }
+																	}
+																	)
+																</span>
+															</div>
+														}
+													}
+												</div>
+											</td>
+											<td class="px-4 py-3 text-sm text-center">
+												if group.Closed {
+													☑
+												} else {
+													☐
+												}
+											</td>
+											<td class="px-4 py-3 text-sm text-center">
+												if group.Private {
+													☑
+												} else {
+													☐
+												}
+											</td>
+										</tr>
+									}
+								}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			}
 			// create new group form - visible for all logged relay members
 			if loggedUser != nostr.ZeroPK {
 				<div
@@ -142,8 +227,12 @@ templ groupsPage(loggedUser nostr.PubKey, state *State) {
 								try {
 									creating = true;
 
-									let groupId = ''
-									for (groupId = ''; groupId.length < 10;) groupId += '23456789cfghjmpqrvwx'[(Math.random() * 20) | 0];
+									// generate random readable id
+									const v = ['a', 'e', 'i', 'o', 'u', 'ay', 'ey', 'oy', 'ou', 'ia', 'ea', 'ough', 'oo', 'ee', 'argh'],
+									const c = ['p', 'b', 't', 'd', 'k', 'g', 'ch', 'sh', 'th', 'f', 'v', 's', 'z', 'l', 'r', 'm', 'n', 'pl', 'bl', 'cl', 'gl', 'pr', 'br', 'tr', 'dr', 'kr', 'gr', 'fl', 'sl', 'fr', 'thr', 'str', 'sk', 'sp', 'st'],
+									const n = 6 + Math.random()*2|0, s = [c, v];
+									Math.random() < 0.5 && s.reverse();
+									groupId = Array.from({length: n}, (_, i) => s[i%2].splice(Math.random()*s[i%2].length|0, 1)).join('');
 
 									// create-group event
 									await this.publishEvent(await window.nostr.signEvent({
