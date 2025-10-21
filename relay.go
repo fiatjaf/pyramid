@@ -17,12 +17,13 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		return false, ""
 	}
 
-	// TODO: make this toggleable/optional
-	if event.CreatedAt > nostr.Now()+60 {
-		return true, "event too much in the future"
-	}
-	if event.CreatedAt < nostr.Now()-60 {
-		return true, "event too much in the past"
+	if global.Settings.RequireCurrentTimestamp {
+		if event.CreatedAt > nostr.Now()+60 {
+			return true, "event too much in the future"
+		}
+		if event.CreatedAt < nostr.Now()-60 {
+			return true, "event too much in the past"
+		}
 	}
 
 	switch event.Kind {

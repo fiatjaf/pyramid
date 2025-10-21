@@ -7,15 +7,23 @@ import (
 )
 
 type UserSettings struct {
-	BrowseURI        string `json:"browse_uri"`
-	BackgroundColor  string `json:"background_color"`
-	TextColor        string `json:"text_color"`
-	AccentColor      string `json:"accent_color"`
+	// relay metadata
 	RelayName        string `json:"relay_name"`
 	RelayDescription string `json:"relay_description"`
 	RelayContact     string `json:"relay_contact"`
 	RelayIcon        string `json:"relay_icon"`
 
+	// theme
+	BackgroundColor string `json:"background_color"`
+	TextColor       string `json:"text_color"`
+	AccentColor     string `json:"accent_color"`
+
+	// general
+	BrowseURI               string `json:"browse_uri"`
+	MaxInvitesPerPerson     int    `json:"max_invites_per_person"`
+	RequireCurrentTimestamp bool   `json:"require_current_timestamp"`
+
+	// groups
 	GroupsPrivateKey string `json:"groups_private_key"`
 }
 
@@ -33,7 +41,9 @@ func getUserSettingsPath() string {
 
 func loadUserSettings() (UserSettings, error) {
 	userSettings := UserSettings{
-		BrowseURI: "https://grouped-notes.dtonon.com/?r={url}", // default
+		BrowseURI:               "https://grouped-notes.dtonon.com/?r={url}", // default
+		MaxInvitesPerPerson:     4,                                           // default
+		RequireCurrentTimestamp: true,                                        // default
 	}
 
 	data, err := os.ReadFile(getUserSettingsPath())

@@ -29,7 +29,7 @@ func CanInviteMore(pubkey nostr.PubKey) bool {
 		return false
 	}
 
-	return len(Whitelist[pubkey]) < global.S.MaxInvitesPerPerson
+	return len(Whitelist[pubkey]) < global.Settings.MaxInvitesPerPerson
 }
 
 func IsParentOf(parent nostr.PubKey, target nostr.PubKey) bool {
@@ -87,7 +87,7 @@ func AddAction(type_ string, author nostr.PubKey, target nostr.PubKey) error {
 	switch type_ {
 	case "invite":
 		if !CanInviteMore(author) {
-			return fmt.Errorf("cannot invite more than %d", global.S.MaxInvitesPerPerson)
+			return fmt.Errorf("cannot invite more than %d", global.Settings.MaxInvitesPerPerson)
 		}
 		if IsAncestorOf(target, author) {
 			return fmt.Errorf("can't invite an ancestor")

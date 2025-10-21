@@ -17,8 +17,6 @@ var (
 		Domain      string `envconfig:"DOMAIN" required:"true"`
 		RelayPubkey string `envconfig:"RELAY_PUBKEY" required:"true"`
 		DataPath    string `envconfig:"DATA_PATH" default:"./data"`
-
-		MaxInvitesPerPerson int `envconfig:"MAX_INVITES_PER_PERSON" default:"3"`
 	}
 	Nostr    *sdk.System
 	Master   nostr.PubKey

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"fiatjaf.com/nostr"
@@ -95,6 +96,12 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				settings.RelayContact = v[0]
 			case "relay_icon":
 				settings.RelayIcon = v[0]
+			case "max_invites_per_person":
+				if maxInvites, err := strconv.Atoi(v[0]); err == nil && maxInvites > 0 {
+					settings.MaxInvitesPerPerson = maxInvites
+				}
+			case "require_current_timestamp":
+				settings.RequireCurrentTimestamp = v[0] == "on"
 			}
 		}
 

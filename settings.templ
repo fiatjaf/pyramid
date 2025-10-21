@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"fiatjaf.com/nostr"
 
 	"github.com/fiatjaf/pyramid/global"
@@ -9,6 +11,7 @@ import (
 templ settingsPage(loggedUser nostr.PubKey) {
 	@global.Layout(loggedUser, "settings") {
 		<div class="max-w-4xl mx-auto">
+			<!-- Relay Information -->
 			<div
 				x-data={ `{
 					relayName: '` + global.Settings.RelayName + `',
@@ -55,7 +58,6 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					class="space-y-6 mt-8"
 					x-ref="form"
 				>
-					<!-- Relay Information -->
 					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">relay information</h3>
 					<div class="space-y-4">
 						<div>
@@ -135,6 +137,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					/>
 				</form>
 			</div>
+			<!-- theme Colors Section -->
 			<form
 				method="POST"
 				action="/settings"
@@ -190,7 +193,6 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				x-init="updateTheme()"
 				x-ref="form"
 			>
-				<!-- Theme Colors Section -->
 				<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">theme colors</h3>
 				<div class={ "mb-4", templ.KV("hidden", global.Settings.HasThemeColors()) }>
 					<button
@@ -263,11 +265,14 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					</div>
 				</div>
 			</form>
+			<!-- General Settings Section -->
 			<form
 				method="POST"
 				action="/settings"
 				class="space-y-6 mt-8"
 				x-data={ `{
+					maxInvitesPerPerson: ` + fmt.Sprint(global.Settings.MaxInvitesPerPerson) + `,
+					requireCurrentTimestamp: ` + fmt.Sprint(global.Settings.RequireCurrentTimestamp) + `,
 					browseUri: '` + global.Settings.BrowseURI + `',
 					saved: false,
 					async saveSettings() {
@@ -283,56 +288,83 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				}` }
 				x-ref="form"
 			>
-				<!-- Browse Client Setting -->
-				<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">browse client url</h3>
-				<p class="text-sm text-stone-600 dark:text-stone-400 mb-3">pattern for the "browse" link. use { "{" }url{ "}" } as placeholder for the relay url.</p>
-				<input
-					type="text"
-					name="browse_uri"
-					class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-3"
-					x-model="browseUri"
-					@blur="saveSettings()"
-				/>
-				<div class="flex flex-wrap gap-2 items-center">
-					<button
-						type="button"
-						@mousedown="browseUri = 'https://jumble.social/?r={url}'"
-						@mouseup="saveSettings()"
-						class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
-					>
-						jumble
-					</button>
-					<button
-						type="button"
-						@mousedown="browseUri = 'https://yakihonne.com/r/content?r={url}'"
-						@mouseup="saveSettings()"
-						class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
-					>
-						yakihonne
-					</button>
-					<button
-						type="button"
-						@mousedown="browseUri = 'https://nosotros.app/feed?relay={url}&kind=1&limit=30&type=relayfeed'"
-						@mouseup="saveSettings()"
-						class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
-					>
-						nosotros
-					</button>
-					<button
-						type="button"
-						@mousedown="browseUri = 'https://coracle.social/relays/{url}'"
-						@mouseup="saveSettings()"
-						class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
-					>
-						coracle
-					</button>
-					<div
-						x-show="saved"
-						x-transition
-						class="text-sm text-green-600 dark:text-green-400 font-medium ml-auto"
-					>
-						saved!
+				<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">general</h3>
+				<div class="space-y-4">
+					<div class="flex items-center">
+						<input
+							type="checkbox"
+							name="require_current_timestamp"
+							id="require_current_timestamp"
+							class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
+							x-model="requireCurrentTimestamp"
+							@change="saveSettings()"
+						/>
+						<label for="require_current_timestamp" class="ml-2 text-sm font-medium dark:text-stone-300">
+							require event timestamps to be current (within ±60 seconds)
+						</label>
 					</div>
+					<div>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300">max invites per person</label>
+						<input
+							type="number"
+							name="max_invites_per_person"
+							min="1"
+							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+							x-model="maxInvitesPerPerson"
+							@blur="saveSettings()"
+						/>
+					</div>
+					<div>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300">pattern for the "browse" link</label>
+						<div class="flex flex-wrap gap-2 items-center">
+							<input
+								type="text"
+								name="browse_uri"
+								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-3"
+								x-model="browseUri"
+								@blur="saveSettings()"
+							/>
+							<button
+								type="button"
+								@mousedown="browseUri = 'https://jumble.social/?r={url}'"
+								@mouseup="saveSettings()"
+								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+							>
+								jumble
+							</button>
+							<button
+								type="button"
+								@mousedown="browseUri = 'https://yakihonne.com/r/content?r={url}'"
+								@mouseup="saveSettings()"
+								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+							>
+								yakihonne
+							</button>
+							<button
+								type="button"
+								@mousedown="browseUri = 'https://nosotros.app/feed?relay={url}&kind=1&limit=30&type=relayfeed'"
+								@mouseup="saveSettings()"
+								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+							>
+								nosotros
+							</button>
+							<button
+								type="button"
+								@mousedown="browseUri = 'https://coracle.social/relays/{url}'"
+								@mouseup="saveSettings()"
+								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+							>
+								coracle
+							</button>
+						</div>
+					</div>
+				</div>
+				<div
+					x-show="saved"
+					x-transition
+					class="text-sm text-green-600 dark:text-green-400 font-medium"
+				>
+					saved!
 				</div>
 			</form>
 			<!-- cleanup Section -->
