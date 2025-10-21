@@ -132,8 +132,7 @@ func main() {
 		policies.PreventTooManyIndexableTags(1200, nil, []nostr.Kind{3}),
 		policies.RestrictToSpecifiedKinds(true, supportedKinds...),
 		policies.RejectUnprefixedNostrReferences,
-		rejectEventsFromUsersNotInWhitelist,
-		validateAndFilterReports,
+		basicRejectionLogic,
 	)
 
 	root.Relay.ManagementAPI.AllowPubKey = allowPubKeyHandler
