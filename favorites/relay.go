@@ -2,7 +2,6 @@ package favorites
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -44,29 +43,17 @@ func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
 		func(ctx context.Context, evt nostr.Event) (bool, string) {
 			authedPublicKeys := khatru.GetConnection(ctx).AuthedPublicKeys
 			if len(authedPublicKeys) == 0 {
-				return true, "auth-required: this is only viewable by relay members"
+				return true, "auth-required: must be a relay member"
 			}
 
 			for _, authed := range authedPublicKeys {
-				if whitelist.IsPublicKeyInWhitelist(authed) {
-					// got our authenticated user
-					// save some invalid event that shows this was sent here by this guy
-					signal := nostr.Event{
-						CreatedAt: nostr.Now(),
-						PubKey:    authed,
-						Kind:      20016,
-						Tags: nostr.Tags{
-							{"e", evt.ID.Hex()},
-							{"k", fmt.Sprintf("%d", evt.Kind.Num())},
-							{"p", evt.PubKey.Hex()},
-						},
-					}
-					signal.ID = signal.GetID()
-					if err := db.SaveEvent(signal); err != nil {
-						return true, "error: failed to save signal: " + err.Error()
-					}
+				if evt.PubKey == authed {
+					return true, "blocked: can't save your own event here"
+				}
 
-					return false, "" // this means the actual event will be saved
+				if whitelist.IsPublicKeyInWhitelist(authed) {
+					// got our authenticated user, so this ok
+					return false, ""
 				}
 			}
 
