@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"fiatjaf.com/nostr"
-	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
 	"fiatjaf.com/nostr/nip11"
@@ -36,6 +35,7 @@ func main() {
 		log.Fatal().Err(err).Msg("couldn't initialize")
 		return
 	}
+	defer global.End()
 
 	if err := os.MkdirAll(global.S.DataPath, 0755); err != nil {
 		log.Fatal().Err(err).Str("dir", global.S.DataPath).Msg("failed to create data directory")
@@ -48,57 +48,13 @@ func main() {
 	// enable negentropy
 	root.Relay.Negentropy = true
 
-	// load db
-	global.MMMM = &mmm.MultiMmapManager{
-		Logger: &log,
-		Dir:    global.S.DataPath,
-	}
-	if err := global.MMMM.Init(); err != nil {
-		log.Fatal().Err(err).Msg("failed to setup mmm")
-		return
-	}
-	defer global.MMMM.Close()
-
-	var db *mmm.IndexingLayer
-	if layer, err := global.MMMM.EnsureLayer("main"); err != nil {
-		log.Fatal().Err(err).Msg("failed to setup main indexing layer")
-		return
-	} else {
-		db = layer
-	}
-
 	global.Nostr = sdk.NewSystem()
-	global.Nostr.Store = db
-
-	// setup additional indexing layers
-	var internalDB *mmm.IndexingLayer
-	if layer, err := global.MMMM.EnsureLayer("internal"); err != nil {
-		log.Fatal().Err(err).Msg("failed to setup internal indexing layer")
-		return
-	} else {
-		internalDB = layer
-	}
-
-	var groupsDB *mmm.IndexingLayer
-	if layer, err := global.MMMM.EnsureLayer("groups"); err != nil {
-		log.Fatal().Err(err).Msg("failed to setup groups indexing layer")
-		return
-	} else {
-		groupsDB = layer
-	}
-
-	var favoritesDB *mmm.IndexingLayer
-	if layer, err := global.MMMM.EnsureLayer("favorites"); err != nil {
-		log.Fatal().Err(err).Msg("failed to setup favorites indexing layer")
-		return
-	} else {
-		favoritesDB = layer
-	}
+	global.Nostr.Store = global.IL.System
 
 	// init relays
-	internalRelay := internal.NewRelay(internalDB)
-	favoritesRelay := favorites.NewRelay(favoritesDB)
-	groupsRelay, groupsHttpHandler := groups.NewRelay(groupsDB)
+	internalRelay := internal.NewRelay(global.IL.Internal)
+	favoritesRelay := favorites.NewRelay(global.IL.Favorites)
+	groupsRelay, groupsHttpHandler := groups.NewRelay(global.IL.Groups)
 
 	// init main relay
 	root.Relay.Info.Name = global.Settings.RelayName
@@ -118,7 +74,7 @@ func main() {
 	root.Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
 	relay := khatru.NewRelay()
-	relay.UseEventstore(db, 500)
+	relay.UseEventstore(global.IL.Main, 500)
 	relay.OnRequest = policies.SeqRequest(
 		policies.NoComplexFilters,
 		policies.NoSearchQueries,
@@ -134,6 +90,8 @@ func main() {
 		policies.RejectUnprefixedNostrReferences,
 		basicRejectionLogic,
 	)
+
+	relay.OnEventSaved = processReactions
 
 	root.Relay.ManagementAPI.AllowPubKey = allowPubKeyHandler
 	root.Relay.ManagementAPI.BanPubKey = banPubKeyHandler

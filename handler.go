@@ -43,12 +43,12 @@ func cleanupStuffFromExcludedUsersHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	count := 0
-	for evt := range global.Nostr.Store.QueryEvents(nostr.Filter{}, 99999999) {
+	for evt := range global.IL.Main.QueryEvents(nostr.Filter{}, 99999999) {
 		if whitelist.IsPublicKeyInWhitelist(evt.PubKey) {
 			continue
 		}
 
-		if err := global.Nostr.Store.DeleteEvent(evt.ID); err != nil {
+		if err := global.IL.Main.DeleteEvent(evt.ID); err != nil {
 			http.Error(w, fmt.Sprintf(
 				"failed to delete %s: %s -- stopping, %d events were deleted before this error", evt, err, count), 500)
 			return
@@ -62,7 +62,7 @@ func cleanupStuffFromExcludedUsersHandler(w http.ResponseWriter, r *http.Request
 func reportsViewerHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 
-	events := global.Nostr.Store.QueryEvents(nostr.Filter{Kinds: []nostr.Kind{1984}}, 52)
+	events := global.IL.Main.QueryEvents(nostr.Filter{Kinds: []nostr.Kind{1984}}, 52)
 	reportsPage(events, loggedUser).Render(r.Context(), w)
 }
 
