@@ -74,60 +74,102 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							href={ Settings.BrowseURI }
 							x-init="$el.href = $el.href.replace('{url}', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 3).join('/')))"
 						>browse</a>
-						<a
-							href="/reports"
-							class={
-								"rounded-lg px-4 py-2 font-medium",
-								templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
-								templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "reports"),
-							}
-						>reports</a>
-					<a
-						href="/favorites/"
+						<div
+							x-data="{ open: false }"
+							@click.away="open = false"
+							class="relative"
+						>
+					<button
+						@click="open = !open"
 						class={
-							"rounded-lg px-4 py-2 font-medium",
+							"rounded-lg px-4 py-2 font-medium flex items-center gap-1",
 							templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
 							templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
-							templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites"),
+							templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "internal" || currentPage == "groups"),
 						}
-					>favorites</a>
-					<a
-						href="/uppermost/"
-						class={
-							"rounded-lg px-4 py-2 font-medium",
-							templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-							templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
-							templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "uppermost"),
+					>
+						if currentPage == "favorites" {
+							favorites
+						} else if currentPage == "uppermost" {
+							uppermost
+						} else if currentPage == "popular" {
+							popular
+						} else if currentPage == "internal" {
+							internal
+						} else if currentPage == "groups" {
+							groups
+						} else {
+							relays
 						}
-					>uppermost</a>
-					<a
-						href="/popular/"
-						class={
-							"rounded-lg px-4 py-2 font-medium",
-							templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-							templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
-							templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "popular"),
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+						</svg>
+					</button>
+							<div
+								x-show="open"
+								x-transition
+								class="absolute left-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50"
+							>
+								<a
+									href="/favorites/"
+									class={
+										"block px-4 py-2 text-sm",
+										templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
+										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+										templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "favorites"),
+									}
+								>favorites</a>
+								<a
+									href="/uppermost/"
+									class={
+										"block px-4 py-2 text-sm",
+										templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
+										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+										templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "uppermost"),
+									}
+								>uppermost</a>
+								<a
+									href="/popular/"
+									class={
+										"block px-4 py-2 text-sm",
+										templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
+										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+										templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "popular"),
+									}
+								>popular</a>
+								if loggedUser != nostr.ZeroPK {
+									<a
+										href="/internal/"
+										class={
+											"block px-4 py-2 text-sm",
+											templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
+											templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+											templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "internal"),
+										}
+									>internal</a>
+								}
+								<a
+									href="/groups/"
+									class={
+										"block px-4 py-2 text-sm",
+										templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
+										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+										templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "groups"),
+									}
+								>groups</a>
+							</div>
+						</div>
+						if loggedUser != nostr.ZeroPK {
+							<a
+								href="/reports"
+								class={
+									"rounded-lg px-4 py-2 font-medium",
+									templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
+									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "reports"),
+								}
+							>reports</a>
 						}
-					>popular</a>
-						<a
-							href="/internal/"
-							class={
-								"rounded-lg px-4 py-2 font-medium",
-								templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
-								templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "internal"),
-							}
-						>internal</a>
-						<a
-							href="/groups/"
-							class={
-								"rounded-lg px-4 py-2 font-medium",
-								templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
-								templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "groups"),
-							}
-						>groups</a>
 						if loggedUser == Master {
 							<a
 								href="/settings"

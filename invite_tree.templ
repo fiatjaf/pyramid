@@ -70,9 +70,9 @@ templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey) {
 						>
 							<span
 								if global.Settings.HasThemeColors() {
-									class="text-[var(--text-color)]"
+									class="text-gray-700 hover:text-gray-500"
 								} else {
-									class="text-gray-700 dark:text-gray-300"
+									class="text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400"
 								}
 							>
 								<nostr-name pubkey={ pubkey.Hex() } class="text-lg">{ pubkey.Hex() }</nostr-name>

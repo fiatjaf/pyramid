@@ -7,10 +7,24 @@ import (
 
 templ uppermostPage(loggedUser nostr.PubKey) {
 	@global.Layout(loggedUser, "uppermost") {
-		<div class="container mx-auto p-4">
-			<h1 class="text-3xl font-bold mb-4">Uppermost</h1>
-			<p class="mb-4">Auto-curated posts with the highest quality reactions from relay members.</p>
-			<p class="text-sm text-gray-600">This is a read-only relay. Events are automatically added based on member reactions.</p>
+		<div class="max-w-3xl mx-auto">
+			<div class="space-y-4 text-gray-700 dark:text-gray-300">
+				<p class="text-lg leading-relaxed">
+					auto-curated posts with the highest quality reactions from relay members. this is a read-only relay where events are automatically added based on member reactions.
+				</p>
+				<a
+					class={
+						"inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105",
+						templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
+						templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
+					}
+					target="_blank"
+					href={ global.Settings.BrowseURI }
+					x-init="$el.href = $el.href.replace('{url}', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
+				>
+					browse uppermost →
+				</a>
+			</div>
 		</div>
 	}
 }
