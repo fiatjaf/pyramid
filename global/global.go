@@ -82,6 +82,16 @@ func Init() error {
 		return fmt.Errorf("failed to ensure 'uppermost': %w", err)
 	}
 
+	IL.Inbox, err = MMMM.EnsureLayer("inbox")
+	if err != nil {
+		return fmt.Errorf("failed to ensure 'inbox': %w", err)
+	}
+
+	IL.Secret, err = MMMM.EnsureLayer("secret")
+	if err != nil {
+		return fmt.Errorf("failed to ensure 'secret': %w", err)
+	}
+
 	return nil
 }
 
@@ -100,6 +110,10 @@ var IL struct {
 	Favorites *mmm.IndexingLayer
 	Internal  *mmm.IndexingLayer
 	Groups    *mmm.IndexingLayer
+	Inbox     *mmm.IndexingLayer
+
+	// only nip44-encrypted DMs for now
+	Secret *mmm.IndexingLayer
 
 	// algo
 	Popular   *mmm.IndexingLayer

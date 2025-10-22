@@ -84,8 +84,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 						class={
 							"rounded-lg px-4 py-2 font-medium flex items-center gap-1",
 							templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-							templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
-							templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "internal" || currentPage == "groups"),
+							templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "groups"),
 						}
 					>
 						if currentPage == "favorites" {
@@ -94,6 +93,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							uppermost
 						} else if currentPage == "popular" {
 							popular
+						} else if currentPage == "inbox" {
+							inbox
 						} else if currentPage == "internal" {
 							internal
 						} else if currentPage == "groups" {
@@ -137,6 +138,15 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 										templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "popular"),
 									}
 								>popular</a>
+								<a
+									href="/inbox/"
+									class={
+										"block px-4 py-2 text-sm",
+										templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
+										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+										templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "inbox"),
+									}
+								>inbox</a>
 								if loggedUser != nostr.ZeroPK {
 									<a
 										href="/internal/"

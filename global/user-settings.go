@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+
+	"fiatjaf.com/nostr"
 )
 
 type UserSettings struct {
@@ -23,6 +25,13 @@ type UserSettings struct {
 	MaxInvitesPerPerson     int    `json:"max_invites_per_person"`
 	RequireCurrentTimestamp bool   `json:"require_current_timestamp"`
 
+	// inbox settings
+	Inbox struct {
+		SpecificallyBlocked []nostr.PubKey `json:"specifically_blocked"`
+		HellthreadLimit     int            `json:"hellthread_limit"`
+		MinDMPoW            int            `json:"min_dm_pow"`
+	} `json:"inbox"`
+
 	// groups
 	GroupsPrivateKey string `json:"groups_private_key"`
 }
@@ -40,11 +49,13 @@ func getUserSettingsPath() string {
 }
 
 func loadUserSettings() (UserSettings, error) {
+	// start it with the defaults
 	userSettings := UserSettings{
-		BrowseURI:               "https://grouped-notes.dtonon.com/?r={url}", // default
-		MaxInvitesPerPerson:     4,                                           // default
-		RequireCurrentTimestamp: true,                                        // default
+		BrowseURI:               "https://grouped-notes.dtonon.com/?r={url}",
+		MaxInvitesPerPerson:     4,
+		RequireCurrentTimestamp: true,
 	}
+	userSettings.Inbox.HellthreadLimit = 10
 
 	data, err := os.ReadFile(getUserSettingsPath())
 	if err != nil {
