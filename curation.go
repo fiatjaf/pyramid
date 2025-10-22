@@ -79,8 +79,8 @@ func processReactions(ctx context.Context, event nostr.Event) {
 		}
 
 		if votes, ok := bestVotes[target]; ok && len(votes) >= bestThreshold {
-			if err := global.IL.Best.SaveEvent(*targetEvent); err != nil {
-				log.Warn().Err(err).Msg("failed to save to best layer")
+			if err := global.IL.Uppermost.SaveEvent(*targetEvent); err != nil {
+				log.Warn().Err(err).Msg("failed to save to uppermost layer")
 			}
 		}
 	}

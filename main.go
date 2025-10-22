@@ -22,6 +22,8 @@ import (
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/groups"
 	"github.com/fiatjaf/pyramid/internal"
+	"github.com/fiatjaf/pyramid/popular"
+	"github.com/fiatjaf/pyramid/uppermost"
 	"github.com/fiatjaf/pyramid/whitelist"
 )
 
@@ -54,6 +56,8 @@ func main() {
 	// init relays
 	internalRelay := internal.NewRelay(global.IL.Internal)
 	favoritesRelay := favorites.NewRelay(global.IL.Favorites)
+	uppermostRelay := uppermost.NewRelay(global.IL.Uppermost)
+	popularRelay := popular.NewRelay(global.IL.Popular)
 	groupsRelay, groupsHttpHandler := groups.NewRelay(global.IL.Groups)
 
 	// init main relay
@@ -150,6 +154,8 @@ func main() {
 	mux.Handle("/internal/", http.StripPrefix("/internal", internalRelay))
 	mux.Handle("/groups/", http.StripPrefix("/groups", groupsHttpHandler))
 	mux.Handle("/favorites/", http.StripPrefix("/favorites", favoritesRelay))
+	mux.Handle("/uppermost/", http.StripPrefix("/uppermost", uppermostRelay))
+	mux.Handle("/popular/", http.StripPrefix("/popular", popularRelay))
 	mux.Handle("/", root)
 
 	server := &http.Server{Addr: ":" + global.S.Port, Handler: mux}

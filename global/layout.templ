@@ -83,15 +83,33 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "reports"),
 							}
 						>reports</a>
-						<a
-							href="/favorites/"
-							class={
-								"rounded-lg px-4 py-2 font-medium",
-								templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
-								templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites"),
-							}
-						>favorites</a>
+					<a
+						href="/favorites/"
+						class={
+							"rounded-lg px-4 py-2 font-medium",
+							templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
+							templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+							templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites"),
+						}
+					>favorites</a>
+					<a
+						href="/uppermost/"
+						class={
+							"rounded-lg px-4 py-2 font-medium",
+							templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
+							templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+							templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "uppermost"),
+						}
+					>uppermost</a>
+					<a
+						href="/popular/"
+						class={
+							"rounded-lg px-4 py-2 font-medium",
+							templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
+							templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+							templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "popular"),
+						}
+					>popular</a>
 						<a
 							href="/internal/"
 							class={

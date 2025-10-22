@@ -77,9 +77,9 @@ func Init() error {
 		return fmt.Errorf("failed to ensure 'popular': %w", err)
 	}
 
-	IL.Best, err = MMMM.EnsureLayer("best")
+	IL.Uppermost, err = MMMM.EnsureLayer("uppermost")
 	if err != nil {
-		return fmt.Errorf("failed to ensure 'best': %w", err)
+		return fmt.Errorf("failed to ensure 'uppermost': %w", err)
 	}
 
 	return nil
@@ -102,6 +102,6 @@ var IL struct {
 	Groups    *mmm.IndexingLayer
 
 	// algo
-	Popular *mmm.IndexingLayer
-	Best    *mmm.IndexingLayer
+	Popular   *mmm.IndexingLayer
+	Uppermost *mmm.IndexingLayer
 }
