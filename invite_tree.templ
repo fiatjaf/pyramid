@@ -65,21 +65,32 @@ templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey) {
 			if slices.Contains(parents, curr) {
 				<li class="ml-6 py-1 group">
 					<div class="flex items-center gap-2">
-						<a
-							href={ templ.URL("https://njump.me/p/" + pubkey.Hex()) }
-							target="_blank"
-							class="font-mono text-sm"
+						<span
+							if global.Settings.HasThemeColors() {
+								class="text-gray-700 hover:text-gray-500"
+							} else {
+								class="text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400"
+							}
 						>
-							<span
-								if global.Settings.HasThemeColors() {
-									class="text-gray-700 hover:text-gray-500"
-								} else {
-									class="text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400"
-								}
+							<a
+								href={ templ.URL("https://njump.me/p/" + pubkey.Hex()) }
+								target="_blank"
+								class="font-mono text-sm"
 							>
 								<nostr-name pubkey={ pubkey.Hex() } class="text-lg">{ pubkey.Hex() }</nostr-name>
-							</span>
-						</a>
+							</a>
+							if slices.Contains(parents, nostr.ZeroPK) {
+								<span
+									class={
+										"cursor-default ml-2 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium",
+										templ.KV("bg-[var(--accent-color)] text-white", global.Settings.HasThemeColors()),
+										templ.KV("bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-900/20 dark:text-blue-400 dark:ring-blue-500/20", !global.Settings.HasThemeColors()),
+									}
+								>
+									root
+								</span>
+							}
+						</span>
 						if whitelist.IsAncestorOf(loggedUser, pubkey) && loggedUser != nostr.ZeroPK {
 							<form method="post" action="/action" class="inline">
 								<input type="hidden" name="target" value={ pubkey.Hex() }/>
@@ -87,7 +98,7 @@ templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey) {
 								<button
 									type="submit"
 									onclick="return confirm('really drop this user and its descendants?')"
-									class="opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-red-400/10 hover:bg-red-400/20 text-red-400/80 dark:text-red-400/80"
+									class="opacity-40 hover:opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-red-500/10 hover:text-red-500 text-gray-600 dark:text-gray-400"
 								>
 									drop
 								</button>

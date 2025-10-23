@@ -65,7 +65,7 @@ func main() {
 	// init main relay
 	root.Relay.Info.Name = global.Settings.RelayName
 
-	// use the first master we find here, whatever
+	// use the first root we find here, whatever
 	for member, invitedBy := range whitelist.Whitelist {
 		if slices.Contains(invitedBy, nostr.ZeroPK) {
 			root.Relay.Info.PubKey = &member

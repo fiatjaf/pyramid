@@ -26,7 +26,7 @@ func NewRelay(db *mmm.IndexingLayer) (*khatru.Relay, http.Handler) {
 	relay.Info.Icon = global.Settings.RelayIcon
 	relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
-	masterKey, err := nostr.SecretKeyFromHex(global.Settings.GroupsPrivateKey)
+	rootKey, err := nostr.SecretKeyFromHex(global.Settings.GroupsPrivateKey)
 	if err != nil {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +39,7 @@ func NewRelay(db *mmm.IndexingLayer) (*khatru.Relay, http.Handler) {
 	state := NewState(Options{
 		Domain:    global.S.Domain,
 		DB:        db,
-		SecretKey: masterKey,
+		SecretKey: rootKey,
 	})
 
 	relay.UseEventstore(db, 500)

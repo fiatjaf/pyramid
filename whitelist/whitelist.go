@@ -114,7 +114,7 @@ func LoadManagement() error {
 	file, err := os.Open(filepath.Join(global.S.DataPath, "management.jsonl"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			// initialize with empty whitelist, master will be set on first invite from ZeroPK
+			// initialize with empty whitelist, root will be set on first invite from ZeroPK
 			return nil
 		}
 		return err

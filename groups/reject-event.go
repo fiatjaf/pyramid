@@ -13,7 +13,7 @@ import (
 )
 
 func (s *State) RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg string) {
-	// the relay master key can write to any group
+	// the relay root key can write to any group
 	if event.PubKey == s.publicKey {
 		return false, ""
 	}
