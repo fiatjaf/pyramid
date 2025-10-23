@@ -12,10 +12,9 @@ import (
 
 var (
 	S struct {
-		Port        string `envconfig:"PORT" default:"3334"`
-		Domain      string `envconfig:"DOMAIN" required:"true"`
-		RelayPubkey string `envconfig:"RELAY_PUBKEY" required:"true"`
-		DataPath    string `envconfig:"DATA_PATH" default:"./data"`
+		Port     string `envconfig:"PORT" default:"3334"`
+		Domain   string `envconfig:"DOMAIN" required:"true"`
+		DataPath string `envconfig:"DATA_PATH" default:"./data"`
 	}
 	Nostr    *sdk.System
 	MMMM     *mmm.MultiMmapManager

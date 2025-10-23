@@ -65,10 +65,12 @@ func main() {
 	// init main relay
 	root.Relay.Info.Name = global.Settings.RelayName
 
-	if pk, err := nostr.PubKeyFromHex(global.S.RelayPubkey); err != nil {
-		log.Fatal().Err(err).Str("value", global.S.RelayPubkey).Msg("invalid relay main pubkey")
-	} else {
-		root.Relay.Info.PubKey = &pk
+	// use the first master we find here, whatever
+	for member, invitedBy := range whitelist.Whitelist {
+		if slices.Contains(invitedBy, nostr.ZeroPK) {
+			root.Relay.Info.PubKey = &member
+			break
+		}
 	}
 	root.Relay.Info.Description = global.Settings.RelayDescription
 	root.Relay.Info.Contact = global.Settings.RelayContact
