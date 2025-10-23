@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/sdk"
 	"github.com/kelseyhightower/envconfig"
@@ -19,7 +18,6 @@ var (
 		DataPath    string `envconfig:"DATA_PATH" default:"./data"`
 	}
 	Nostr    *sdk.System
-	Master   nostr.PubKey
 	MMMM     *mmm.MultiMmapManager
 	Settings UserSettings
 )

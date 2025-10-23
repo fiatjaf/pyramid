@@ -69,7 +69,6 @@ func main() {
 		log.Fatal().Err(err).Str("value", global.S.RelayPubkey).Msg("invalid relay main pubkey")
 	} else {
 		root.Relay.Info.PubKey = &pk
-		global.Master = pk
 	}
 	root.Relay.Info.Description = global.Settings.RelayDescription
 	root.Relay.Info.Contact = global.Settings.RelayContact

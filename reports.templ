@@ -1,14 +1,17 @@
 package main
 
 import (
+	"iter"
+
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/nip19"
+
 	"github.com/fiatjaf/pyramid/global"
-	"iter"
+	"github.com/fiatjaf/pyramid/layout"
 )
 
 templ reportsPage(reports iter.Seq[nostr.Event], loggedUser nostr.PubKey) {
-	@global.Layout(loggedUser, "reports") {
+	@layout.Layout(loggedUser, "reports") {
 		<div class="max-w-3xl mx-auto">
 			<div class="space-y-4">
 				for report := range reports {

@@ -2,11 +2,13 @@ package popular
 
 import (
 	"fiatjaf.com/nostr"
+
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
 )
 
 templ popularPage(loggedUser nostr.PubKey) {
-	@global.Layout(loggedUser, "popular") {
+	@layout.Layout(loggedUser, "popular") {
 		<div class="max-w-3xl mx-auto">
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">

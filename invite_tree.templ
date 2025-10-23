@@ -1,15 +1,17 @@
 package main
 
 import (
-	"fiatjaf.com/nostr"
 	"slices"
 
+	"fiatjaf.com/nostr"
+
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
 	"github.com/fiatjaf/pyramid/whitelist"
 )
 
 templ inviteTreePage(loggedUser nostr.PubKey) {
-	@global.Layout(loggedUser, "invite-tree") {
+	@layout.Layout(loggedUser, "invite-tree") {
 		<div class="max-w-3xl mx-auto">
 			if whitelist.CanInviteMore(loggedUser) {
 				<form

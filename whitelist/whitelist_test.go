@@ -114,3 +114,69 @@ func TestSpecificFailureCase(t *testing.T) {
 		},
 	}, Whitelist)
 }
+
+func TestMultipleMasters(t *testing.T) {
+	master1 := nostr.PubKey{1}
+	master2 := nostr.PubKey{2}
+	userA := nostr.PubKey{'A'}
+	userB := nostr.PubKey{'B'}
+	userC := nostr.PubKey{'C'}
+	userD := nostr.PubKey{'D'}
+
+	Whitelist = make(map[nostr.PubKey][]nostr.PubKey)
+
+	applyAction("invite", nostr.ZeroPK, master1)
+	applyAction("invite", nostr.ZeroPK, master2)
+	applyAction("invite", master1, userA)
+	applyAction("invite", master1, userB)
+	applyAction("invite", master2, userC)
+	applyAction("invite", userA, userD)
+
+	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
+		master1: {nostr.ZeroPK},
+		master2: {nostr.ZeroPK},
+		userA:   {master1},
+		userB:   {master1},
+		userC:   {master2},
+		userD:   {userA},
+	}, Whitelist)
+
+	applyAction("drop", master1, userA)
+
+	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
+		master1: {nostr.ZeroPK},
+		master2: {nostr.ZeroPK},
+		userB:   {master1},
+		userC:   {master2},
+	}, Whitelist)
+
+	applyAction("invite", master2, userA)
+	applyAction("invite", userA, userB)
+	applyAction("invite", userA, userD)
+
+	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
+		master1: {nostr.ZeroPK},
+		master2: {nostr.ZeroPK},
+		userA:   {master2},
+		userB:   {master1, userA},
+		userC:   {master2},
+		userD:   {userA},
+	}, Whitelist)
+
+	applyAction("drop", nostr.ZeroPK, master1)
+
+	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
+		master2: {nostr.ZeroPK},
+		userA:   {master2},
+		userB:   {userA},
+		userC:   {master2},
+		userD:   {userA},
+	}, Whitelist)
+
+	applyAction("drop", master2, userA)
+
+	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
+		master2: {nostr.ZeroPK},
+		userC:   {master2},
+	}, Whitelist)
+}

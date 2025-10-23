@@ -10,7 +10,6 @@ import (
 	"slices"
 
 	"fiatjaf.com/nostr"
-
 	"github.com/fiatjaf/pyramid/global"
 )
 
@@ -20,8 +19,12 @@ func IsPublicKeyInWhitelist(pubkey nostr.PubKey) bool {
 	return len(Whitelist[pubkey]) > 0
 }
 
+func IsMaster(pubkey nostr.PubKey) bool {
+	return slices.Contains(Whitelist[pubkey], nostr.ZeroPK)
+}
+
 func CanInviteMore(pubkey nostr.PubKey) bool {
-	if pubkey == global.Master {
+	if IsMaster(pubkey) {
 		return true
 	}
 
@@ -111,8 +114,8 @@ func LoadManagement() error {
 	file, err := os.Open(filepath.Join(global.S.DataPath, "management.jsonl"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			Whitelist[global.Master] = []nostr.PubKey{nostr.ZeroPK}
-			return appendActionToFile("invite", nostr.ZeroPK, global.Master)
+			// initialize with empty whitelist, master will be set on first invite from ZeroPK
+			return nil
 		}
 		return err
 	}

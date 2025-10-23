@@ -2,11 +2,13 @@ package uppermost
 
 import (
 	"fiatjaf.com/nostr"
+
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
 )
 
 templ uppermostPage(loggedUser nostr.PubKey) {
-	@global.Layout(loggedUser, "uppermost") {
+	@layout.Layout(loggedUser, "uppermost") {
 		<div class="max-w-3xl mx-auto">
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">

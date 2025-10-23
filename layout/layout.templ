@@ -1,14 +1,18 @@
-package global
+package layout
 
-import "fiatjaf.com/nostr"
+import (
+	"fiatjaf.com/nostr"
+	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/whitelist"
+)
 
 templ Layout(loggedUser nostr.PubKey, currentPage string) {
 	<!DOCTYPE html>
 	<html
-		if Settings.HasThemeColors() {
-			style={ templ.SafeCSS("--accent-color:" + Settings.AccentColor + ";" +
-				"--bg-color:" + Settings.BackgroundColor + ";" +
-				"--text-color:" + Settings.TextColor + ";") }
+		if global.Settings.HasThemeColors() {
+			style={ templ.SafeCSS("--accent-color:" + global.Settings.AccentColor + ";" +
+				"--bg-color:" + global.Settings.BackgroundColor + ";" +
+				"--text-color:" + global.Settings.TextColor + ";") }
 		} else {
 			x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }"
 			x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))"
@@ -18,7 +22,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			<title>{ Settings.RelayName }</title>
+			<title>{ global.Settings.RelayName }</title>
 			<script src="https://cdn.tailwindcss.com"></script>
 			<script>tailwind.config = { darkMode: 'class' }</script>
 			<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -26,28 +30,28 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 		</head>
 		<body
 			class={ "min-h-screen flex flex-col",
-			templ.KV("bg-[var(--bg-color)]", Settings.HasThemeColors()),
-			templ.KV("bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100", !Settings.HasThemeColors()) }
+			templ.KV("bg-[var(--bg-color)]", global.Settings.HasThemeColors()),
+			templ.KV("bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100", !global.Settings.HasThemeColors()) }
 		>
 			<header class="bg-white/60 dark:bg-stone-800/90 backdrop-blur-sm sticky top-0 z-50 shadow-sm border-b border-stone-300">
 				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div class="flex items-center justify-between py-6">
-						if Settings.RelayIcon != "" {
-							<img class="h-12 mr-4" src={ Settings.RelayIcon }/>
+						if global.Settings.RelayIcon != "" {
+							<img class="h-12 mr-4" src={ global.Settings.RelayIcon }/>
 						}
 						<div class="flex-1 mr-auto">
 							<h1
 								class={
 									"font-bold text-3xl",
-									templ.KV("text-[var(--accent-color)]", Settings.HasThemeColors()),
-									templ.KV("text-blue-600 dark:text-blue-400", !Settings.HasThemeColors()),
+									templ.KV("text-[var(--accent-color)]", global.Settings.HasThemeColors()),
+									templ.KV("text-blue-600 dark:text-blue-400", !global.Settings.HasThemeColors()),
 								}
-							>{ Settings.RelayName }</h1>
-							if Settings.RelayDescription != "" {
-								<p class="text-sm text-stone-600 dark:text-stone-400">{ Settings.RelayDescription }</p>
+							>{ global.Settings.RelayName }</h1>
+							if global.Settings.RelayDescription != "" {
+								<p class="text-sm text-stone-600 dark:text-stone-400">{ global.Settings.RelayDescription }</p>
 							}
 						</div>
-						if !Settings.HasThemeColors() {
+						if !global.Settings.HasThemeColors() {
 							<button @click="darkMode = !darkMode" class="ml-auto p-2.5 rounded-lg bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600" aria-label="Toggle dark mode">
 								<svg x-show="darkMode" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
 								<svg x-show="!darkMode" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
@@ -59,19 +63,19 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							href="/"
 							class={
 								"rounded-lg px-4 py-2 font-medium",
-								templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+								templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
 								templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "invite-tree"),
 							}
 						>invite tree</a>
 						<a
 							class={
 								"rounded-lg px-4 py-2 font-medium",
-								templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+								templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
 							}
 							target="_blank"
-							href={ Settings.BrowseURI }
+							href={ global.Settings.BrowseURI }
 							x-init="$el.href = $el.href.replace('{url}', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 3).join('/')))"
 						>browse</a>
 						<div
@@ -79,33 +83,33 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							@click.away="open = false"
 							class="relative"
 						>
-					<button
-						@click="open = !open"
-						class={
-							"rounded-lg px-4 py-2 font-medium flex items-center gap-1",
-							templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-							templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "groups"),
-						}
-					>
-						if currentPage == "favorites" {
-							favorites
-						} else if currentPage == "uppermost" {
-							uppermost
-						} else if currentPage == "popular" {
-							popular
-						} else if currentPage == "inbox" {
-							inbox
-						} else if currentPage == "internal" {
-							internal
-						} else if currentPage == "groups" {
-							groups
-						} else {
-							relays
-						}
-						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-						</svg>
-					</button>
+							<button
+								@click="open = !open"
+								class={
+									"rounded-lg px-4 py-2 font-medium flex items-center gap-1",
+									templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()), templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "groups"),
+								}
+							>
+								if currentPage == "favorites" {
+									favorites
+								} else if currentPage == "uppermost" {
+									uppermost
+								} else if currentPage == "popular" {
+									popular
+								} else if currentPage == "inbox" {
+									inbox
+								} else if currentPage == "internal" {
+									internal
+								} else if currentPage == "groups" {
+									groups
+								} else {
+									relays
+								}
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+								</svg>
+							</button>
 							<div
 								x-show="open"
 								x-transition
@@ -115,8 +119,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 									href="/favorites/"
 									class={
 										"block px-4 py-2 text-sm",
-										templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+										templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
 										templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "favorites"),
 									}
 								>favorites</a>
@@ -124,8 +128,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 									href="/uppermost/"
 									class={
 										"block px-4 py-2 text-sm",
-										templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+										templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
 										templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "uppermost"),
 									}
 								>uppermost</a>
@@ -133,8 +137,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 									href="/popular/"
 									class={
 										"block px-4 py-2 text-sm",
-										templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+										templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
 										templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "popular"),
 									}
 								>popular</a>
@@ -142,8 +146,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 									href="/inbox/"
 									class={
 										"block px-4 py-2 text-sm",
-										templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+										templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
 										templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "inbox"),
 									}
 								>inbox</a>
@@ -152,8 +156,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 										href="/internal/"
 										class={
 											"block px-4 py-2 text-sm",
-											templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-											templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+											templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+											templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
 											templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "internal"),
 										}
 									>internal</a>
@@ -162,8 +166,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 									href="/groups/"
 									class={
 										"block px-4 py-2 text-sm",
-										templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+										templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
 										templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "groups"),
 									}
 								>groups</a>
@@ -174,19 +178,19 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								href="/reports"
 								class={
 									"rounded-lg px-4 py-2 font-medium",
-									templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+									templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
 									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "reports"),
 								}
 							>reports</a>
 						}
-						if loggedUser == Master {
+						if whitelist.IsMaster(loggedUser) {
 							<a
 								href="/settings"
 								class={
 									"rounded-lg px-4 py-2 font-medium",
-									templ.KV("text-[var(--text-color)]", Settings.HasThemeColors()),
-									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !Settings.HasThemeColors()),
+									templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
 									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "settings"),
 								}
 							>settings</a>
@@ -195,8 +199,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							@click="handleAuth($el)"
 							class={
 								"px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg",
-								templ.KV("bg-[var(--accent-color)]", Settings.HasThemeColors()),
-								templ.KV("bg-blue-500 hover:bg-blue-600", !Settings.HasThemeColors()),
+								templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
+								templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
 							}
 						>
 							if loggedUser != nostr.ZeroPK {
@@ -218,7 +222,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 						<a
 							target="_blank"
 							href="https://github.com/fiatjaf/pyramid"
-							if Settings.HasThemeColors() {
+							if global.Settings.HasThemeColors() {
 								class="text-[var(--accent-color)]"
 							} else {
 								class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"

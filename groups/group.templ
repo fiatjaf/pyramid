@@ -1,14 +1,16 @@
 package groups
 
 import (
-	"fiatjaf.com/nostr"
 	"fmt"
-	"github.com/fiatjaf/pyramid/global"
 	"net/url"
+
+	"fiatjaf.com/nostr"
+
+	"github.com/fiatjaf/pyramid/layout"
 )
 
 templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Event) {
-	@global.Layout(loggedUser, "groups") {
+	@layout.Layout(loggedUser, "groups") {
 		<div class="max-w-4xl mx-auto">
 			<div class="p-6 space-y-6">
 				// group header with picture and metadata

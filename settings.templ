@@ -6,10 +6,11 @@ import (
 	"fiatjaf.com/nostr"
 
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
 )
 
 templ settingsPage(loggedUser nostr.PubKey) {
-	@global.Layout(loggedUser, "settings") {
+	@layout.Layout(loggedUser, "settings") {
 		<div class="max-w-4xl mx-auto">
 			<!-- Relay Information -->
 			<div

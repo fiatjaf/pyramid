@@ -1,13 +1,17 @@
 package groups
 
 import (
-	"fiatjaf.com/nostr"
 	"fmt"
+
+	"fiatjaf.com/nostr"
+
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
+	"github.com/fiatjaf/pyramid/whitelist"
 )
 
 templ groupsPage(loggedUser nostr.PubKey, state *State) {
-	@global.Layout(loggedUser, "groups") {
+	@layout.Layout(loggedUser, "groups") {
 		<div class="max-w-3xl mx-auto">
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">
@@ -22,7 +26,7 @@ templ groupsPage(loggedUser nostr.PubKey, state *State) {
 					</ul>
 				</div>
 			</div>
-			if loggedUser == global.Master {
+			if whitelist.IsMaster(loggedUser) {
 				<div class="mt-8">
 					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">groups configuration</h3>
 					if global.Settings.GroupsPrivateKey == "" {
@@ -65,7 +69,7 @@ templ groupsPage(loggedUser nostr.PubKey, state *State) {
 								</thead>
 								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
 									for _, group := range state.Groups.Range {
-										if loggedUser == global.Master || !group.Private {
+										if whitelist.IsMaster(loggedUser) || !group.Private {
 											<tr>
 												<td class="px-4 py-3 text-sm text-center">
 													<a

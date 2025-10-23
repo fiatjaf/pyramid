@@ -37,7 +37,7 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 func cleanupStuffFromExcludedUsersHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 
-	if loggedUser != global.Master {
+	if !whitelist.IsMaster(loggedUser) {
 		http.Error(w, "unauthorized, only the relay owner can do this", 403)
 		return
 	}
@@ -69,7 +69,7 @@ func reportsViewerHandler(w http.ResponseWriter, r *http.Request) {
 func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 
-	if loggedUser != global.Master {
+	if !whitelist.IsMaster(loggedUser) {
 		http.Error(w, "unauthorized", 403)
 		return
 	}
@@ -126,7 +126,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 func uploadIconHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 
-	if loggedUser != global.Master {
+	if !whitelist.IsMaster(loggedUser) {
 		http.Error(w, "unauthorized", 403)
 		return
 	}
@@ -205,7 +205,7 @@ func uploadIconHandler(w http.ResponseWriter, r *http.Request) {
 func enableGroupsHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 
-	if loggedUser != global.Master {
+	if !whitelist.IsMaster(loggedUser) {
 		http.Error(w, "unauthorized", 403)
 		return
 	}
