@@ -10,7 +10,7 @@ import (
 	"fiatjaf.com/nostr"
 	"github.com/FastFilter/xorfilter"
 	"github.com/fiatjaf/pyramid/global"
-	"github.com/fiatjaf/pyramid/whitelist"
+	"github.com/fiatjaf/pyramid/pyramid"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -33,12 +33,12 @@ func (wxf WotXorFilter) Contains(pubkey nostr.PubKey) bool {
 func computeAggregatedWoT(ctx context.Context) (WotXorFilter, error) {
 	res := make(chan nostr.PubKey)
 
-	queue := make(map[nostr.PubKey]struct{}, len(whitelist.Whitelist)*100)
+	queue := make(map[nostr.PubKey]struct{}, len(pyramid.Members)*100)
 	wg := sync.WaitGroup{}
 	sem := semaphore.NewWeighted(15)
 
-	log.Info().Int("n", len(whitelist.Whitelist)).Msg("fetching primary follow lists for members")
-	for member := range whitelist.Whitelist {
+	log.Info().Int("n", len(pyramid.Members)).Msg("fetching primary follow lists for members")
+	for member := range pyramid.Members {
 		if err := sem.Acquire(ctx, 1); err != nil {
 			return WotXorFilter{}, fmt.Errorf("failed to acquire: %w", err)
 		}

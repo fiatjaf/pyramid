@@ -372,12 +372,12 @@ templ settingsPage(loggedUser nostr.PubKey) {
 			<div class="mt-8">
 				<h3 class="text-lg font-semibold dark:text-stone-200 mb-3">cleanup</h3>
 				<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
-					permanently delete all events from users not in the whitelist.
+					permanently delete all events from users not in the pyramid.
 				</p>
 				<a
 					href="/cleanup"
 					class="inline-block px-4 py-2 rounded bg-stone-700 hover:bg-stone-800 dark:bg-stone-600 dark:hover:bg-stone-500 text-white font-medium"
-					onclick="return confirm('are you sure you want to delete all events from non-whitelisted users? this cannot be undone.')"
+					onclick="return confirm('are you sure you want to delete all events from non-members? this cannot be undone.')"
 				>
 					clear stuff from excluded users
 				</a>

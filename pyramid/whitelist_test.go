@@ -1,4 +1,4 @@
-package whitelist
+package pyramid
 
 import (
 	"testing"
@@ -14,7 +14,7 @@ func TestApplyAction(t *testing.T) {
 	user4 := nostr.PubKey{4}
 	user5 := nostr.PubKey{5}
 
-	Whitelist = make(map[nostr.PubKey][]nostr.PubKey)
+	Members = make(map[nostr.PubKey][]nostr.PubKey)
 
 	applyAction("invite", user1, user2)
 	applyAction("invite", user1, user3)
@@ -27,7 +27,7 @@ func TestApplyAction(t *testing.T) {
 		user3: {user1},
 		user4: {user2, user3},
 		user5: {user4},
-	}, Whitelist)
+	}, Members)
 
 	applyAction("drop", user2, user4)
 
@@ -36,14 +36,14 @@ func TestApplyAction(t *testing.T) {
 		user3: {user1},
 		user4: {user3},
 		user5: {user4},
-	}, Whitelist)
+	}, Members)
 
 	applyAction("drop", user3, user4)
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		user2: {user1},
 		user3: {user1},
-	}, Whitelist)
+	}, Members)
 
 	applyAction("invite", user2, user4)
 	applyAction("invite", user3, user4)
@@ -54,7 +54,7 @@ func TestApplyAction(t *testing.T) {
 		user3: {user1},
 		user4: {user2, user3},
 		user5: {user4},
-	}, Whitelist)
+	}, Members)
 
 	applyAction("drop", user2, user4)
 	applyAction("drop", user3, user5)
@@ -63,11 +63,11 @@ func TestApplyAction(t *testing.T) {
 		user2: {user1},
 		user3: {user1},
 		user4: {user3},
-	}, Whitelist)
+	}, Members)
 }
 
 func TestSpecificFailureCase(t *testing.T) {
-	Whitelist = make(map[nostr.PubKey][]nostr.PubKey)
+	Members = make(map[nostr.PubKey][]nostr.PubKey)
 
 	applyAction("invite", nostr.MustPubKeyFromHex("0000000000000000000000000000000000000000000000000000000000000000"), nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"))
 	applyAction("invite", nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"), nostr.MustPubKeyFromHex("00ce6537d4ff04531a6caeab2ca0b254f5f570b49d6a3d4e7b716d16b922d8ca"))
@@ -95,7 +95,7 @@ func TestSpecificFailureCase(t *testing.T) {
 		nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"): {
 			nostr.ZeroPK,
 		},
-	}, Whitelist)
+	}, Members)
 
 	applyAction("drop", nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"), nostr.MustPubKeyFromHex("82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2"))
 
@@ -112,7 +112,7 @@ func TestSpecificFailureCase(t *testing.T) {
 		nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"): {
 			nostr.ZeroPK,
 		},
-	}, Whitelist)
+	}, Members)
 }
 
 func TestMultipleRoots(t *testing.T) {
@@ -123,7 +123,7 @@ func TestMultipleRoots(t *testing.T) {
 	userC := nostr.PubKey{'C'}
 	userD := nostr.PubKey{'D'}
 
-	Whitelist = make(map[nostr.PubKey][]nostr.PubKey)
+	Members = make(map[nostr.PubKey][]nostr.PubKey)
 
 	applyAction("invite", nostr.ZeroPK, root1)
 	applyAction("invite", nostr.ZeroPK, root2)
@@ -139,7 +139,7 @@ func TestMultipleRoots(t *testing.T) {
 		userB: {root1},
 		userC: {root2},
 		userD: {userA},
-	}, Whitelist)
+	}, Members)
 
 	applyAction("drop", root1, userA)
 
@@ -148,7 +148,7 @@ func TestMultipleRoots(t *testing.T) {
 		root2: {nostr.ZeroPK},
 		userB: {root1},
 		userC: {root2},
-	}, Whitelist)
+	}, Members)
 
 	applyAction("invite", root2, userA)
 	applyAction("invite", userA, userB)
@@ -161,7 +161,7 @@ func TestMultipleRoots(t *testing.T) {
 		userB: {root1, userA},
 		userC: {root2},
 		userD: {userA},
-	}, Whitelist)
+	}, Members)
 
 	applyAction("drop", nostr.ZeroPK, root1)
 
@@ -171,12 +171,12 @@ func TestMultipleRoots(t *testing.T) {
 		userB: {userA},
 		userC: {root2},
 		userD: {userA},
-	}, Whitelist)
+	}, Members)
 
 	applyAction("drop", root2, userA)
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		root2: {nostr.ZeroPK},
 		userC: {root2},
-	}, Whitelist)
+	}, Members)
 }

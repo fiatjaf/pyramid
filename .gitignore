@@ -1,5 +1,5 @@
 users.json
-pyramid
+pyramid-exe
 .env
 db
 *_templ.go

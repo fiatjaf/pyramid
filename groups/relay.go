@@ -10,7 +10,7 @@ import (
 	"fiatjaf.com/nostr/khatru/policies"
 
 	"github.com/fiatjaf/pyramid/global"
-	"github.com/fiatjaf/pyramid/whitelist"
+	"github.com/fiatjaf/pyramid/pyramid"
 )
 
 var (
@@ -76,7 +76,7 @@ func NewRelay(db *mmm.IndexingLayer) (*khatru.Relay, http.Handler) {
 			http.NotFound(w, r)
 			return
 		}
-		if group.Private && !whitelist.IsMaster(loggedUser) && !group.AnyOfTheseIsAMember([]nostr.PubKey{loggedUser}) {
+		if group.Private && !pyramid.IsRoot(loggedUser) && !group.AnyOfTheseIsAMember([]nostr.PubKey{loggedUser}) {
 			http.NotFound(w, r) // fake 404
 			return
 		}

@@ -7,7 +7,7 @@ import (
 
 	"fiatjaf.com/nostr"
 	"github.com/fiatjaf/pyramid/global"
-	"github.com/fiatjaf/pyramid/whitelist"
+	"github.com/fiatjaf/pyramid/pyramid"
 	"github.com/mailru/easyjson"
 )
 
@@ -33,7 +33,7 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		if desc := event.Tags.Find("description"); desc != nil {
 			zap := nostr.Event{}
 			if err := easyjson.Unmarshal(unsafe.Slice(unsafe.StringData(desc[1]), len(desc[1])), &zap); err == nil {
-				if zap.Kind == 9734 && whitelist.IsPublicKeyInWhitelist(zap.PubKey) {
+				if zap.Kind == 9734 && pyramid.IsMember(zap.PubKey) {
 					if event.CreatedAt >= zap.CreatedAt && event.CreatedAt < zap.CreatedAt+60 {
 						ok = true
 					}
@@ -56,7 +56,7 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		} else if p := event.Tags.Find("p"); p != nil {
 			// pubkey report
 			if pk, err := nostr.PubKeyFromHex(p[1]); err == nil {
-				if !whitelist.IsPublicKeyInWhitelist(pk) {
+				if !pyramid.IsMember(pk) {
 					return true, "target pubkey is not a user of this relay"
 				}
 			}
@@ -66,7 +66,7 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 	}
 
 	// for all other events we only accept stuff from members
-	if whitelist.IsPublicKeyInWhitelist(event.PubKey) {
+	if pyramid.IsMember(event.PubKey) {
 		return false, ""
 	}
 

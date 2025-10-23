@@ -9,7 +9,7 @@ import (
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/nip29"
-	"github.com/fiatjaf/pyramid/whitelist"
+	"github.com/fiatjaf/pyramid/pyramid"
 )
 
 func (s *State) RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg string) {
@@ -42,7 +42,7 @@ func (s *State) RejectEvent(ctx context.Context, event nostr.Event) (reject bool
 				return true, "duplicate: group already exists"
 			}
 
-			if !whitelist.IsPublicKeyInWhitelist(event.PubKey) {
+			if !pyramid.IsMember(event.PubKey) {
 				// fine, we'll create the group
 				return true, "restricted: only members of this relay can create a group"
 			}

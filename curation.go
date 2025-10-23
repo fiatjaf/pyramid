@@ -10,14 +10,14 @@ import (
 	"fiatjaf.com/nostr/nip27"
 	"fiatjaf.com/nostr/sdk"
 	"github.com/fiatjaf/pyramid/global"
-	"github.com/fiatjaf/pyramid/whitelist"
+	"github.com/fiatjaf/pyramid/pyramid"
 	"github.com/mailru/easyjson"
 )
 
 var reactionKinds = []nostr.Kind{6, 7, 9321, 9735, 9802, 1, 1111}
 
 func processReactions(ctx context.Context, event nostr.Event) {
-	totalMembers := len(whitelist.Whitelist)
+	totalMembers := len(pyramid.Members)
 	if totalMembers <= 10 {
 		// makes no sense to have this in this case
 		return

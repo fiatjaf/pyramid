@@ -3,7 +3,7 @@ package layout
 import (
 	"fiatjaf.com/nostr"
 	"github.com/fiatjaf/pyramid/global"
-	"github.com/fiatjaf/pyramid/whitelist"
+	"github.com/fiatjaf/pyramid/pyramid"
 )
 
 templ Layout(loggedUser nostr.PubKey, currentPage string) {
@@ -184,7 +184,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								}
 							>reports</a>
 						}
-						if whitelist.IsMaster(loggedUser) {
+						if pyramid.IsRoot(loggedUser) {
 							<a
 								href="/settings"
 								class={

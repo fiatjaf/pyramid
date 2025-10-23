@@ -12,7 +12,7 @@ import (
 	"fiatjaf.com/nostr"
 
 	"github.com/fiatjaf/pyramid/global"
-	whitelist "github.com/fiatjaf/pyramid/whitelist"
+	"github.com/fiatjaf/pyramid/pyramid"
 )
 
 func inviteTreeHandler(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +25,7 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 	author, _ := global.GetLoggedUser(r)
 	target := pubkeyFromInput(r.PostFormValue("target"))
 
-	if err := whitelist.AddAction(type_, author, target); err != nil {
+	if err := pyramid.AddAction(type_, author, target); err != nil {
 		http.Error(w, err.Error(), 403)
 		return
 	}
@@ -37,14 +37,14 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 func cleanupStuffFromExcludedUsersHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 
-	if !whitelist.IsMaster(loggedUser) {
+	if !pyramid.IsRoot(loggedUser) {
 		http.Error(w, "unauthorized, only the relay owner can do this", 403)
 		return
 	}
 
 	count := 0
 	for evt := range global.IL.Main.QueryEvents(nostr.Filter{}, 99999999) {
-		if whitelist.IsPublicKeyInWhitelist(evt.PubKey) {
+		if pyramid.IsMember(evt.PubKey) {
 			continue
 		}
 
@@ -69,7 +69,7 @@ func reportsViewerHandler(w http.ResponseWriter, r *http.Request) {
 func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 
-	if !whitelist.IsMaster(loggedUser) {
+	if !pyramid.IsRoot(loggedUser) {
 		http.Error(w, "unauthorized", 403)
 		return
 	}
@@ -126,7 +126,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 func uploadIconHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 
-	if !whitelist.IsMaster(loggedUser) {
+	if !pyramid.IsRoot(loggedUser) {
 		http.Error(w, "unauthorized", 403)
 		return
 	}
@@ -205,7 +205,7 @@ func uploadIconHandler(w http.ResponseWriter, r *http.Request) {
 func enableGroupsHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 
-	if !whitelist.IsMaster(loggedUser) {
+	if !pyramid.IsRoot(loggedUser) {
 		http.Error(w, "unauthorized", 403)
 		return
 	}

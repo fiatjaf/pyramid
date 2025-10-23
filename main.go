@@ -24,8 +24,8 @@ import (
 	"github.com/fiatjaf/pyramid/inbox"
 	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/popular"
+	"github.com/fiatjaf/pyramid/pyramid"
 	"github.com/fiatjaf/pyramid/uppermost"
-	"github.com/fiatjaf/pyramid/whitelist"
 )
 
 var log = global.Log
@@ -66,7 +66,7 @@ func main() {
 	root.Relay.Info.Name = global.Settings.RelayName
 
 	// use the first root we find here, whatever
-	for member, invitedBy := range whitelist.Whitelist {
+	for member, invitedBy := range pyramid.Members {
 		if slices.Contains(invitedBy, nostr.ZeroPK) {
 			root.Relay.Info.PubKey = &member
 			break
@@ -105,8 +105,8 @@ func main() {
 	root.Relay.ManagementAPI.ListAllowedPubKeys = listAllowedPubKeysHandler
 
 	// load users registry
-	if err := whitelist.LoadManagement(); err != nil {
-		log.Fatal().Err(err).Msg("failed to load whitelist")
+	if err := pyramid.LoadManagement(); err != nil {
+		log.Fatal().Err(err).Msg("failed to load members")
 		return
 	}
 

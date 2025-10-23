@@ -11,7 +11,7 @@ import (
 	"fiatjaf.com/nostr/khatru/policies"
 
 	"github.com/fiatjaf/pyramid/global"
-	"github.com/fiatjaf/pyramid/whitelist"
+	"github.com/fiatjaf/pyramid/pyramid"
 )
 
 func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
@@ -51,7 +51,7 @@ func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
 					return true, "blocked: can't save your own event here"
 				}
 
-				if whitelist.IsPublicKeyInWhitelist(authed) {
+				if pyramid.IsMember(authed) {
 					// got our authenticated user, so this ok
 					return false, ""
 				}

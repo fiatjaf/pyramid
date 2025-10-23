@@ -3,10 +3,11 @@ module github.com/fiatjaf/pyramid
 go 1.24.2
 
 require (
-	fiatjaf.com/lib v0.3.2
 	fiatjaf.com/nostr v0.0.0-20250915112729-805003b39b5d
+	github.com/FastFilter/xorfilter v0.2.1
 	github.com/a-h/templ v0.3.943
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/mailru/easyjson v0.9.0
 	github.com/puzpuzpuz/xsync/v3 v3.5.1
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.10.0
@@ -14,7 +15,6 @@ require (
 )
 
 require (
-	github.com/FastFilter/xorfilter v0.2.1 // indirect
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3 // indirect
 	github.com/PowerDNS/lmdb-go v1.9.3 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
@@ -33,7 +33,6 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
-	github.com/mailru/easyjson v0.9.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect

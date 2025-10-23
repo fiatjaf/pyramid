@@ -1,4 +1,4 @@
-package whitelist
+package pyramid
 
 import (
 	"bufio"
@@ -13,34 +13,34 @@ import (
 	"github.com/fiatjaf/pyramid/global"
 )
 
-var Whitelist = make(map[nostr.PubKey][]nostr.PubKey) // { [user_pubkey]: [invited_by_list] }
+var Members = make(map[nostr.PubKey][]nostr.PubKey) // { [user_pubkey]: [invited_by_list] }
 
-func IsPublicKeyInWhitelist(pubkey nostr.PubKey) bool {
-	return len(Whitelist[pubkey]) > 0
+func IsMember(pubkey nostr.PubKey) bool {
+	return len(Members[pubkey]) > 0
 }
 
-func IsMaster(pubkey nostr.PubKey) bool {
-	return slices.Contains(Whitelist[pubkey], nostr.ZeroPK)
+func IsRoot(pubkey nostr.PubKey) bool {
+	return slices.Contains(Members[pubkey], nostr.ZeroPK)
 }
 
 func CanInviteMore(pubkey nostr.PubKey) bool {
-	if IsMaster(pubkey) {
+	if IsRoot(pubkey) {
 		return true
 	}
 
-	if pubkey == nostr.ZeroPK || !IsPublicKeyInWhitelist(pubkey) {
+	if pubkey == nostr.ZeroPK || !IsMember(pubkey) {
 		return false
 	}
 
-	return len(Whitelist[pubkey]) < global.Settings.MaxInvitesPerPerson
+	return len(Members[pubkey]) < global.Settings.MaxInvitesPerPerson
 }
 
 func IsParentOf(parent nostr.PubKey, target nostr.PubKey) bool {
-	return slices.Contains(Whitelist[target], parent)
+	return slices.Contains(Members[target], parent)
 }
 
 func IsAncestorOf(ancestor nostr.PubKey, target nostr.PubKey) bool {
-	parents := Whitelist[target]
+	parents := Members[target]
 	if len(parents) == 0 {
 		return false
 	}
@@ -61,7 +61,7 @@ func hasSingleRootAncestor(ancestor nostr.PubKey, target nostr.PubKey) bool {
 		return true
 	}
 
-	parents, _ := Whitelist[target]
+	parents, _ := Members[target]
 	if len(parents) == 0 {
 		return false
 	}
@@ -83,7 +83,7 @@ type managementAction struct {
 }
 
 func AddAction(type_ string, author nostr.PubKey, target nostr.PubKey) error {
-	if !IsPublicKeyInWhitelist(author) {
+	if !IsMember(author) {
 		return fmt.Errorf("pubkey %s doesn't have permission to invite", author)
 	}
 
@@ -114,7 +114,7 @@ func LoadManagement() error {
 	file, err := os.Open(filepath.Join(global.S.DataPath, "management.jsonl"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			// initialize with empty whitelist, root will be set on first invite from ZeroPK
+			// initialize with empty members, root will be set on first invite from ZeroPK
 			return nil
 		}
 		return err
@@ -147,11 +147,11 @@ func LoadManagement() error {
 func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
 	switch type_ {
 	case "invite":
-		if !slices.Contains(Whitelist[target], author) {
-			Whitelist[target] = append(Whitelist[target], author)
+		if !slices.Contains(Members[target], author) {
+			Members[target] = append(Members[target], author)
 		}
 	case "drop":
-		parents := Whitelist[target]
+		parents := Members[target]
 
 		// remove parent links that trace back to author
 		for i := 0; i < len(parents); {
@@ -165,12 +165,12 @@ func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
 
 		// if target has no parents left, remove it and cascade
 		if len(parents) == 0 {
-			delete(Whitelist, target)
+			delete(Members, target)
 
 			// recursively remove nodes that only have target as ancestor
 			var removeDescendants func(nostr.PubKey)
 			removeDescendants = func(dropped nostr.PubKey) {
-				for node, nodeParents := range Whitelist {
+				for node, nodeParents := range Members {
 					// remove links from dropped node to this node
 					for i := 0; i < len(nodeParents); {
 						if nodeParents[i] == dropped {
@@ -183,16 +183,16 @@ func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
 
 					// if node has no parents left, remove it and recurse
 					if len(nodeParents) == 0 {
-						delete(Whitelist, node)
+						delete(Members, node)
 						removeDescendants(node)
 					} else {
-						Whitelist[node] = nodeParents
+						Members[node] = nodeParents
 					}
 				}
 			}
 			removeDescendants(target)
 		} else {
-			Whitelist[target] = parents
+			Members[target] = parents
 		}
 	}
 }

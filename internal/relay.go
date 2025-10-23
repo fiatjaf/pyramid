@@ -11,21 +11,8 @@ import (
 	"fiatjaf.com/nostr/khatru/policies"
 
 	"github.com/fiatjaf/pyramid/global"
-	"github.com/fiatjaf/pyramid/whitelist"
+	"github.com/fiatjaf/pyramid/pyramid"
 )
-
-func rejectEventsFromUsersNotInWhitelist(ctx context.Context, event nostr.Event) (reject bool, msg string) {
-	// allow ephemeral
-	if event.Kind.IsEphemeral() {
-		return false, ""
-	}
-
-	if event.Kind == 1984 {
-		// we accept reports from anyone (will filter them for relevance in the next function)
-		return false, ""
-	}
-	return true, "not authorized"
-}
 
 func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
 	relay := khatru.NewRelay()
@@ -50,7 +37,7 @@ func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
 			}
 
 			for _, authed := range authedPublicKeys {
-				if whitelist.IsPublicKeyInWhitelist(authed) {
+				if pyramid.IsMember(authed) {
 					return false, ""
 				}
 			}
@@ -68,7 +55,7 @@ func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
 		policies.RestrictToSpecifiedKinds(true, 1, 11, 1111, 1444, 1244, 20, 21, 22, 31924, 31925, 31922, 31923, 30818),
 		policies.OnlyAllowNIP70ProtectedEvents,
 		func(ctx context.Context, evt nostr.Event) (bool, string) {
-			if whitelist.IsPublicKeyInWhitelist(evt.PubKey) {
+			if pyramid.IsMember(evt.PubKey) {
 				return false, ""
 			}
 			return true, "restricted: must be a relay member"

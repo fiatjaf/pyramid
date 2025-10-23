@@ -7,13 +7,13 @@ import (
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
-	"github.com/fiatjaf/pyramid/whitelist"
+	"github.com/fiatjaf/pyramid/pyramid"
 )
 
 templ inviteTreePage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "invite-tree") {
 		<div class="max-w-3xl mx-auto">
-			if whitelist.CanInviteMore(loggedUser) {
+			if pyramid.CanInviteMore(loggedUser) {
 				<form
 					method="post"
 					action="/action"
@@ -61,7 +61,7 @@ templ inviteTreePage(loggedUser nostr.PubKey) {
 
 templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey) {
 	<ul>
-		for pubkey, parents := range whitelist.Whitelist {
+		for pubkey, parents := range pyramid.Members {
 			if slices.Contains(parents, curr) {
 				<li class="ml-6 py-1 group">
 					<div class="flex items-center gap-2">
@@ -91,7 +91,7 @@ templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey) {
 								</span>
 							}
 						</span>
-						if whitelist.IsAncestorOf(loggedUser, pubkey) && loggedUser != nostr.ZeroPK {
+						if pyramid.IsAncestorOf(loggedUser, pubkey) && loggedUser != nostr.ZeroPK {
 							<form method="post" action="/action" class="inline">
 								<input type="hidden" name="target" value={ pubkey.Hex() }/>
 								<input type="hidden" name="type" value="drop"/>

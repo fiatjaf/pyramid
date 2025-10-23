@@ -9,7 +9,7 @@ import (
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/nip13"
 	"github.com/fiatjaf/pyramid/global"
-	"github.com/fiatjaf/pyramid/whitelist"
+	"github.com/fiatjaf/pyramid/pyramid"
 )
 
 func rejectFilter(ctx context.Context, filter nostr.Filter) (bool, string) {
@@ -64,14 +64,14 @@ func rejectFilter(ctx context.Context, filter nostr.Filter) (bool, string) {
 }
 
 func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
-	// count p-tags and check if they tag whitelisted members
+	// count p-tags and check if they tag pyramid members
 	pTagCount := 0
 	for _, tag := range evt.Tags {
 		if len(tag) >= 2 && (tag[0] == "p" || tag[0] == "P") {
 			pTagCount++
 			pubkey, err := nostr.PubKeyFromHexCheap(tag[1])
-			if err != nil || !whitelist.IsPublicKeyInWhitelist(pubkey) {
-				return true, "blocked: event must only tag whitelisted relay members"
+			if err != nil || !pyramid.IsMember(pubkey) {
+				return true, "blocked: event must only tag pyramid relay members"
 			}
 		}
 	}
