@@ -195,20 +195,22 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								}
 							>settings</a>
 						}
-						<button
-							@click="handleAuth($el)"
-							class={
-								"px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg",
-								templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
-								templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
-							}
-						>
-							if loggedUser != nostr.ZeroPK {
-								logout
-							} else {
-								login
-							}
-						</button>
+						<div x-data="authButton()">
+							<button
+								@click="handleAuth($event)"
+								class={
+									"px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg",
+									templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
+									templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
+								}
+							>
+								if loggedUser != nostr.ZeroPK {
+									logout
+								} else {
+									login
+								}
+							</button>
+						</div>
 					</nav>
 				</div>
 			</header>
@@ -234,39 +236,40 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 			<script>window.wnjParams = { position: 'bottom', startHidden: true, compactMode: true }</script>
 			<script src="https://cdn.jsdelivr.net/npm/window.nostr.js@0.4.7/dist/window.nostr.min.js"></script>
 			<script>
-				function getCookie(name) {
-					const value = `; ${document.cookie}`;
-					const parts = value.split(`; ${name}=`);
-					if (parts.length === 2) return parts.pop().split(';').shift();
-				}
-
-				function setCookie(name, value) {
-					document.cookie = `${name}=${value}; path=/`;
-				}
-
-				function clearCookie(name) {
-					document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-				}
-
-				async function handleAuth(el) {
-					const isLogin = el.innerText.toLowerCase() === 'login';
-					if (isLogin) {
-						try {
-							const event = await window.nostr.signEvent({
-								created_at: Math.round(Date.now() / 1000),
-								kind: 27235,
-								tags: [['domain', location.host]],
-								content: ''
-							});
-							setCookie('nip98', JSON.stringify(event));
-						} catch (e) {
-							console.error('login failed:', e);
-							return;
+				function authButton() {
+					return {
+						getCookie(name) {
+							const value = `; ${document.cookie}`;
+							const parts = value.split(`; ${name}=`);
+							if (parts.length === 2) return parts.pop().split(';').shift();
+						},
+						setCookie(name, value) {
+							document.cookie = `${name}=${value}; path=/`;
+						},
+						clearCookie(name) {
+							document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+						},
+					async handleAuth(event) {
+						const isLogin = event.target.innerText.toLowerCase() === 'login';
+							if (isLogin) {
+								try {
+									const event = await window.nostr.signEvent({
+										created_at: Math.round(Date.now() / 1000),
+										kind: 27235,
+										tags: [['domain', location.host]],
+										content: ''
+									});
+									this.setCookie('nip98', btoa(JSON.stringify(event)));
+								} catch (e) {
+									console.error('login failed:', e);
+									return;
+								}
+							} else {
+								this.clearCookie('nip98');
+							}
+							location.reload();
 						}
-					} else {
-						clearCookie('nip98');
 					}
-					location.reload();
 				}
 			</script>
 		</body>

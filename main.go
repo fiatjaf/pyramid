@@ -172,7 +172,7 @@ func main() {
 	root.Route().
 		Relay(relay)
 
-	log.Info().Msg("running on http://0.0.0.0:" + global.S.Port)
+	log.Info().Msg("running on http://" + global.S.Host + ":" + global.S.Port)
 
 	mux := http.NewServeMux()
 	mux.Handle("/internal/", http.StripPrefix("/internal", internalRelay))
@@ -183,7 +183,7 @@ func main() {
 	mux.Handle("/inbox/", http.StripPrefix("/inbox", inboxRelay))
 	mux.Handle("/", root)
 
-	server := &http.Server{Addr: ":" + global.S.Port, Handler: setupCheckMiddleware(mux)}
+	server := &http.Server{Addr: global.S.Host + ":" + global.S.Port, Handler: setupCheckMiddleware(mux)}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	g, ctx := errgroup.WithContext(ctx)
