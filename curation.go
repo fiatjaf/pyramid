@@ -58,8 +58,8 @@ func processReactions(ctx context.Context, event nostr.Event) {
 		}
 	}
 
-	popularThreshold := min(2, (totalMembers*20)/100)
-	bestThreshold := min(2, (totalMembers*30)/100)
+	popularThreshold := min(2, (totalMembers*global.Settings.Popular.Percent)/100)
+	uppermostThreshold := min(2, (totalMembers*global.Settings.Uppermost.Percent)/100)
 
 	// for all events we meet the popular threshold for
 	for target, votes := range popularVotes {
@@ -78,7 +78,7 @@ func processReactions(ctx context.Context, event nostr.Event) {
 			log.Warn().Err(err).Msg("failed to save to popular layer")
 		}
 
-		if votes, ok := bestVotes[target]; ok && len(votes) >= bestThreshold {
+		if votes, ok := bestVotes[target]; ok && len(votes) >= uppermostThreshold {
 			if err := global.IL.Uppermost.SaveEvent(*targetEvent); err != nil {
 				log.Warn().Err(err).Msg("failed to save to uppermost layer")
 			}

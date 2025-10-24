@@ -13,7 +13,6 @@ import (
 var (
 	S struct {
 		Port     string `envconfig:"PORT" default:"3334"`
-		Domain   string `envconfig:"DOMAIN" required:"true"`
 		DataPath string `envconfig:"DATA_PATH" default:"./data"`
 	}
 	Nostr    *sdk.System
@@ -33,6 +32,10 @@ func Init() error {
 		return fmt.Errorf("user settings: %w", err)
 	} else {
 		Settings = us
+	}
+
+	if err := os.MkdirAll(S.DataPath, 0755); err != nil {
+		return fmt.Errorf("failed to create data directory '%s'", S.DataPath)
 	}
 
 	// databases

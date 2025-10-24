@@ -24,7 +24,7 @@ var (
 func NewRelay(normalDB *mmm.IndexingLayer, secretDB *mmm.IndexingLayer) *khatru.Relay {
 	relay := khatru.NewRelay()
 
-	relay.ServiceURL = "wss://" + global.S.Domain + "/inbox"
+	relay.ServiceURL = "wss://" + global.Settings.Domain + "/inbox"
 	relay.Info.Name = global.Settings.RelayName + " - inbox"
 	relay.Info.Description = "filtered notifications for relay members using unified web of trust."
 	relay.Info.Contact = global.Settings.RelayContact

@@ -216,8 +216,7 @@ func enableGroupsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	settings := global.Settings
-	secretKey := nostr.Generate()
-	settings.GroupsPrivateKey = secretKey.Hex()
+	settings.Groups.SecretKey = nostr.Generate()
 
 	if err := global.SaveUserSettings(settings); err != nil {
 		http.Error(w, "failed to save settings: "+err.Error(), 500)

@@ -29,7 +29,7 @@ templ groupsPage(loggedUser nostr.PubKey, state *State) {
 			if pyramid.IsRoot(loggedUser) {
 				<div class="mt-8">
 					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">groups configuration</h3>
-					if global.Settings.GroupsPrivateKey == "" {
+					if global.Settings.Groups.SecretKey == [32]byte{} {
 						<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
 							groups functionality is currently disabled. click the button below to generate a secret key and enable groups.
 						</p>

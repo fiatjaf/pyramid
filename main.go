@@ -40,13 +40,8 @@ func main() {
 	}
 	defer global.End()
 
-	if err := os.MkdirAll(global.S.DataPath, 0755); err != nil {
-		log.Fatal().Err(err).Str("dir", global.S.DataPath).Msg("failed to create data directory")
-		return
-	}
-
 	root := khatru.NewRouter()
-	root.Relay.ServiceURL = "wss://" + global.S.Domain
+	root.Relay.ServiceURL = "wss://" + global.Settings.Domain
 
 	// enable negentropy
 	root.Relay.Negentropy = true

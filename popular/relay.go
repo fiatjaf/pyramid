@@ -16,7 +16,7 @@ import (
 func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
 	relay := khatru.NewRelay()
 
-	relay.ServiceURL = "wss://" + global.S.Domain + "/popular"
+	relay.ServiceURL = "wss://" + global.Settings.Domain + "/popular"
 	relay.Info.Name = global.Settings.RelayName + " - popular"
 	relay.Info.Description = "auto-curated popular posts from relay members."
 	relay.Info.Contact = global.Settings.RelayContact

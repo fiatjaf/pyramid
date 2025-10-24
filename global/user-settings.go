@@ -10,6 +10,7 @@ import (
 
 type UserSettings struct {
 	// relay metadata
+	Domain           string `json:"domain"`
 	RelayName        string `json:"relay_name"`
 	RelayDescription string `json:"relay_description"`
 	RelayContact     string `json:"relay_contact"`
@@ -25,15 +26,24 @@ type UserSettings struct {
 	MaxInvitesPerPerson     int    `json:"max_invites_per_person"`
 	RequireCurrentTimestamp bool   `json:"require_current_timestamp"`
 
-	// inbox settings
+	// per-relay
 	Inbox struct {
 		SpecificallyBlocked []nostr.PubKey `json:"specifically_blocked"`
 		HellthreadLimit     int            `json:"hellthread_limit"`
 		MinDMPoW            int            `json:"min_dm_pow"`
 	} `json:"inbox"`
 
-	// groups
-	GroupsPrivateKey string `json:"groups_private_key"`
+	Groups struct {
+		SecretKey nostr.SecretKey `json:"groups_secret_key"`
+	} `json:"groups"`
+
+	Popular struct {
+		Percent int `json:"percent_threshold"`
+	} `json:"popular"`
+
+	Uppermost struct {
+		Percent int `json:"percent_threshold"`
+	} `json:"uppermost"`
 }
 
 func (us UserSettings) HasThemeColors() bool {

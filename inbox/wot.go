@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 
@@ -49,6 +50,10 @@ func computeAggregatedWoT(ctx context.Context) (WotXorFilter, error) {
 			defer sem.Release(1)
 
 			for _, f := range global.Nostr.FetchFollowList(ctx, member).Items {
+				if slices.Contains(global.Settings.Inbox.SpecificallyBlocked, f.Pubkey) {
+					continue
+				}
+
 				res <- f.Pubkey
 				queue[f.Pubkey] = struct{}{}
 			}
@@ -68,6 +73,10 @@ func computeAggregatedWoT(ctx context.Context) (WotXorFilter, error) {
 			defer sem.Release(1)
 
 			for _, f := range global.Nostr.FetchFollowList(ctx, user).Items {
+				if slices.Contains(global.Settings.Inbox.SpecificallyBlocked, f.Pubkey) {
+					continue
+				}
+
 				res <- f.Pubkey
 			}
 		}()

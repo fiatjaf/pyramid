@@ -17,7 +17,7 @@ import (
 func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
 	relay := khatru.NewRelay()
 
-	relay.ServiceURL = "wss://" + global.S.Domain + "/internal"
+	relay.ServiceURL = "wss://" + global.Settings.Domain + "/internal"
 	relay.Info.Name = global.Settings.RelayName + " - internal"
 	relay.Info.Description = "internal discussions between relay members, unavailable to the external world"
 	relay.Info.Contact = global.Settings.RelayContact

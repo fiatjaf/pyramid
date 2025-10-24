@@ -17,7 +17,7 @@ import (
 func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
 	relay := khatru.NewRelay()
 
-	relay.ServiceURL = "wss://" + global.S.Domain + "/favorites"
+	relay.ServiceURL = "wss://" + global.Settings.Domain + "/favorites"
 	relay.Info.Name = global.Settings.RelayName + " - favorites"
 	relay.Info.Description = "posts manually curated by the members. to curate just republish any chosen event here."
 	relay.Info.Contact = global.Settings.RelayContact
