@@ -248,6 +248,60 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, iconPath)
 }
 
+func domainSetupHandler(w http.ResponseWriter, r *http.Request) {
+	if global.Settings.Domain != "" {
+		http.Redirect(w, r, "/", 302)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		domain := strings.TrimSpace(r.PostFormValue("domain"))
+		if domain == "" {
+			http.Error(w, "domain is required", 400)
+			return
+		}
+
+		settings := global.Settings
+		settings.Domain = domain
+		if err := global.SaveUserSettings(settings); err != nil {
+			http.Error(w, "failed to save domain: "+err.Error(), 500)
+			return
+		}
+
+		http.Redirect(w, r, "/", 302)
+		return
+	}
+
+	domainSetupPage().Render(r.Context(), w)
+}
+
+func rootUserSetupHandler(w http.ResponseWriter, r *http.Request) {
+	if pyramid.HasRootUsers() {
+		http.Redirect(w, r, "/", 302)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		pubkeyStr := r.PostFormValue("pubkey")
+		target := pubkeyFromInput(pubkeyStr)
+
+		if target == nostr.ZeroPK {
+			http.Error(w, "invalid public key", 400)
+			return
+		}
+
+		if err := pyramid.AddAction("invite", nostr.ZeroPK, target); err != nil {
+			http.Error(w, "failed to add root user: "+err.Error(), 500)
+			return
+		}
+
+		http.Redirect(w, r, "/", 302)
+		return
+	}
+
+	rootUserSetupPage().Render(r.Context(), w)
+}
+
 func forumHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `<!doctype html>
 <html>

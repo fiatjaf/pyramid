@@ -1,11 +1,15 @@
 package main
 
 import (
+	"strings"
+
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/nip19"
 )
 
 func pubkeyFromInput(input string) nostr.PubKey {
+	input = strings.TrimSpace(input)
+
 	var pubkey nostr.PubKey
 	if pfx, value, err := nip19.Decode(input); err == nil && pfx == "npub" {
 		pubkey = value.(nostr.PubKey)

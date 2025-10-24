@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"slices"
+	"strings"
 	"syscall"
 	"time"
 
@@ -33,12 +34,39 @@ var log = global.Log
 //go:embed static/*
 var static embed.FS
 
+func setupCheckMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/setup/") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if global.Settings.Domain == "" {
+			http.Redirect(w, r, "/setup/domain", 302)
+			return
+		}
+
+		if !pyramid.HasRootUsers() {
+			http.Redirect(w, r, "/setup/root", 302)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 	if err := global.Init(); err != nil {
 		log.Fatal().Err(err).Msg("couldn't initialize")
 		return
 	}
 	defer global.End()
+
+	// load pyramid early for setup checks
+	if err := pyramid.LoadManagement(); err != nil {
+		log.Fatal().Err(err).Msg("failed to load members")
+		return
+	}
 
 	root := khatru.NewRouter()
 	root.Relay.ServiceURL = "wss://" + global.Settings.Domain
@@ -99,11 +127,9 @@ func main() {
 	root.Relay.ManagementAPI.BanPubKey = banPubKeyHandler
 	root.Relay.ManagementAPI.ListAllowedPubKeys = listAllowedPubKeysHandler
 
-	// load users registry
-	if err := pyramid.LoadManagement(); err != nil {
-		log.Fatal().Err(err).Msg("failed to load members")
-		return
-	}
+	// setup routes (no auth required)
+	root.Relay.Router().HandleFunc("/setup/domain", domainSetupHandler)
+	root.Relay.Router().HandleFunc("/setup/root", rootUserSetupHandler)
 
 	// http routes
 	root.Relay.Router().HandleFunc("/action", actionHandler)
@@ -157,7 +183,7 @@ func main() {
 	mux.Handle("/inbox/", http.StripPrefix("/inbox", inboxRelay))
 	mux.Handle("/", root)
 
-	server := &http.Server{Addr: ":" + global.S.Port, Handler: mux}
+	server := &http.Server{Addr: ":" + global.S.Port, Handler: setupCheckMiddleware(mux)}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	g, ctx := errgroup.WithContext(ctx)

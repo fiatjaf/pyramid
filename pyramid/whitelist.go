@@ -23,12 +23,21 @@ func IsRoot(pubkey nostr.PubKey) bool {
 	return slices.Contains(Members[pubkey], nostr.ZeroPK)
 }
 
+func HasRootUsers() bool {
+	for _, invitedBy := range Members {
+		if slices.Contains(invitedBy, nostr.ZeroPK) {
+			return true
+		}
+	}
+	return false
+}
+
 func CanInviteMore(pubkey nostr.PubKey) bool {
-	if IsRoot(pubkey) {
+	if IsRoot(pubkey) || pubkey == nostr.ZeroPK {
 		return true
 	}
 
-	if pubkey == nostr.ZeroPK || !IsMember(pubkey) {
+	if !IsMember(pubkey) {
 		return false
 	}
 
@@ -83,7 +92,7 @@ type managementAction struct {
 }
 
 func AddAction(type_ string, author nostr.PubKey, target nostr.PubKey) error {
-	if !IsMember(author) {
+	if !IsMember(author) && author != nostr.ZeroPK {
 		return fmt.Errorf("pubkey %s doesn't have permission to invite", author)
 	}
 
