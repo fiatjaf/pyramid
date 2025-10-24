@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"fiatjaf.com/nostr"
-	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
 
@@ -15,25 +14,39 @@ import (
 
 var (
 	log   = global.Log.With().Str("relay", "groups").Logger()
-	relay = khatru.NewRelay()
+	Relay *khatru.Relay
 )
 
-func NewRelay(db *mmm.IndexingLayer) (*khatru.Relay, http.Handler) {
-	relay.ServiceURL = "wss://" + global.Settings.Domain + "/groups"
-	relay.Info.Name = global.Settings.RelayName + " - Groups"
-	relay.Info.Description = global.Settings.RelayDescription + " - Groups relay"
-	relay.Info.Contact = global.Settings.RelayContact
-	relay.Info.Icon = global.Settings.RelayIcon
-	relay.Info.Software = "https://github.com/fiatjaf/pyramid"
-
-	if global.Settings.Groups.SecretKey == [32]byte{} {
-		mux := http.NewServeMux()
-		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			loggedUser, _ := global.GetLoggedUser(r)
-			groupsPage(loggedUser, nil).Render(r.Context(), w)
-		})
-		return nil, mux
+func init() {
+	if global.Settings.Groups.SecretKey == [32]byte{} || !global.Settings.Groups.Enabled {
+		// relay disabled
+		setupDisabled()
+	} else {
+		// relay enabled
+		setupEnabled()
 	}
+}
+
+func setupDisabled() {
+	Relay = khatru.NewRelay()
+	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		loggedUser, _ := global.GetLoggedUser(r)
+		listGroupsPage(loggedUser, nil).Render(r.Context(), w)
+	})
+	Relay.Router().HandleFunc("POST /enable", enableHandler)
+}
+
+func setupEnabled() {
+	db := global.IL.Groups
+
+	Relay = khatru.NewRelay()
+
+	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/groups"
+	Relay.Info.Name = global.Settings.RelayName + " - groups"
+	Relay.Info.Description = global.Settings.RelayDescription + " - groups relay"
+	Relay.Info.Contact = global.Settings.RelayContact
+	Relay.Info.Icon = global.Settings.RelayIcon
+	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
 	state := NewState(Options{
 		Domain:    global.Settings.Domain,
@@ -41,32 +54,36 @@ func NewRelay(db *mmm.IndexingLayer) (*khatru.Relay, http.Handler) {
 		SecretKey: global.Settings.Groups.SecretKey,
 	})
 
-	relay.UseEventstore(db, 500)
-	relay.DisableExpirationManager()
-	relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 29)
+	Relay.UseEventstore(db, 500)
+	Relay.DisableExpirationManager()
+	Relay.Info.SupportedNIPs = append(Relay.Info.SupportedNIPs, 29)
 
-	relay.QueryStored = state.Query
-	relay.OnCount = nil
+	pk := global.Settings.Groups.SecretKey.Public()
+	Relay.Info.Self = &pk
+	Relay.Info.PubKey = &pk
 
-	relay.OnRequest = policies.SeqRequest(
+	Relay.QueryStored = state.Query
+	Relay.OnCount = nil
+
+	Relay.OnRequest = policies.SeqRequest(
 		policies.NoComplexFilters,
 		policies.NoSearchQueries,
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
 		state.RequestAuthWhenNecessary,
 	)
 
-	relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
+	Relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
 
-	relay.OnEvent = policies.SeqEvent(
+	Relay.OnEvent = policies.SeqEvent(
 		policies.PreventLargeContent(10000),
 		policies.PreventTooManyIndexableTags(9, []nostr.Kind{3}, nil),
 		policies.PreventTooManyIndexableTags(1200, nil, []nostr.Kind{3}),
 		state.RejectEvent,
 	)
 
-	relay.OnEventSaved = state.ProcessEvent
+	Relay.OnEventSaved = state.ProcessEvent
 
-	relay.Router().HandleFunc("/{groupId}", func(w http.ResponseWriter, r *http.Request) {
+	Relay.Router().HandleFunc("/{groupId}", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		groupId := r.PathValue("groupId")
 
@@ -93,10 +110,48 @@ func NewRelay(db *mmm.IndexingLayer) (*khatru.Relay, http.Handler) {
 		groupDetailPage(loggedUser, group, events).Render(r.Context(), w)
 	})
 
-	relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
-		groupsPage(loggedUser, state).Render(r.Context(), w)
+		listGroupsPage(loggedUser, state).Render(r.Context(), w)
 	})
+	Relay.Router().HandleFunc("POST /disable", disableHandler)
+}
 
-	return relay, relay
+func enableHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	global.Settings.Groups.SecretKey = nostr.Generate()
+	global.Settings.Groups.Enabled = true
+
+	if err := global.SaveUserSettings(); err != nil {
+		http.Error(w, "failed to save settings: "+err.Error(), 500)
+		return
+	}
+
+	setupEnabled()
+	http.Redirect(w, r, "/groups", 302)
+}
+
+func disableHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	global.Settings.Groups.Enabled = false
+
+	if err := global.SaveUserSettings(); err != nil {
+		http.Error(w, "failed to save settings: "+err.Error(), 500)
+		return
+	}
+
+	setupDisabled()
+	http.Redirect(w, r, "/groups", 302)
 }

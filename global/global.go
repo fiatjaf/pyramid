@@ -29,10 +29,8 @@ func Init() error {
 		return fmt.Errorf("envconfig: %w", err)
 	}
 
-	if us, err := loadUserSettings(); err != nil {
+	if err := loadUserSettings(); err != nil {
 		return fmt.Errorf("user settings: %w", err)
-	} else {
-		Settings = us
 	}
 
 	if err := os.MkdirAll(S.DataPath, 0755); err != nil {

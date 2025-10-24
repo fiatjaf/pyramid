@@ -66,7 +66,7 @@ func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
 		}[event.Kind] {
 			evt := toBroadcast()
 			evt.Sign(s.secretKey)
-			relay.BroadcastEvent(evt)
+			Relay.BroadcastEvent(evt)
 		}
 	}
 
@@ -96,11 +96,11 @@ func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
 			log.Error().Err(err).Msg("failed to sign add-user event")
 			return
 		}
-		if _, err := relay.AddEvent(ctx, addUser); err != nil {
+		if _, err := Relay.AddEvent(ctx, addUser); err != nil {
 			log.Error().Err(err).Msg("failed to add user who requested to join")
 			return
 		}
-		relay.BroadcastEvent(addUser)
+		Relay.BroadcastEvent(addUser)
 	}
 
 	// react to leave request
@@ -120,11 +120,11 @@ func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
 				log.Error().Err(err).Msg("failed to sign remove-user event")
 				return
 			}
-			if _, err := relay.AddEvent(ctx, removeUser); err != nil {
+			if _, err := Relay.AddEvent(ctx, removeUser); err != nil {
 				log.Error().Err(err).Msg("failed to remove user who requested to leave")
 				return
 			}
-			relay.BroadcastEvent(removeUser)
+			Relay.BroadcastEvent(removeUser)
 		}
 	}
 

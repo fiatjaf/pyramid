@@ -5,6 +5,7 @@ import (
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
+	"github.com/fiatjaf/pyramid/pyramid"
 )
 
 templ internalPage(loggedUser nostr.PubKey) {
@@ -14,20 +15,46 @@ templ internalPage(loggedUser nostr.PubKey) {
 				<p class="text-lg leading-relaxed">
 					the internal relay is only readable and writable by members. it can be used for meta discussions or anything else.
 				</p>
-				<div class="pt-4">
-					<a
-						class={
-							"inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105",
-							templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
-							templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
+				if pyramid.IsRoot(loggedUser) {
+					<div class="mt-8">
+						<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">internal configuration</h3>
+						if !global.Settings.Internal.Enabled {
+							<form method="POST" action="/internal/enable">
+								<button
+									type="submit"
+									class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+								>
+									enable
+								</button>
+							</form>
+						} else {
+							<form method="POST" action="/internal/disable">
+								<button
+									type="submit"
+									class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+								>
+									disable
+								</button>
+							</form>
 						}
-						target="_blank"
-						href={ global.Settings.BrowseURI }
-						x-init="$el.href = $el.href.replace('{url}', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
-					>
-						browse internal →
-					</a>
-				</div>
+					</div>
+				}
+				if global.Settings.Internal.Enabled {
+					<div class="pt-4">
+						<a
+							class={
+								"inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105",
+								templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
+								templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
+							}
+							target="_blank"
+							href={ global.Settings.BrowseURI }
+							x-init="$el.href = $el.href.replace('{url}', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
+						>
+							browse internal →
+						</a>
+					</div>
+				}
 			</div>
 		</div>
 	}

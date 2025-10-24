@@ -75,37 +75,44 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodPost {
-		settings := global.Settings
 		r.ParseForm()
 
 		for k, v := range r.PostForm {
 			switch k {
 			case "browse_uri":
-				settings.BrowseURI = v[0]
+				global.Settings.BrowseURI = v[0]
 			case "background_color":
-				settings.BackgroundColor = v[0]
+				global.Settings.BackgroundColor = v[0]
 			case "text_color":
-				settings.TextColor = v[0]
+				global.Settings.TextColor = v[0]
 			case "accent_color":
-				settings.AccentColor = v[0]
+				global.Settings.AccentColor = v[0]
 			case "relay_name":
-				settings.RelayName = v[0]
+				global.Settings.RelayName = v[0]
 			case "relay_description":
-				settings.RelayDescription = v[0]
+				global.Settings.RelayDescription = v[0]
 			case "relay_contact":
-				settings.RelayContact = v[0]
+				global.Settings.RelayContact = v[0]
 			case "relay_icon":
-				settings.RelayIcon = v[0]
+				global.Settings.RelayIcon = v[0]
 			case "max_invites_per_person":
-				if maxInvites, err := strconv.Atoi(v[0]); err == nil && maxInvites > 0 {
-					settings.MaxInvitesPerPerson = maxInvites
-				}
+				global.Settings.MaxInvitesPerPerson, _ = strconv.Atoi(v[0])
 			case "require_current_timestamp":
-				settings.RequireCurrentTimestamp = v[0] == "on"
+				global.Settings.RequireCurrentTimestamp = v[0] == "on"
+			case "favorites_enabled":
+				global.Settings.Favorites.Enabled = v[0] == "on"
+			case "inbox_enabled":
+				global.Settings.Inbox.Enabled = v[0] == "on"
+			case "groups_enabled":
+				global.Settings.Groups.Enabled = v[0] == "on"
+			case "popular_enabled":
+				global.Settings.Popular.Enabled = v[0] == "on"
+			case "uppermost_enabled":
+				global.Settings.Uppermost.Enabled = v[0] == "on"
 			}
 		}
 
-		if err := global.SaveUserSettings(settings); err != nil {
+		if err := global.SaveUserSettings(); err != nil {
 			http.Error(w, "failed to save config: "+err.Error(), 500)
 			return
 		}
@@ -190,9 +197,8 @@ func uploadIconHandler(w http.ResponseWriter, r *http.Request) {
 	os.Remove(filepath.Join(global.S.DataPath, "icon."+otherExt))
 
 	// update settings with new icon URL
-	settings := global.Settings
-	settings.RelayIcon = r.Header.Get("Origin") + "/icon." + ext
-	if err := global.SaveUserSettings(settings); err != nil {
+	global.Settings.RelayIcon = r.Header.Get("Origin") + "/icon." + ext
+	if err := global.SaveUserSettings(); err != nil {
 		http.Error(w, "failed to update settings", 500)
 		return
 	}
@@ -200,30 +206,6 @@ func uploadIconHandler(w http.ResponseWriter, r *http.Request) {
 	if strings.Contains(r.Header.Get("Accept"), "text/html") {
 		http.Redirect(w, r, "/settings", 302)
 	}
-}
-
-func enableGroupsHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser, _ := global.GetLoggedUser(r)
-
-	if !pyramid.IsRoot(loggedUser) {
-		http.Error(w, "unauthorized", 403)
-		return
-	}
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", 405)
-		return
-	}
-
-	settings := global.Settings
-	settings.Groups.SecretKey = nostr.Generate()
-
-	if err := global.SaveUserSettings(settings); err != nil {
-		http.Error(w, "failed to save settings: "+err.Error(), 500)
-		return
-	}
-
-	http.Redirect(w, r, "/groups", 302)
 }
 
 func iconHandler(w http.ResponseWriter, r *http.Request) {
@@ -261,9 +243,8 @@ func domainSetupHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		settings := global.Settings
-		settings.Domain = domain
-		if err := global.SaveUserSettings(settings); err != nil {
+		global.Settings.Domain = domain
+		if err := global.SaveUserSettings(); err != nil {
 			http.Error(w, "failed to save domain: "+err.Error(), 500)
 			return
 		}

@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"fiatjaf.com/nostr"
-	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
 
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/pyramid"
 )
 
 var (
@@ -18,42 +18,66 @@ var (
 	secretKinds   = []nostr.Kind{1059}
 	aggregatedWoT WotXorFilter
 
-	log = global.Log.With().Str("relay", "inbox").Logger()
+	log   = global.Log.With().Str("relay", "inbox").Logger()
+	Relay *khatru.Relay
 )
 
-func NewRelay(normalDB *mmm.IndexingLayer, secretDB *mmm.IndexingLayer) *khatru.Relay {
-	relay := khatru.NewRelay()
+func init() {
+	if global.Settings.Inbox.Enabled {
+		// relay enabled
+		setupEnabled()
+	} else {
+		// relay disabled
+		setupDisabled()
+	}
+}
 
-	relay.ServiceURL = "wss://" + global.Settings.Domain + "/inbox"
-	relay.Info.Name = global.Settings.RelayName + " - inbox"
-	relay.Info.Description = "filtered notifications for relay members using unified web of trust."
-	relay.Info.Contact = global.Settings.RelayContact
-	relay.Info.Icon = global.Settings.RelayIcon
+func setupDisabled() {
+	Relay = khatru.NewRelay()
+	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		loggedUser, _ := global.GetLoggedUser(r)
+		inboxPage(loggedUser).Render(r.Context(), w)
+	})
+	Relay.Router().HandleFunc("POST /enable", enableHandler)
+}
 
-	relay.Info.Software = "https://github.com/fiatjaf/pyramid"
+func setupEnabled() {
+	normalDB := global.IL.Inbox
+	secretDB := global.IL.Secret
+
+	Relay = khatru.NewRelay()
+
+	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/inbox"
+	Relay.Info.Name = global.Settings.RelayName + " - inbox"
+	Relay.Info.Description = "filtered notifications for relay members using unified web of trust."
+	Relay.Info.Contact = global.Settings.RelayContact
+	Relay.Info.Icon = global.Settings.RelayIcon
+	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
 	// use dual layer store
 	dualStore := &dualLayerStore{
 		normalDB: normalDB,
 		secretDB: secretDB,
 	}
-	relay.UseEventstore(dualStore, 500)
+	Relay.UseEventstore(dualStore, 500)
 
-	relay.OnRequest = policies.SeqRequest(
+	Relay.OnRequest = policies.SeqRequest(
 		policies.NoComplexFilters,
 		policies.NoSearchQueries,
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
 		rejectFilter,
 	)
 
-	relay.OnEvent = rejectEvent
+	Relay.OnEvent = rejectEvent
 
-	relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
+	Relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
 
-	relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		inboxPage(loggedUser).Render(r.Context(), w)
 	})
+
+	Relay.Router().HandleFunc("POST /disable", disableHandler)
 
 	// compute aggregated WoT in background
 	go func() {
@@ -66,6 +90,42 @@ func NewRelay(normalDB *mmm.IndexingLayer, secretDB *mmm.IndexingLayer) *khatru.
 		aggregatedWoT = wot
 		nostr.InfoLogger.Printf("computed aggregated WoT with %d entries", wot.Items)
 	}()
+}
 
-	return relay
+func enableHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	global.Settings.Inbox.Enabled = true
+
+	if err := global.SaveUserSettings(); err != nil {
+		http.Error(w, "failed to save settings: "+err.Error(), 500)
+		return
+	}
+
+	setupEnabled()
+	http.Redirect(w, r, "/inbox", 302)
+}
+
+func disableHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	global.Settings.Inbox.Enabled = false
+
+	if err := global.SaveUserSettings(); err != nil {
+		http.Error(w, "failed to save settings: "+err.Error(), 500)
+		return
+	}
+
+	setupDisabled()
+	http.Redirect(w, r, "/inbox", 302)
 }

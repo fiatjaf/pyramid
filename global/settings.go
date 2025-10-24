@@ -27,22 +27,34 @@ type UserSettings struct {
 	RequireCurrentTimestamp bool   `json:"require_current_timestamp"`
 
 	// per-relay
+	Internal struct {
+		Enabled bool `json:"enabled"`
+	} `json:"internal"`
+
+	Favorites struct {
+		Enabled bool `json:"enabled"`
+	} `json:"favorites"`
+
 	Inbox struct {
+		Enabled             bool           `json:"enabled"`
 		SpecificallyBlocked []nostr.PubKey `json:"specifically_blocked"`
 		HellthreadLimit     int            `json:"hellthread_limit"`
 		MinDMPoW            int            `json:"min_dm_pow"`
 	} `json:"inbox"`
 
 	Groups struct {
+		Enabled   bool            `json:"enabled"`
 		SecretKey nostr.SecretKey `json:"groups_secret_key"`
 	} `json:"groups"`
 
 	Popular struct {
-		Percent int `json:"percent_threshold"`
+		Enabled          bool `json:"enabled"`
+		PercentThreshold int  `json:"percent_threshold"`
 	} `json:"popular"`
 
 	Uppermost struct {
-		Percent int `json:"percent_threshold"`
+		Enabled          bool `json:"enabled"`
+		PercentThreshold int  `json:"percent_threshold"`
 	} `json:"uppermost"`
 }
 
@@ -58,40 +70,43 @@ func getUserSettingsPath() string {
 	return filepath.Join(S.DataPath, "settings.json")
 }
 
-func loadUserSettings() (UserSettings, error) {
+func loadUserSettings() error {
 	// start it with the defaults
-	userSettings := UserSettings{
+	Settings = UserSettings{
 		BrowseURI:               "https://grouped-notes.dtonon.com/?r={url}",
 		MaxInvitesPerPerson:     4,
 		RequireCurrentTimestamp: true,
 	}
-	userSettings.Inbox.HellthreadLimit = 10
+	Settings.Inbox.HellthreadLimit = 10
+	Settings.Popular.PercentThreshold = 20
+	Settings.Uppermost.PercentThreshold = 33
 
 	data, err := os.ReadFile(getUserSettingsPath())
 	if err != nil {
 		if os.IsNotExist(err) {
 			// since the file doesn't exist, set some defaults
-			userSettings.RelayName = "<unnamed pyramid>"
-			userSettings.RelayDescription = "<an undescribed relay>"
-			userSettings.RelayIcon = "https://cdn.britannica.com/06/122506-050-C8E03A8A/Pyramid-of-Khafre-Giza-Egypt.jpg"
+			Settings.RelayName = "<unnamed pyramid>"
+			Settings.RelayDescription = "<an undescribed relay>"
+			Settings.RelayIcon = "https://cdn.britannica.com/06/122506-050-C8E03A8A/Pyramid-of-Khafre-Giza-Egypt.jpg"
 
-			if err := SaveUserSettings(userSettings); err != nil {
-				return userSettings, err
+			if err := SaveUserSettings(); err != nil {
+				return err
 			}
-			return userSettings, nil
+			return nil
 		}
-		return userSettings, err
+
+		return err
 	}
 
-	if err := json.Unmarshal(data, &userSettings); err != nil {
-		return userSettings, err
+	if err := json.Unmarshal(data, &Settings); err != nil {
+		return err
 	}
 
-	return userSettings, nil
+	return nil
 }
 
-func SaveUserSettings(userSettings UserSettings) error {
-	data, err := json.MarshalIndent(userSettings, "", "  ")
+func SaveUserSettings() error {
+	data, err := json.MarshalIndent(Settings, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -100,6 +115,5 @@ func SaveUserSettings(userSettings UserSettings) error {
 		return err
 	}
 
-	Settings = userSettings
 	return nil
 }

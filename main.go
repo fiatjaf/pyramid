@@ -77,24 +77,8 @@ func main() {
 	global.Nostr = sdk.NewSystem()
 	global.Nostr.Store = global.IL.System
 
-	// init relays
-	internalRelay := internal.NewRelay(global.IL.Internal)
-	favoritesRelay := favorites.NewRelay(global.IL.Favorites)
-	uppermostRelay := uppermost.NewRelay(global.IL.Uppermost)
-	popularRelay := popular.NewRelay(global.IL.Popular)
-	groupsRelay, groupsHttpHandler := groups.NewRelay(global.IL.Groups)
-	inboxRelay := inbox.NewRelay(global.IL.Inbox, global.IL.Secret)
-
 	// init main relay
 	root.Relay.Info.Name = global.Settings.RelayName
-
-	// use the first root we find here, whatever
-	for member, invitedBy := range pyramid.Members {
-		if slices.Contains(invitedBy, nostr.ZeroPK) {
-			root.Relay.Info.PubKey = &member
-			break
-		}
-	}
 	root.Relay.Info.Description = global.Settings.RelayDescription
 	root.Relay.Info.Contact = global.Settings.RelayContact
 	root.Relay.Info.Icon = global.Settings.RelayIcon
@@ -102,6 +86,13 @@ func main() {
 		RestrictedWrites: true,
 	}
 	root.Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
+	for member, invitedBy := range pyramid.Members {
+		if slices.Contains(invitedBy, nostr.ZeroPK) {
+			// use the first root we find here, whatever
+			root.Relay.Info.PubKey = &member
+			break
+		}
+	}
 
 	relay := khatru.NewRelay()
 	relay.UseEventstore(global.IL.Main, 500)
@@ -137,7 +128,6 @@ func main() {
 	root.Relay.Router().HandleFunc("/reports", reportsViewerHandler)
 	root.Relay.Router().HandleFunc("/settings", settingsHandler)
 	root.Relay.Router().HandleFunc("POST /upload-icon", uploadIconHandler)
-	root.Relay.Router().HandleFunc("POST /enable-groups", enableGroupsHandler)
 	root.Relay.Router().HandleFunc("/icon.png", iconHandler)
 	root.Relay.Router().HandleFunc("/icon.jpg", iconHandler)
 	root.Relay.Router().HandleFunc("/forum/", forumHandler)
@@ -152,22 +142,24 @@ func main() {
 	root.Relay.Router().HandleFunc("/{$}", inviteTreeHandler)
 
 	// route nostr requests for nip29 groups to the groupsRelay directly
-	root.Route().
-		Event(func(evt *nostr.Event) bool { return evt.Tags.Find("h") != nil }).
-		Req(func(filter nostr.Filter) bool {
-			if filter.Tags["h"] != nil {
-				return true
-			}
-
-			for _, kind := range filter.Kinds {
-				if slices.Contains(nip29.MetadataEventKinds, kind) {
+	if global.Settings.Groups.Enabled && groups.Relay != nil {
+		root.Route().
+			Event(func(evt *nostr.Event) bool { return evt.Tags.Find("h") != nil }).
+			Req(func(filter nostr.Filter) bool {
+				if filter.Tags["h"] != nil {
 					return true
 				}
-			}
 
-			return false
-		}).
-		Relay(groupsRelay)
+				for _, kind := range filter.Kinds {
+					if slices.Contains(nip29.MetadataEventKinds, kind) {
+						return true
+					}
+				}
+
+				return false
+			}).
+			Relay(groups.Relay)
+	}
 	// (all the others go to the root relay)
 	root.Route().
 		Relay(relay)
@@ -175,12 +167,18 @@ func main() {
 	log.Info().Msg("running on http://" + global.S.Host + ":" + global.S.Port)
 
 	mux := http.NewServeMux()
-	mux.Handle("/internal/", http.StripPrefix("/internal", internalRelay))
-	mux.Handle("/groups/", http.StripPrefix("/groups", groupsHttpHandler))
-	mux.Handle("/favorites/", http.StripPrefix("/favorites", favoritesRelay))
-	mux.Handle("/uppermost/", http.StripPrefix("/uppermost", uppermostRelay))
-	mux.Handle("/popular/", http.StripPrefix("/popular", popularRelay))
-	mux.Handle("/inbox/", http.StripPrefix("/inbox", inboxRelay))
+	mux.Handle("/internal/", http.StripPrefix("/internal", internal.Relay))
+	mux.Handle("/internal", http.StripPrefix("/internal", internal.Relay))
+	mux.Handle("/favorites/", http.StripPrefix("/favorites", favorites.Relay))
+	mux.Handle("/favorites", http.StripPrefix("/favorites", favorites.Relay))
+	mux.Handle("/groups/", http.StripPrefix("/groups", groups.Relay))
+	mux.Handle("/groups", http.StripPrefix("/groups", groups.Relay))
+	mux.Handle("/inbox/", http.StripPrefix("/inbox", inbox.Relay))
+	mux.Handle("/inbox", http.StripPrefix("/inbox", inbox.Relay))
+	mux.Handle("/popular/", http.StripPrefix("/popular", popular.Relay))
+	mux.Handle("/popular", http.StripPrefix("/popular", popular.Relay))
+	mux.Handle("/uppermost/", http.StripPrefix("/uppermost", uppermost.Relay))
+	mux.Handle("/uppermost", http.StripPrefix("/uppermost", uppermost.Relay))
 	mux.Handle("/", root)
 
 	server := &http.Server{Addr: global.S.Host + ":" + global.S.Port, Handler: setupCheckMiddleware(mux)}

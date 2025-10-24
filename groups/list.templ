@@ -10,7 +10,7 @@ import (
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
-templ groupsPage(loggedUser nostr.PubKey, state *State) {
+templ listGroupsPage(loggedUser nostr.PubKey, state *State) {
 	@layout.Layout(loggedUser, "groups") {
 		<div class="max-w-3xl mx-auto">
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
@@ -29,22 +29,24 @@ templ groupsPage(loggedUser nostr.PubKey, state *State) {
 			if pyramid.IsRoot(loggedUser) {
 				<div class="mt-8">
 					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">groups configuration</h3>
-					if global.Settings.Groups.SecretKey == [32]byte{} {
-						<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
-							groups functionality is currently disabled. click the button below to generate a secret key and enable groups.
-						</p>
-						<form method="POST" action="/enable-groups">
+					if global.Settings.Groups.SecretKey == [32]byte{} || !global.Settings.Groups.Enabled {
+						<form method="POST" action="/groups/enable">
 							<button
 								type="submit"
 								class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
 							>
-								enable groups
+								enable
 							</button>
 						</form>
 					} else {
-						<p class="text-sm text-stone-600 dark:text-stone-400">
-							groups functionality is enabled.
-						</p>
+						<form method="POST" action="/groups/disable">
+							<button
+								type="submit"
+								class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+							>
+								disable
+							</button>
+						</form>
 					}
 				</div>
 			}
@@ -128,89 +130,88 @@ templ groupsPage(loggedUser nostr.PubKey, state *State) {
 						</div>
 					}
 				</div>
-			}
-			// my groups section
-			if loggedUser != nostr.ZeroPK {
-				<div class="mt-8">
-					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">my groups</h3>
-					<div class="overflow-x-auto">
-						<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
-							<thead class="bg-stone-50 dark:bg-stone-800">
-								<tr>
-									<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">group id</th>
-									<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">group</th>
-									<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">members</th>
-									<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">moderators</th>
-									<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">closed</th>
-									<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">private</th>
-								</tr>
-							</thead>
-							<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
-								for _, group := range state.Groups.Range {
-									if _, isMember := group.Members[loggedUser]; isMember {
-										<tr>
-											<td class="px-4 py-3 text-sm text-center">
-												<a
-													href={ "/groups/" + group.Address.ID }
-													class="text-stone-600 dark:text-stone-400 hover:underline"
-												>{ group.Address.ID }</a>
-											</td>
-											<td class="px-4 py-3 text-sm text-center">
-												<a
-													href={ "/groups/" + group.Address.ID }
-													class="font-medium text-stone-900 dark:text-stone-100 hover:underline"
-													title={ group.About }
-												>{ group.Name }</a>
-											</td>
-											<td class="px-4 py-3 text-sm text-center text-stone-600 dark:text-stone-400">{ fmt.Sprint(len(group.Members)) }</td>
-											<td class="px-4 py-3 text-sm text-center">
-												<div class="space-y-1">
-													for pubkey, roles := range group.Members {
-														if len(roles) > 0 {
-															<div class="flex items-center gap-2">
-																<nostr-name pubkey={ pubkey.Hex() } class="text-stone-700 dark:text-stone-300">{ pubkey.Hex() }</nostr-name>
-																<span class="text-xs text-stone-500 dark:text-stone-500">
-																	(
-																	for i, role := range roles {
-																		if i > 0 {
-																			,
+				// my groups section
+				if loggedUser != nostr.ZeroPK {
+					<div class="mt-8">
+						<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">my groups</h3>
+						<div class="overflow-x-auto">
+							<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
+								<thead class="bg-stone-50 dark:bg-stone-800">
+									<tr>
+										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">group id</th>
+										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">group</th>
+										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">members</th>
+										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">moderators</th>
+										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">closed</th>
+										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">private</th>
+									</tr>
+								</thead>
+								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
+									for _, group := range state.Groups.Range {
+										if _, isMember := group.Members[loggedUser]; isMember {
+											<tr>
+												<td class="px-4 py-3 text-sm text-center">
+													<a
+														href={ "/groups/" + group.Address.ID }
+														class="text-stone-600 dark:text-stone-400 hover:underline"
+													>{ group.Address.ID }</a>
+												</td>
+												<td class="px-4 py-3 text-sm text-center">
+													<a
+														href={ "/groups/" + group.Address.ID }
+														class="font-medium text-stone-900 dark:text-stone-100 hover:underline"
+														title={ group.About }
+													>{ group.Name }</a>
+												</td>
+												<td class="px-4 py-3 text-sm text-center text-stone-600 dark:text-stone-400">{ fmt.Sprint(len(group.Members)) }</td>
+												<td class="px-4 py-3 text-sm text-center">
+													<div class="space-y-1">
+														for pubkey, roles := range group.Members {
+															if len(roles) > 0 {
+																<div class="flex items-center gap-2">
+																	<nostr-name pubkey={ pubkey.Hex() } class="text-stone-700 dark:text-stone-300">{ pubkey.Hex() }</nostr-name>
+																	<span class="text-xs text-stone-500 dark:text-stone-500">
+																		(
+																		for i, role := range roles {
+																			if i > 0 {
+																				,
+																			}
+																			{ role.Name }
 																		}
-																		{ role.Name }
-																	}
-																	)
-																</span>
-															</div>
+																		)
+																	</span>
+																</div>
+															}
 														}
+													</div>
+												</td>
+												<td class="px-4 py-3 text-sm text-center">
+													if group.Closed {
+														☑
+													} else {
+														☐
 													}
-												</div>
-											</td>
-											<td class="px-4 py-3 text-sm text-center">
-												if group.Closed {
-													☑
-												} else {
-													☐
-												}
-											</td>
-											<td class="px-4 py-3 text-sm text-center">
-												if group.Private {
-													☑
-												} else {
-													☐
-												}
-											</td>
-										</tr>
+												</td>
+												<td class="px-4 py-3 text-sm text-center">
+													if group.Private {
+														☑
+													} else {
+														☐
+													}
+												</td>
+											</tr>
+										}
 									}
-								}
-							</tbody>
-						</table>
+								</tbody>
+							</table>
+						</div>
 					</div>
-				</div>
-			}
-			// create new group form - visible for all logged relay members
-			if loggedUser != nostr.ZeroPK {
-				<div
-					class="mt-8"
-					x-data="{
+				}
+				// create new group form - visible for all logged relay members
+				if loggedUser != nostr.ZeroPK {
+					<div
+						class="mt-8"
+						x-data="{
 							groupName: '',
 							description: '',
 							imageUrl: '',
@@ -333,88 +334,89 @@ templ groupsPage(loggedUser nostr.PubKey, state *State) {
 								});
 							}
 						}"
-				>
-					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">create new group</h3>
-					<form
-						class="space-y-6"
-						@submit.prevent="createGroup()"
 					>
-						<div class="space-y-4">
-							<div>
-								<label for="group_name" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-									group name <span class="text-red-500">*</span>
-								</label>
-								<input
-									type="text"
-									id="group_name"
-									name="group_name"
-									x-model="groupName"
-									required
-									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
-								/>
-							</div>
-							<div>
-								<label for="group_description" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-									description
-								</label>
-								<textarea
-									id="group_description"
-									name="description"
-									x-model="description"
-									rows="2"
-									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
-								></textarea>
-							</div>
-							<div>
-								<label for="group_image" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-									image url
-								</label>
-								<input
-									type="url"
-									id="group_image"
-									name="image_url"
-									x-model="imageUrl"
-									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
-								/>
-							</div>
-						</div>
-						<div class="space-y-3">
-							<div class="flex items-center">
-								<input
-									type="checkbox"
-									id="group_closed"
-									name="closed"
-									x-model="closed"
-									@change="if (!closed) private = false"
-									class="h-4 w-4 rounded border-stone-300 text-stone-600 focus:ring-stone-500"
-								/>
-								<label for="group_closed" class="ml-2 text-sm text-stone-700 dark:text-stone-300">
-									closed (only invited users can join)
-								</label>
-							</div>
-							<div class="flex items-center">
-								<input
-									type="checkbox"
-									id="group_private"
-									name="private"
-									x-model="private"
-									@change="if (private) closed = true"
-									class="h-4 w-4 rounded border-stone-300 text-stone-600 focus:ring-stone-500"
-								/>
-								<label for="group_private" class="ml-2 text-sm text-stone-700 dark:text-stone-300">
-									private (only members can read)
-								</label>
-							</div>
-						</div>
-						<button
-							type="submit"
-							class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
-							:disabled="creating"
+						<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">create new group</h3>
+						<form
+							class="space-y-6"
+							@submit.prevent="createGroup()"
 						>
-							create group
-						</button>
-					</form>
-				</div>
+							<div class="space-y-4">
+								<div>
+									<label for="group_name" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+										group name <span class="text-red-500">*</span>
+									</label>
+									<input
+										type="text"
+										id="group_name"
+										name="group_name"
+										x-model="groupName"
+										required
+										class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
+									/>
+								</div>
+								<div>
+									<label for="group_description" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+										description
+									</label>
+									<textarea
+										id="group_description"
+										name="description"
+										x-model="description"
+										rows="2"
+										class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
+									></textarea>
+								</div>
+								<div>
+									<label for="group_image" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+										image url
+									</label>
+									<input
+										type="url"
+										id="group_image"
+										name="image_url"
+										x-model="imageUrl"
+										class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
+									/>
+								</div>
+							</div>
+							<div class="space-y-3">
+								<div class="flex items-center">
+									<input
+										type="checkbox"
+										id="group_closed"
+										name="closed"
+										x-model="closed"
+										@change="if (!closed) private = false"
+										class="h-4 w-4 rounded border-stone-300 text-stone-600 focus:ring-stone-500"
+									/>
+									<label for="group_closed" class="ml-2 text-sm text-stone-700 dark:text-stone-300">
+										closed (only invited users can join)
+									</label>
+								</div>
+								<div class="flex items-center">
+									<input
+										type="checkbox"
+										id="group_private"
+										name="private"
+										x-model="private"
+										@change="if (private) closed = true"
+										class="h-4 w-4 rounded border-stone-300 text-stone-600 focus:ring-stone-500"
+									/>
+									<label for="group_private" class="ml-2 text-sm text-stone-700 dark:text-stone-300">
+										private (only members can read)
+									</label>
+								</div>
+							</div>
+							<button
+								type="submit"
+								class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+								:disabled="creating"
+							>
+								create group
+							</button>
+						</form>
+					</div>
+				}
 			}
 		</div>
 	}

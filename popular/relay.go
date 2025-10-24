@@ -6,42 +6,104 @@ import (
 	"time"
 
 	"fiatjaf.com/nostr"
-	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
 
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/pyramid"
 )
 
-func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
-	relay := khatru.NewRelay()
+var (
+	log   = global.Log.With().Str("relay", "popular").Logger()
+	Relay *khatru.Relay
+)
 
-	relay.ServiceURL = "wss://" + global.Settings.Domain + "/popular"
-	relay.Info.Name = global.Settings.RelayName + " - popular"
-	relay.Info.Description = "auto-curated popular posts from relay members."
-	relay.Info.Contact = global.Settings.RelayContact
-	relay.Info.Icon = global.Settings.RelayIcon
+func init() {
+	if global.Settings.Popular.Enabled {
+		// relay enabled
+		setupEnabled()
+	} else {
+		// relay disabled
+		setupDisabled()
+	}
+}
 
-	relay.Info.Software = "https://github.com/fiatjaf/pyramid"
+func setupDisabled() {
+	Relay = khatru.NewRelay()
+	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		loggedUser, _ := global.GetLoggedUser(r)
+		popularPage(loggedUser).Render(r.Context(), w)
+	})
+	Relay.Router().HandleFunc("POST /enable", enableHandler)
+}
 
-	relay.UseEventstore(db, 500)
+func setupEnabled() {
+	db := global.IL.Popular
 
-	relay.OnRequest = policies.SeqRequest(
+	Relay = khatru.NewRelay()
+
+	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/popular"
+	Relay.Info.Name = global.Settings.RelayName + " - popular"
+	Relay.Info.Description = "auto-curated popular posts from relay members."
+	Relay.Info.Contact = global.Settings.RelayContact
+	Relay.Info.Icon = global.Settings.RelayIcon
+	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
+
+	Relay.UseEventstore(db, 500)
+
+	Relay.OnRequest = policies.SeqRequest(
 		policies.NoComplexFilters,
 		policies.NoSearchQueries,
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
 	)
 
-	relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
+	Relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
 
-	relay.OnEvent = func(ctx context.Context, evt nostr.Event) (bool, string) {
+	Relay.OnEvent = func(ctx context.Context, evt nostr.Event) (bool, string) {
 		return true, "restricted: read-only relay"
 	}
 
-	relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		popularPage(loggedUser).Render(r.Context(), w)
 	})
+	Relay.Router().HandleFunc("POST /disable", disableHandler)
+}
 
-	return relay
+func enableHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	global.Settings.Popular.Enabled = true
+
+	if err := global.SaveUserSettings(); err != nil {
+		http.Error(w, "failed to save settings: "+err.Error(), 500)
+		return
+	}
+
+	setupEnabled()
+	http.Redirect(w, r, "/popular", 302)
+}
+
+func disableHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	global.Settings.Popular.Enabled = false
+
+	if err := global.SaveUserSettings(); err != nil {
+		http.Error(w, "failed to save settings: "+err.Error(), 500)
+		return
+	}
+
+	setupDisabled()
+	http.Redirect(w, r, "/popular", 302)
 }

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"fiatjaf.com/nostr"
-	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
 
@@ -14,28 +13,52 @@ import (
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
-func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
-	relay := khatru.NewRelay()
+var (
+	log   = global.Log.With().Str("relay", "favorites").Logger()
+	Relay *khatru.Relay
+)
 
-	relay.ServiceURL = "wss://" + global.Settings.Domain + "/favorites"
-	relay.Info.Name = global.Settings.RelayName + " - favorites"
-	relay.Info.Description = "posts manually curated by the members. to curate just republish any chosen event here."
-	relay.Info.Contact = global.Settings.RelayContact
-	relay.Info.Icon = global.Settings.RelayIcon
+func init() {
+	if global.Settings.Favorites.Enabled {
+		// relay enabled
+		setupEnabled()
+	} else {
+		// relay disabled
+		setupDisabled()
+	}
+}
 
-	relay.Info.Software = "https://github.com/fiatjaf/pyramid"
+func setupDisabled() {
+	Relay = khatru.NewRelay()
+	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		loggedUser, _ := global.GetLoggedUser(r)
+		favoritesPage(loggedUser).Render(r.Context(), w)
+	})
+	Relay.Router().HandleFunc("POST /enable", enableHandler)
+}
 
-	relay.UseEventstore(db, 500)
+func setupEnabled() {
+	db := global.IL.Favorites
 
-	relay.OnRequest = policies.SeqRequest(
+	Relay = khatru.NewRelay()
+
+	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/favorites"
+	Relay.Info.Name = global.Settings.RelayName + " - favorites"
+	Relay.Info.Description = "posts manually curated by the members. to curate just republish any chosen event here."
+	Relay.Info.Contact = global.Settings.RelayContact
+	Relay.Info.Icon = global.Settings.RelayIcon
+	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
+	Relay.UseEventstore(db, 500)
+
+	Relay.OnRequest = policies.SeqRequest(
 		policies.NoComplexFilters,
 		policies.NoSearchQueries,
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
 	)
 
-	relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
+	Relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
 
-	relay.OnEvent = policies.SeqEvent(
+	Relay.OnEvent = policies.SeqEvent(
 		policies.PreventLargeContent(10000),
 		policies.PreventTooManyIndexableTags(9, []nostr.Kind{3}, nil),
 		policies.PreventTooManyIndexableTags(1200, nil, []nostr.Kind{3}),
@@ -61,10 +84,47 @@ func NewRelay(db *mmm.IndexingLayer) *khatru.Relay {
 		},
 	)
 
-	relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		favoritesPage(loggedUser).Render(r.Context(), w)
 	})
+	Relay.Router().HandleFunc("POST /disable", disableHandler)
+}
 
-	return relay
+func enableHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	global.Settings.Favorites.Enabled = true
+
+	if err := global.SaveUserSettings(); err != nil {
+		http.Error(w, "failed to save settings: "+err.Error(), 500)
+		return
+	}
+
+	setupEnabled()
+	http.Redirect(w, r, "/favorites", 302)
+}
+
+func disableHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	global.Settings.Favorites.Enabled = false
+
+	if err := global.SaveUserSettings(); err != nil {
+		http.Error(w, "failed to save settings: "+err.Error(), 500)
+		return
+	}
+
+	setupDisabled()
+	http.Redirect(w, r, "/favorites", 302)
 }
