@@ -10,9 +10,9 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 	<!DOCTYPE html>
 	<html
 		if global.Settings.HasThemeColors() {
-			style={ templ.SafeCSS("--accent-color:" + global.Settings.AccentColor + ";" +
-				"--bg-color:" + global.Settings.BackgroundColor + ";" +
-				"--text-color:" + global.Settings.TextColor + ";") }
+			style={ templ.SafeCSS("--accent-color:" + global.Settings.Theme.AccentColor + ";" +
+				"--bg-color:" + global.Settings.Theme.BackgroundColor + ";" +
+				"--text-color:" + global.Settings.Theme.TextColor + ";") }
 		} else {
 			x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }"
 			x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))"

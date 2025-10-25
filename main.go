@@ -29,6 +29,7 @@ import (
 	"github.com/fiatjaf/pyramid/uppermost"
 )
 
+var root *khatru.Router
 var log = global.Log
 
 //go:embed static/*
@@ -68,31 +69,13 @@ func main() {
 		return
 	}
 
-	root := khatru.NewRouter()
-	root.Relay.ServiceURL = "wss://" + global.Settings.Domain
-
-	// enable negentropy
-	root.Relay.Negentropy = true
+	root = khatru.NewRouter()
 
 	global.Nostr = sdk.NewSystem()
 	global.Nostr.Store = global.IL.System
 
 	// init main relay
-	root.Relay.Info.Name = global.Settings.RelayName
-	root.Relay.Info.Description = global.Settings.RelayDescription
-	root.Relay.Info.Contact = global.Settings.RelayContact
-	root.Relay.Info.Icon = global.Settings.RelayIcon
-	root.Relay.Info.Limitation = &nip11.RelayLimitationDocument{
-		RestrictedWrites: true,
-	}
-	root.Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
-	for member, invitedBy := range pyramid.Members {
-		if slices.Contains(invitedBy, nostr.ZeroPK) {
-			// use the first root we find here, whatever
-			root.Relay.Info.PubKey = &member
-			break
-		}
-	}
+	setupRootRelayMetadata()
 
 	relay := khatru.NewRelay()
 	relay.UseEventstore(global.IL.Main, 500)
@@ -192,5 +175,25 @@ func main() {
 	})
 	if err := g.Wait(); err != nil {
 		log.Debug().Err(err).Msg("exit reason")
+	}
+}
+
+func setupRootRelayMetadata() {
+	root.Relay.ServiceURL = "wss://" + global.Settings.Domain
+	root.Relay.Info.Name = global.Settings.RelayName
+	root.Relay.Info.Description = global.Settings.RelayDescription
+	root.Relay.Info.Contact = global.Settings.RelayContact
+	root.Relay.Info.Icon = global.Settings.RelayIcon
+	root.Relay.Negentropy = true
+	root.Relay.Info.Limitation = &nip11.RelayLimitationDocument{
+		RestrictedWrites: true,
+	}
+	root.Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
+	for member, invitedBy := range pyramid.Members {
+		if slices.Contains(invitedBy, nostr.ZeroPK) {
+			// use the first root we find here, whatever
+			root.Relay.Info.PubKey = &member
+			break
+		}
 	}
 }

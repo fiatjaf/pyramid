@@ -17,9 +17,11 @@ type UserSettings struct {
 	RelayIcon        string `json:"relay_icon"`
 
 	// theme
-	BackgroundColor string `json:"background_color"`
-	TextColor       string `json:"text_color"`
-	AccentColor     string `json:"accent_color"`
+	Theme struct {
+		BackgroundColor string `json:"background_color"`
+		TextColor       string `json:"text_color"`
+		AccentColor     string `json:"accent_color"`
+	} `json:"theme"`
 
 	// general
 	BrowseURI               string `json:"browse_uri"`
@@ -59,11 +61,11 @@ type UserSettings struct {
 }
 
 func (us UserSettings) HasThemeColors() bool {
-	return us.BackgroundColor != "" && !(
+	return us.Theme.BackgroundColor != "" && !(
 	/* #000000 is the default value when submitting a blank <input type="color"> */
-	us.BackgroundColor == "#000000" &&
-		us.AccentColor == "#000000" &&
-		us.TextColor == "#000000")
+	us.Theme.BackgroundColor == "#000000" &&
+		us.Theme.AccentColor == "#000000" &&
+		us.Theme.TextColor == "#000000")
 }
 
 func getUserSettingsPath() string {

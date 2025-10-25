@@ -144,9 +144,9 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				action="/settings"
 				class="space-y-6 mt-8"
 				x-data={ `{
-				accentColor: '`+global.Settings.AccentColor+`',
-				backgroundColor: '`+global.Settings.BackgroundColor+`',
-				textColor: '`+global.Settings.TextColor+`',
+				accentColor: '`+global.Settings.Theme.AccentColor+`',
+				backgroundColor: '`+global.Settings.Theme.BackgroundColor+`',
+				textColor: '`+global.Settings.Theme.TextColor+`',
 				saved: false,
 				updateTheme() {
 					document.documentElement.style.setProperty('--accent-color', this.accentColor);

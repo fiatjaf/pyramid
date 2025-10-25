@@ -77,24 +77,35 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseForm()
 
+		postProcess := make([]func(), 0)
+
 		for k, v := range r.PostForm {
+			v[0] = strings.TrimSpace(v[0])
+
 			switch k {
+			case "domain":
+				global.Settings.Domain = v[0]
+				postProcess = append(postProcess, setupRootRelayMetadata)
 			case "browse_uri":
 				global.Settings.BrowseURI = v[0]
 			case "background_color":
-				global.Settings.BackgroundColor = v[0]
+				global.Settings.Theme.BackgroundColor = v[0]
 			case "text_color":
-				global.Settings.TextColor = v[0]
+				global.Settings.Theme.TextColor = v[0]
 			case "accent_color":
-				global.Settings.AccentColor = v[0]
+				global.Settings.Theme.AccentColor = v[0]
 			case "relay_name":
 				global.Settings.RelayName = v[0]
+				postProcess = append(postProcess, setupRootRelayMetadata)
 			case "relay_description":
 				global.Settings.RelayDescription = v[0]
+				postProcess = append(postProcess, setupRootRelayMetadata)
 			case "relay_contact":
 				global.Settings.RelayContact = v[0]
+				postProcess = append(postProcess, setupRootRelayMetadata)
 			case "relay_icon":
 				global.Settings.RelayIcon = v[0]
+				postProcess = append(postProcess, setupRootRelayMetadata)
 			case "max_invites_per_person":
 				global.Settings.MaxInvitesPerPerson, _ = strconv.Atoi(v[0])
 			case "require_current_timestamp":
@@ -117,13 +128,14 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if strings.Contains(r.Header.Get("Accept"), "text/html") {
-			if r.Referer() != "" && strings.Contains(r.Referer(), "/groups") {
-				http.Redirect(w, r, "/groups", 302)
-			} else {
-				http.Redirect(w, r, "/settings", 302)
-			}
+		for _, process := range postProcess {
+			process()
 		}
+
+		if strings.Contains(r.Header.Get("Accept"), "text/html") {
+			http.Redirect(w, r, r.Referer(), 302)
+		}
+
 		return
 	}
 
