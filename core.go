@@ -2,10 +2,14 @@ package main
 
 import (
 	"context"
+	"iter"
 	"slices"
 	"unsafe"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/khatru"
+	"fiatjaf.com/nostr/nip70"
+
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
 	"github.com/mailru/easyjson"
@@ -135,4 +139,45 @@ var supportedKinds = []nostr.Kind{
 	31924,
 	31925,
 	39701,
+}
+
+// query does a normal query unless paywall settings are configured.
+// if paywall settings are configured it stops at each paywalled event (events with the
+// "-" plus the specific paywall "t" tag) to check if the querier is eligible for reading.
+func query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
+	if global.Settings.Paywall.AmountSats > 0 && global.Settings.Paywall.PeriodDays > 0 {
+		// use this special query that filters content for paying visitors
+		return func(yield func(nostr.Event) bool) {
+			authed := khatru.GetConnection(ctx).AuthedPublicKeys
+
+			for evt := range global.IL.Main.QueryEvents(filter, 500) {
+				if nip70.IsProtected(evt) && (global.Settings.Paywall.Tag == "" || evt.Tags.FindWithValue("t", global.Settings.Paywall.Tag) != nil) {
+					// this is a paywalled event, check if reader can read
+					for _, pk := range authed {
+						if global.CanReadPaywalled(evt.PubKey, pk) {
+							if !yield(evt) {
+								return
+							}
+							break
+						}
+					}
+				} else {
+					// not paywalled, anyone can read
+					if !yield(evt) {
+						return
+					}
+				}
+			}
+		}
+	} else {
+		// otherwise do a normal query
+		return global.IL.Main.QueryEvents(filter, 500)
+	}
+}
+
+func onConnect(ctx context.Context) {
+	// if there is a paywall give the reader the option to auth
+	if global.Settings.Paywall.AmountSats > 0 && global.Settings.Paywall.PeriodDays > 0 {
+		khatru.RequestAuth(ctx)
+	}
 }

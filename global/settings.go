@@ -28,6 +28,12 @@ type UserSettings struct {
 	MaxInvitesPerPerson     int    `json:"max_invites_per_person"`
 	RequireCurrentTimestamp bool   `json:"require_current_timestamp"`
 
+	Paywall struct {
+		Tag        string `json:"tag"`
+		AmountSats uint   `json:"amount_sats"`
+		PeriodDays uint   `json:"period_days"`
+	} `json:"paywall"`
+
 	// per-relay
 	Internal struct {
 		Enabled bool `json:"enabled"`

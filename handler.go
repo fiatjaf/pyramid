@@ -110,6 +110,14 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.MaxInvitesPerPerson, _ = strconv.Atoi(v[0])
 			case "require_current_timestamp":
 				global.Settings.RequireCurrentTimestamp = v[0] == "on"
+			case "paywall_tag":
+				global.Settings.Paywall.Tag = v[0]
+			case "paywall_amount":
+				amt, _ := strconv.ParseUint(v[0], 10, 64)
+				global.Settings.Paywall.AmountSats = uint(amt)
+			case "paywall_period":
+				days, _ := strconv.ParseUint(v[0], 10, 64)
+				global.Settings.Paywall.PeriodDays = uint(days)
 			case "favorites_enabled":
 				global.Settings.Favorites.Enabled = v[0] == "on"
 			case "inbox_enabled":

@@ -79,6 +79,7 @@ func main() {
 
 	relay := khatru.NewRelay()
 	relay.UseEventstore(global.IL.Main, 500)
+	relay.QueryStored = query
 	relay.OnRequest = policies.SeqRequest(
 		policies.NoComplexFilters,
 		policies.NoSearchQueries,
@@ -96,6 +97,7 @@ func main() {
 	)
 
 	relay.OnEventSaved = processReactions
+	relay.OnConnect = onConnect
 
 	root.Relay.ManagementAPI.AllowPubKey = allowPubKeyHandler
 	root.Relay.ManagementAPI.BanPubKey = banPubKeyHandler

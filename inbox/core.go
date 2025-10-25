@@ -4,12 +4,21 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/nip13"
+	"fiatjaf.com/nostr/nip61"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
+)
+
+var (
+	allowedKinds  = []nostr.Kind{9802, 1, 1111, 11, 1244, 1222, 30818, 20, 21, 22, 30023, 9735, 9321}
+	moneyKinds    = []nostr.Kind{9735, 9321}
+	secretKinds   = []nostr.Kind{1059}
+	aggregatedWoT WotXorFilter
 )
 
 func rejectFilter(ctx context.Context, filter nostr.Filter) (bool, string) {
@@ -66,14 +75,24 @@ func rejectFilter(ctx context.Context, filter nostr.Filter) (bool, string) {
 func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 	// count p-tags and check if they tag pyramid members
 	pTagCount := 0
+	tagsPyramidMember := false
 	for _, tag := range evt.Tags {
 		if len(tag) >= 2 && (tag[0] == "p" || tag[0] == "P") {
 			pTagCount++
+
 			pubkey, err := nostr.PubKeyFromHexCheap(tag[1])
-			if err != nil || !pyramid.IsMember(pubkey) {
-				return true, "blocked: event must only tag pyramid relay members"
+			if err != nil {
+				return true, "error: invalid 'p' tag"
+			}
+
+			if pyramid.IsMember(pubkey) {
+				tagsPyramidMember = true
 			}
 		}
+	}
+
+	if !tagsPyramidMember {
+		return true, "blocked: event must tag at least one pyramid relay member"
 	}
 
 	// check hellthread limit
@@ -98,12 +117,64 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 		return true, "blocked: event kind not allowed"
 	}
 
-	if !aggregatedWoT.Contains(evt.PubKey) {
-		return true, "blocked: you're not in the extended network of this"
-	}
-
 	if slices.Contains(global.Settings.Inbox.SpecificallyBlocked, evt.PubKey) {
 		return true, "blocked: you are blocked"
+	}
+
+	if slices.Contains(moneyKinds, evt.Kind) {
+		// if this is money we'll accept it from anyone
+
+		if pTagCount != 1 {
+			return true, "zap can only have one 'p' tag"
+		}
+
+		// if we only have one tag and we know it tags at least one pyramid member that means this is it
+		receiver, _ := nostr.PubKeyFromHex(evt.Tags.Find("p")[1])
+
+		switch evt.Kind {
+		case 9735:
+			// check zap validity
+			zctx, cancel := context.WithTimeout(ctx, time.Millisecond*1200)
+			defer cancel()
+			if evt.PubKey != global.Nostr.FetchZapProvider(zctx, receiver) {
+				return true, "this came from an invalid zap provider"
+			}
+			return false, ""
+		case 9321:
+			// check nutzap validity
+			zctx, cancel := context.WithTimeout(ctx, time.Millisecond*1200)
+			defer cancel()
+
+			mintTag := evt.Tags.Find("mint")
+			if mintTag == nil {
+				return true, "missing mint tag"
+			}
+			mintURL, err := nostr.NormalizeHTTPURL(mintTag[1])
+			if err != nil {
+				return true, "invalid mint url"
+			}
+
+			nzi := global.Nostr.FetchNutZapInfo(zctx, receiver)
+			if !slices.Contains(nzi.Mints, mintURL) {
+				return true, "nutzap is in an unauthorized mint url"
+			}
+
+			ksKeys, err := global.Nostr.FetchMintKeys(zctx, mintURL)
+			if err != nil {
+				return true, "can't validate nutzap: " + err.Error()
+			}
+			if amount, ok := nip61.VerifyNutzap(ksKeys, evt); !ok || amount == 0 {
+				return true, "invalid nutzap"
+			}
+		default:
+			return true, "unexpected money kind"
+		}
+
+		// upon getting a valid money event we reset the paywall cache for that person
+		global.ResetPaywallCache(receiver, evt.PubKey)
+	} else if !aggregatedWoT.Contains(evt.PubKey) {
+		// otherwise it must be someone in the relay combined extended network
+		return true, "blocked: you're not in the extended network of this relay"
 	}
 
 	return false, ""

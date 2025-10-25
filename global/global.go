@@ -91,6 +91,9 @@ func Init() error {
 		return fmt.Errorf("failed to ensure 'secret': %w", err)
 	}
 
+	// paywall cache
+	go paywallCacheCleanup()
+
 	return nil
 }
 
