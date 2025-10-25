@@ -208,7 +208,7 @@ templ listGroupsPage(loggedUser nostr.PubKey, state *State) {
 					</div>
 				}
 				// create new group form - visible for all logged relay members
-				if loggedUser != nostr.ZeroPK {
+				if pyramid.IsMember(loggedUser) {
 					<div
 						class="mt-8"
 						x-data="{

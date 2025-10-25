@@ -36,11 +36,7 @@ templ inviteTreePage(loggedUser nostr.PubKey) {
 					<input type="hidden" name="type" value="invite"/>
 					<button
 						type="submit"
-						class={
-							"rounded-lg px-4 py-1.5 text-sm font-semibold text-white shadow-lg transform hover:scale-105",
-							templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
-							templ.KV("bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600", !global.Settings.HasThemeColors()),
-						}
+						class="rounded-lg px-4 py-1.5 text-sm font-semibold text-white shadow-lg transform hover:scale-105 bg-stone-600 hover:bg-stone-700 dark:bg-stone-500 dark:hover:bg-stone-600"
 					>
 						invite
 					</button>

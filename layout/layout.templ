@@ -89,7 +89,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 									templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
 									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
 									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "groups"),
-									templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !global.Settings.Internal.Enabled && !global.Settings.Groups.Enabled) }
+									templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !(global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)) && !global.Settings.Groups.Enabled) }
 							>
 								if currentPage == "favorites" {
 									favorites
@@ -159,7 +159,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 										}
 									>inbox</a>
 								}
-								if loggedUser != nostr.ZeroPK {
+								if pyramid.IsMember(loggedUser) && global.Settings.Groups.Enabled || pyramid.IsRoot(loggedUser) {
 									<a
 										href="/internal/"
 										class={
@@ -183,7 +183,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								}
 							</div>
 						</div>
-						if loggedUser != nostr.ZeroPK {
+						if pyramid.IsMember(loggedUser) {
 							<a
 								href="/reports"
 								class={
