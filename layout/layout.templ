@@ -85,11 +85,11 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 						>
 							<button
 								@click="open = !open"
-								class={
-									"rounded-lg px-4 py-2 font-medium flex items-center gap-1",
+								class={ "rounded-lg px-4 py-2 font-medium flex items-center gap-1",
 									templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()), templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "groups"),
-								}
+									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
+									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "groups"),
+									templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !global.Settings.Internal.Enabled && !global.Settings.Groups.Enabled) }
 							>
 								if currentPage == "favorites" {
 									favorites
@@ -115,50 +115,50 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								x-transition
 								class="absolute left-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50"
 							>
-							if global.Settings.Favorites.Enabled || pyramid.IsRoot(loggedUser) {
-								<a
-									href="/favorites/"
-									class={
-										"block px-4 py-2 text-sm",
-										templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-										templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "favorites"),
-									}
-								>favorites</a>
-							}
-							if global.Settings.Uppermost.Enabled || pyramid.IsRoot(loggedUser) {
-								<a
-									href="/uppermost/"
-									class={
-										"block px-4 py-2 text-sm",
-										templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-										templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "uppermost"),
-									}
-								>uppermost</a>
-							}
-							if global.Settings.Popular.Enabled || pyramid.IsRoot(loggedUser) {
-								<a
-									href="/popular/"
-									class={
-										"block px-4 py-2 text-sm",
-										templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-										templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "popular"),
-									}
-								>popular</a>
-							}
-							if global.Settings.Inbox.Enabled || pyramid.IsRoot(loggedUser) {
-								<a
-									href="/inbox/"
-									class={
-										"block px-4 py-2 text-sm",
-										templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-										templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-										templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "inbox"),
-									}
-								>inbox</a>
-							}
+								if global.Settings.Favorites.Enabled || pyramid.IsRoot(loggedUser) {
+									<a
+										href="/favorites/"
+										class={
+											"block px-4 py-2 text-sm",
+											templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+											templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
+											templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "favorites"),
+										}
+									>favorites</a>
+								}
+								if global.Settings.Uppermost.Enabled || pyramid.IsRoot(loggedUser) {
+									<a
+										href="/uppermost/"
+										class={
+											"block px-4 py-2 text-sm",
+											templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+											templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
+											templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "uppermost"),
+										}
+									>uppermost</a>
+								}
+								if global.Settings.Popular.Enabled || pyramid.IsRoot(loggedUser) {
+									<a
+										href="/popular/"
+										class={
+											"block px-4 py-2 text-sm",
+											templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+											templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
+											templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "popular"),
+										}
+									>popular</a>
+								}
+								if global.Settings.Inbox.Enabled || pyramid.IsRoot(loggedUser) {
+									<a
+										href="/inbox/"
+										class={
+											"block px-4 py-2 text-sm",
+											templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+											templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
+											templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "inbox"),
+										}
+									>inbox</a>
+								}
 								if loggedUser != nostr.ZeroPK {
 									<a
 										href="/internal/"
