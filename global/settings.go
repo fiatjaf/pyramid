@@ -77,6 +77,9 @@ func loadUserSettings() error {
 		MaxInvitesPerPerson:     4,
 		RequireCurrentTimestamp: true,
 	}
+	Settings.Inbox.Enabled = true
+	Settings.Internal.Enabled = true
+	Settings.Favorites.Enabled = true
 	Settings.Inbox.HellthreadLimit = 10
 	Settings.Popular.PercentThreshold = 20
 	Settings.Uppermost.PercentThreshold = 33
