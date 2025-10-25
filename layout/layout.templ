@@ -37,18 +37,26 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div class="flex items-center justify-between py-6">
 						if global.Settings.RelayIcon != "" {
-							<img class="h-12 mr-4" src={ global.Settings.RelayIcon }/>
+							<a href="/">
+								<img class="h-12 mr-4" src={ global.Settings.RelayIcon }/>
+							</a>
 						}
 						<div class="flex-1 mr-auto">
-							<h1
-								class={
-									"font-bold text-3xl",
-									templ.KV("text-[var(--accent-color)]", global.Settings.HasThemeColors()),
-									templ.KV("text-blue-600 dark:text-blue-400", !global.Settings.HasThemeColors()),
-								}
-							>{ global.Settings.RelayName }</h1>
+							<a href="/">
+								<h1
+									class={
+										"font-bold text-3xl",
+										templ.KV("text-[var(--accent-color)]", global.Settings.HasThemeColors()),
+										templ.KV("text-blue-600 dark:text-blue-400", !global.Settings.HasThemeColors()),
+									}
+								>{ global.Settings.RelayName }</h1>
+							</a>
 							if global.Settings.RelayDescription != "" {
-								<p class="text-sm text-stone-600 dark:text-stone-400">{ global.Settings.RelayDescription }</p>
+								<p class="text-sm text-stone-600 dark:text-stone-400">
+									<a href="/">
+										{ global.Settings.RelayDescription }
+									</a>
+								</p>
 							}
 						</div>
 						if !global.Settings.HasThemeColors() {
