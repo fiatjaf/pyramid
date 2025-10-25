@@ -134,7 +134,7 @@ func enableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setupEnabled()
-	http.Redirect(w, r, "/groups", 302)
+	http.Redirect(w, r, "/groups/", 302)
 }
 
 func disableHandler(w http.ResponseWriter, r *http.Request) {
@@ -153,5 +153,5 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setupDisabled()
-	http.Redirect(w, r, "/groups", 302)
+	http.Redirect(w, r, "/", 302)
 }
