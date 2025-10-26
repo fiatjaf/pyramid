@@ -29,8 +29,10 @@ import (
 	"github.com/fiatjaf/pyramid/uppermost"
 )
 
-var root *khatru.Router
-var log = global.Log
+var (
+	root *khatru.Router
+	log  = global.Log
+)
 
 //go:embed static/*
 var static embed.FS
@@ -96,7 +98,14 @@ func main() {
 		basicRejectionLogic,
 	)
 
-	relay.OnEventSaved = processReactions
+	relay.OnEventSaved = func(ctx context.Context, event nostr.Event) {
+		switch event.Kind {
+		case 6, 7, 9321, 9735, 9802, 1, 1111:
+			processReactions(ctx, event)
+		case 0, 3, 10019:
+			global.IL.System.SaveEvent(event)
+		}
+	}
 	relay.OnConnect = onConnect
 
 	root.Relay.ManagementAPI.AllowPubKey = allowPubKeyHandler

@@ -1,5 +1,8 @@
 users.json
 pyramid-exe
+pyramid-bin
+management.jsonl
+settings.json
 .env
 db
 *_templ.go

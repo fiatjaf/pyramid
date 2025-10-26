@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"iter"
-	"slices"
 	"unsafe"
 
 	"fiatjaf.com/nostr"
@@ -20,11 +19,6 @@ func processReactions(ctx context.Context, event nostr.Event) {
 	totalMembers := len(pyramid.Members)
 	if totalMembers <= 10 {
 		// makes no sense to have this in this case
-		return
-	}
-
-	// only process reaction kinds
-	if !slices.Contains(reactionKinds, event.Kind) {
 		return
 	}
 
