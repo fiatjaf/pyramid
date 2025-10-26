@@ -88,7 +88,6 @@ func main() {
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
 	)
 	relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
-
 	relay.OnEvent = policies.SeqEvent(
 		policies.PreventLargeContent(10000),
 		policies.PreventTooManyIndexableTags(9, []nostr.Kind{3}, nil),
@@ -97,7 +96,6 @@ func main() {
 		policies.RejectUnprefixedNostrReferences,
 		basicRejectionLogic,
 	)
-
 	relay.OnEventSaved = func(ctx context.Context, event nostr.Event) {
 		switch event.Kind {
 		case 6, 7, 9321, 9735, 9802, 1, 1111:
@@ -107,6 +105,7 @@ func main() {
 		}
 	}
 	relay.OnConnect = onConnect
+	relay.PreventBroadcast = preventBroadcast
 
 	root.Relay.ManagementAPI.AllowPubKey = allowPubKeyHandler
 	root.Relay.ManagementAPI.BanPubKey = banPubKeyHandler

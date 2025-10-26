@@ -181,3 +181,26 @@ func onConnect(ctx context.Context) {
 		khatru.RequestAuth(ctx)
 	}
 }
+
+func preventBroadcast(ws *khatru.WebSocket, event nostr.Event) bool {
+	// if there is a paywall check for it here too
+	if global.Settings.Paywall.AmountSats > 0 && global.Settings.Paywall.PeriodDays > 0 {
+		if nip70.IsProtected(event) && (global.Settings.Paywall.Tag == "" || event.Tags.FindWithValue("t", global.Settings.Paywall.Tag) != nil) {
+			// this is a paywalled event, check if reader can read
+			for _, pk := range ws.AuthedPublicKeys {
+				if global.CanReadPaywalled(event.PubKey, pk) {
+					// if they can read we're fine broadcasting this
+					return false
+				}
+			}
+			// couldn't find any authenticated user that can read this, so do not broadcast
+			return true
+		} else {
+			// not paywalled, anyone can read
+			return false
+		}
+	} else {
+		// no paywalls, anyone can read
+		return false
+	}
+}
