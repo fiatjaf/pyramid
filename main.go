@@ -143,7 +143,7 @@ func main() {
 	root.Relay.Router().HandleFunc("/cleanup", cleanupStuffFromExcludedUsersHandler)
 	root.Relay.Router().HandleFunc("/reports", reportsViewerHandler)
 	root.Relay.Router().HandleFunc("/settings", settingsHandler)
-	root.Relay.Router().HandleFunc("/icon/{file}", iconHandler)
+	root.Relay.Router().HandleFunc("/icon/{relayId}", iconHandler)
 	root.Relay.Router().HandleFunc("/forum/", forumHandler)
 	root.Relay.Router().Handle("/static/", http.FileServer(http.FS(static)))
 	root.Relay.Router().HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {

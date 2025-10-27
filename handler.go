@@ -199,9 +199,9 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 
 func iconHandler(w http.ResponseWriter, r *http.Request) {
 	// this will be either a relay name like "favorites" or it will have an extension like "favorites.png"
-	relay := r.PathValue("relay")
+	relayId := r.PathValue("relayId")
 
-	spl := strings.Split(relay, ".")
+	spl := strings.Split(relayId, ".")
 	base := spl[0]
 
 	switch r.Method {
@@ -209,8 +209,7 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 		for _, ext := range []string{".png", ".jpeg"} {
 			path := filepath.Join(global.S.DataPath, base+ext)
 			if _, err := os.Stat(path); os.IsNotExist(err) {
-				http.NotFound(w, r)
-				return
+				continue
 			}
 
 			contentType := "image/png"
@@ -219,10 +218,14 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			w.Header().Set("Content-Type", contentType)
-
 			http.ServeFile(w, r, path)
 			return
 		}
+
+		// if it's not .png or .jpeg:
+		http.NotFound(w, r)
+		return
+
 	case "POST":
 		loggedUser, ok := global.GetLoggedUser(r)
 		if !ok || !pyramid.IsRoot(loggedUser) {
