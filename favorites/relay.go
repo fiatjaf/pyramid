@@ -43,10 +43,10 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/favorites"
-	Relay.Info.Name = global.Settings.RelayName + " - favorites"
-	Relay.Info.Description = "posts manually curated by the members. to curate just republish any chosen event here."
+	Relay.Info.Name = global.Settings.GetRelayName("favorites")
+	Relay.Info.Description = global.Settings.GetRelayDescription("favorites")
 	Relay.Info.Contact = global.Settings.RelayContact
-	Relay.Info.Icon = global.Settings.RelayIcon
+	Relay.Info.Icon = global.Settings.GetRelayIcon("favorites")
 	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 	Relay.UseEventstore(db, 500)
 

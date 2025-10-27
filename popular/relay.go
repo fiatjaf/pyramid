@@ -43,10 +43,10 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/popular"
-	Relay.Info.Name = global.Settings.RelayName + " - popular"
-	Relay.Info.Description = "auto-curated popular posts from relay members."
+	Relay.Info.Name = global.Settings.GetRelayName("popular")
+	Relay.Info.Description = global.Settings.GetRelayDescription("popular")
 	Relay.Info.Contact = global.Settings.RelayContact
-	Relay.Info.Icon = global.Settings.RelayIcon
+	Relay.Info.Icon = global.Settings.GetRelayIcon("popular")
 	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
 	Relay.UseEventstore(db, 500)

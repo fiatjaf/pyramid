@@ -42,10 +42,10 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/moderated"
-	Relay.Info.Name = global.Settings.RelayName + " - moderated"
-	Relay.Info.Description = "moderated public relay. events are reviewed by members before publication."
+	Relay.Info.Name = global.Settings.GetRelayName("moderated")
+	Relay.Info.Description = global.Settings.GetRelayDescription("moderated")
 	Relay.Info.Contact = global.Settings.RelayContact
-	Relay.Info.Icon = global.Settings.RelayIcon
+	Relay.Info.Icon = global.Settings.GetRelayIcon("moderated")
 	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
 	// use moderated DB for queries

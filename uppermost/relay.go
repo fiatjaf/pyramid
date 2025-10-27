@@ -43,10 +43,10 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/uppermost"
-	Relay.Info.Name = global.Settings.RelayName + " - uppermost"
-	Relay.Info.Description = "auto-curated posts with highest quality reactions from relay members."
+	Relay.Info.Name = global.Settings.GetRelayName("uppermost")
+	Relay.Info.Description = global.Settings.GetRelayDescription("uppermost")
 	Relay.Info.Contact = global.Settings.RelayContact
-	Relay.Info.Icon = global.Settings.RelayIcon
+	Relay.Info.Icon = global.Settings.GetRelayIcon("uppermost")
 	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
 	Relay.UseEventstore(db, 500)

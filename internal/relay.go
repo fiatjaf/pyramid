@@ -43,10 +43,10 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/internal"
-	Relay.Info.Name = global.Settings.RelayName + " - internal"
-	Relay.Info.Description = "internal discussions between relay members, unavailable to the external world"
+	Relay.Info.Name = global.Settings.GetRelayName("internal")
+	Relay.Info.Description = global.Settings.GetRelayDescription("internal")
 	Relay.Info.Contact = global.Settings.RelayContact
-	Relay.Info.Icon = global.Settings.RelayIcon
+	Relay.Info.Icon = global.Settings.GetRelayIcon("internal")
 	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
 	Relay.UseEventstore(db, 500)

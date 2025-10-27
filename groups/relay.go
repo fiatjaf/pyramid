@@ -42,10 +42,10 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/groups"
-	Relay.Info.Name = global.Settings.RelayName + " - groups"
-	Relay.Info.Description = global.Settings.RelayDescription + " - groups relay"
+	Relay.Info.Name = global.Settings.GetRelayName("groups")
+	Relay.Info.Description = global.Settings.GetRelayDescription("groups")
 	Relay.Info.Contact = global.Settings.RelayContact
-	Relay.Info.Icon = global.Settings.RelayIcon
+	Relay.Info.Icon = global.Settings.GetRelayIcon("groups")
 	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
 	state := NewState(Options{

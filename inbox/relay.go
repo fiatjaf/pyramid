@@ -44,10 +44,10 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/inbox"
-	Relay.Info.Name = global.Settings.RelayName + " - inbox"
-	Relay.Info.Description = "filtered notifications for relay members using unified web of trust."
+	Relay.Info.Name = global.Settings.GetRelayName("inbox")
+	Relay.Info.Description = global.Settings.GetRelayDescription("inbox")
 	Relay.Info.Contact = global.Settings.RelayContact
-	Relay.Info.Icon = global.Settings.RelayIcon
+	Relay.Info.Icon = global.Settings.GetRelayIcon("inbox")
 	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
 	// use dual layer store
