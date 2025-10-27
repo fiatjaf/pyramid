@@ -17,6 +17,7 @@ templ SubRelaySettings(relayId string, enabled bool, name, description, icon str
 				<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">relay metadata settings</summary>
 				@RelayMetadata(relayId, name, description, icon)
 			</details>
+			{ children... }
 			<details>
 				<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">disable relay</summary>
 				<form class="mt-4" method="POST" action={ templ.SafeURL("/" + relayId + "/disable") }>

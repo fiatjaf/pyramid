@@ -314,67 +314,6 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					saved!
 				</div>
 			</form>
-			<!-- Moderated Relay Settings -->
-			<form
-				method="POST"
-				action="/settings"
-				class="space-y-6 mt-8"
-				x-data={ `{
-					moderatedEnabled: ` + fmt.Sprint(global.Settings.Moderated.Enabled) + `,
-					moderatedMinPoW: ` + fmt.Sprint(global.Settings.Moderated.MinPoW) + `,
-					saved: false,
-					async saveSettings() {
-						const response = await fetch(this.$refs.form.action, {
-							method: 'POST',
-							body: new URLSearchParams(new FormData(this.$refs.form))
-						})
-						if (response.ok) {
-							this.saved = true;
-							setTimeout(() => this.saved = false, 2000)
-						}
-					}
-				}` }
-				x-ref="form"
-			>
-				<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">moderated relay</h3>
-				<div class="space-y-4">
-					<div class="flex items-center">
-						<input
-							type="checkbox"
-							name="moderated_enabled"
-							id="moderated_enabled"
-							class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
-							x-model="moderatedEnabled"
-							@change="saveSettings()"
-						/>
-						<label for="moderated_enabled" class="ml-2 text-sm font-medium dark:text-stone-300">
-							enable moderated relay
-						</label>
-					</div>
-					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">minimum proof-of-work (bits, 0 to disable)</label>
-						<input
-							type="number"
-							name="moderated_min_pow"
-							min="0"
-							max="64"
-							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-							x-model="moderatedMinPoW"
-							@blur="saveSettings()"
-						/>
-						<p class="text-xs text-stone-500 dark:text-stone-400 mt-1">
-							Requires events to have NIP-13 proof-of-work. Recommended: 16-24 bits for spam prevention.
-						</p>
-					</div>
-				</div>
-				<div
-					x-show="saved"
-					x-transition
-					class="text-sm text-green-600 dark:text-green-400 font-medium"
-				>
-					saved!
-				</div>
-			</form>
 			<!-- cleanup Section -->
 			<div class="mt-8">
 				<h3 class="text-lg font-semibold dark:text-stone-200 mb-3">cleanup</h3>
