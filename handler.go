@@ -11,9 +11,15 @@ import (
 
 	"fiatjaf.com/nostr"
 
+	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/groups"
 	"github.com/fiatjaf/pyramid/inbox"
+	"github.com/fiatjaf/pyramid/internal"
+	"github.com/fiatjaf/pyramid/moderated"
+	"github.com/fiatjaf/pyramid/popular"
 	"github.com/fiatjaf/pyramid/pyramid"
+	"github.com/fiatjaf/pyramid/uppermost"
 )
 
 func inviteTreeHandler(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +92,12 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Domain = v[0]
 				root.Relay.ServiceURL = "wss://" + global.Settings.Domain
 				inbox.Relay.ServiceURL = "wss://" + global.Settings.Domain + "/inbox"
-				// TODO: set the domain for all the other relays: favorites, moderated, etc
+				favorites.Relay.ServiceURL = "wss://" + global.Settings.Domain + "/favorites"
+				groups.Relay.ServiceURL = "wss://" + global.Settings.Domain + "/groups"
+				internal.Relay.ServiceURL = "wss://" + global.Settings.Domain + "/internal"
+				moderated.Relay.ServiceURL = "wss://" + global.Settings.Domain + "/moderated"
+				popular.Relay.ServiceURL = "wss://" + global.Settings.Domain + "/popular"
+				uppermost.Relay.ServiceURL = "wss://" + global.Settings.Domain + "/uppermost"
 				//
 				// theme settings
 			case "background_color":
@@ -275,11 +286,21 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 		// update settings with new icon URL
 		switch base {
 		case "main":
-			global.Settings.RelayIcon = r.Header.Get("Origin") + "/" + base + ext
+			global.Settings.RelayIcon = r.Header.Get("Origin") + "/icon/" + base + ext
 		case "favorites":
-			global.Settings.Favorites.Icon = r.Header.Get("Origin") + "/" + base + ext
-			//
-			// TODO: other sub-relay cases
+			global.Settings.Favorites.Icon = r.Header.Get("Origin") + "/icon/" + base + ext
+		case "inbox":
+			global.Settings.Inbox.Icon = r.Header.Get("Origin") + "/icon/" + base + ext
+		case "internal":
+			global.Settings.Internal.Icon = r.Header.Get("Origin") + "/icon/" + base + ext
+		case "popular":
+			global.Settings.Popular.Icon = r.Header.Get("Origin") + "/icon/" + base + ext
+		case "uppermost":
+			global.Settings.Uppermost.Icon = r.Header.Get("Origin") + "/icon/" + base + ext
+		case "moderated":
+			global.Settings.Moderated.Icon = r.Header.Get("Origin") + "/icon/" + base + ext
+		case "groups":
+			global.Settings.Groups.Icon = r.Header.Get("Origin") + "/icon/" + base + ext
 		}
 
 		if err := global.SaveUserSettings(); err != nil {
