@@ -252,6 +252,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				class="space-y-6 mt-8"
 				x-data={ `{
 					paywallTag: '` + fmt.Sprint(global.Settings.Paywall.Tag) + `',
+					paywallUpdateOk: '` + fmt.Sprint(global.Settings.Paywall.Tag) + `' === '',
 					paywallAmount: ` + fmt.Sprint(global.Settings.Paywall.AmountSats) + `,
 					paywallPeriod: '` + fmt.Sprint(global.Settings.Paywall.PeriodDays) + `',
 					saved: false,
@@ -269,20 +270,21 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				x-ref="form"
 			>
 				<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">paywall</h3>
-				<div class="space-y-4">
+				<div class="space-x-4 flex space-between">
 					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">tag</label>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300">hashtag</label>
 						<input
 							type="text"
 							name="paywall_tag"
-							placeholder="e.g., 'subscription'"
+							placeholder="e.g. 'premium'"
 							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
 							x-model="paywallTag"
-							@blur="saveSettings()"
+							@keypress="paywallUpdateOk || (confirm('if you change the hashtag all previous posts using the previous hashtag will become public, continue?') ? paywallUpdateOk = true : $event.preventDefault())"
+							@blur="paywallUpdateOk && saveSettings()"
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">amount</label>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300">amount (in satoshis)</label>
 						<input
 							type="number"
 							name="paywall_amount"
@@ -293,11 +295,11 @@ templ settingsPage(loggedUser nostr.PubKey) {
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">period</label>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300">period (in days)</label>
 						<input
 							type="text"
 							name="paywall_period"
-							placeholder="e.g., 'monthly', 'yearly'"
+							placeholder="90"
 							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
 							x-model="paywallPeriod"
 							@blur="saveSettings()"
