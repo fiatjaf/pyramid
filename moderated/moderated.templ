@@ -29,45 +29,23 @@ templ moderatedPage(loggedUser nostr.PubKey) {
 						<li>members can review and approve/reject queued events below</li>
 					</ul>
 				</div>
-				if pyramid.IsRoot(loggedUser) {
-					<div class="mt-8">
-						<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">moderated configuration</h3>
-						if !global.Settings.Moderated.Enabled {
-							<form method="POST" action="/moderated/enable">
-								<button
-									type="submit"
-									class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
-								>
-									enable
-								</button>
-							</form>
-						} else {
-							<form method="POST" action="/moderated/disable">
-								<button
-									type="submit"
-									class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
-								>
-									disable
-								</button>
-							</form>
-						}
-					</div>
-				}
 				if global.Settings.Moderated.Enabled {
-					<div class="pt-4">
-						<a
-							class={
-								"inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105",
-								templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
-								templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
-							}
-							target="_blank"
-							href={ global.Settings.BrowseURI }
-							x-init="$el.href = $el.href.replace('{url}', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
-						>
-							browse moderated →
-						</a>
-					</div>
+					<a
+						class={
+							"mb-4 inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105",
+							templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
+							templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
+						}
+						target="_blank"
+						href={ global.Settings.BrowseURI }
+						x-init="$el.href = $el.href.replace('{url}', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
+					>
+						browse moderated →
+					</a>
+				}
+				if pyramid.IsRoot(loggedUser) {
+					@layout.SubRelaySettings("moderated", global.Settings.Moderated.Enabled,
+						global.Settings.Moderated.Name, global.Settings.Moderated.Description, global.Settings.Moderated.Icon)
 				}
 				if pyramid.IsMember(loggedUser) && global.Settings.Moderated.Enabled {
 					<div class="mt-8">

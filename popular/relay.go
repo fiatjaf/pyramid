@@ -8,6 +8,7 @@ import (
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
+	"fiatjaf.com/nostr/nip11"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
@@ -43,11 +44,24 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/popular"
-	Relay.Info.Name = global.Settings.GetRelayName("popular")
-	Relay.Info.Description = global.Settings.GetRelayDescription("popular")
-	Relay.Info.Contact = global.Settings.RelayContact
-	Relay.Info.Icon = global.Settings.GetRelayIcon("popular")
-	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
+
+	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
+		info.Name = global.Settings.Popular.Name
+		if info.Name == "" {
+			info.Name = global.Settings.RelayName + " - popular"
+		}
+		info.Description = global.Settings.Popular.Description
+		if info.Description == "" {
+			info.Description = "posts that are popular with relay members."
+		}
+		info.Icon = global.Settings.Popular.Icon
+		if info.Icon == "" {
+			info.Icon = global.Settings.RelayIcon
+		}
+		info.Contact = global.Settings.RelayContact
+		info.Software = "https://github.com/fiatjaf/pyramid"
+		return info
+	}
 
 	Relay.UseEventstore(db, 500)
 

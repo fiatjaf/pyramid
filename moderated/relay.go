@@ -10,6 +10,7 @@ import (
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
+	"fiatjaf.com/nostr/nip11"
 	"fiatjaf.com/nostr/nip13"
 
 	"github.com/fiatjaf/pyramid/global"
@@ -42,11 +43,24 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/moderated"
-	Relay.Info.Name = global.Settings.GetRelayName("moderated")
-	Relay.Info.Description = global.Settings.GetRelayDescription("moderated")
-	Relay.Info.Contact = global.Settings.RelayContact
-	Relay.Info.Icon = global.Settings.GetRelayIcon("moderated")
-	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
+
+	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
+		info.Name = global.Settings.Moderated.Name
+		if info.Name == "" {
+			info.Name = global.Settings.RelayName + " - moderated"
+		}
+		info.Description = global.Settings.Moderated.Description
+		if info.Description == "" {
+			info.Description = "moderated public relay. events are reviewed by members before publication."
+		}
+		info.Icon = global.Settings.Moderated.Icon
+		if info.Icon == "" {
+			info.Icon = global.Settings.RelayIcon
+		}
+		info.Contact = global.Settings.RelayContact
+		info.Software = "https://github.com/fiatjaf/pyramid"
+		return info
+	}
 
 	// use moderated DB for queries
 	Relay.QueryStored = func(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
@@ -82,7 +96,7 @@ func setupEnabled() {
 		func(ctx context.Context, evt nostr.Event) (bool, string) {
 			if global.Settings.Moderated.MinPoW > 0 {
 				difficulty := nip13.Difficulty(evt.ID)
-				if difficulty < global.Settings.Moderated.MinPoW {
+				if uint(difficulty) < global.Settings.Moderated.MinPoW {
 					return true, fmt.Sprintf("pow: requires %d bits, got %d", global.Settings.Moderated.MinPoW, difficulty)
 				}
 			}

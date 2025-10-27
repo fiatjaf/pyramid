@@ -1,12 +1,14 @@
 package groups
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
+	"fiatjaf.com/nostr/nip11"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
@@ -42,17 +44,6 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/groups"
-	Relay.Info.Name = global.Settings.GetRelayName("groups")
-	Relay.Info.Description = global.Settings.GetRelayDescription("groups")
-	Relay.Info.Contact = global.Settings.RelayContact
-	Relay.Info.Icon = global.Settings.GetRelayIcon("groups")
-	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
-
-	state := NewState(Options{
-		Domain:    global.Settings.Domain,
-		DB:        db,
-		SecretKey: global.Settings.Groups.SecretKey,
-	})
 
 	Relay.UseEventstore(db, 500)
 	Relay.DisableExpirationManager()
@@ -61,6 +52,30 @@ func setupEnabled() {
 	pk := global.Settings.Groups.SecretKey.Public()
 	Relay.Info.Self = &pk
 	Relay.Info.PubKey = &pk
+
+	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
+		info.Name = global.Settings.Groups.Name
+		if info.Name == "" {
+			info.Name = global.Settings.RelayName + " - groups"
+		}
+		info.Description = global.Settings.Groups.Description
+		if info.Description == "" {
+			info.Description = global.Settings.RelayDescription + " - groups relay"
+		}
+		info.Icon = global.Settings.Groups.Icon
+		if info.Icon == "" {
+			info.Icon = global.Settings.RelayIcon
+		}
+		info.Contact = global.Settings.RelayContact
+		info.Software = "https://github.com/fiatjaf/pyramid"
+		return info
+	}
+
+	state := NewState(Options{
+		Domain:    global.Settings.Domain,
+		DB:        db,
+		SecretKey: global.Settings.Groups.SecretKey,
+	})
 
 	Relay.QueryStored = state.Query
 	Relay.OnCount = nil

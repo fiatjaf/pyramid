@@ -12,185 +12,62 @@ import (
 templ settingsPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "settings") {
 		<div class="max-w-4xl mx-auto">
-			<!-- Relay Information -->
-			<div
-				x-data={ `{
-					relayName: '` + global.Settings.RelayName + `',
-					relayDescription: '` + global.Settings.RelayDescription + `',
-					relayContact: '` + global.Settings.RelayContact + `',
-					relayIcon: '` + global.Settings.RelayIcon + `',
-					saved: false,
-                    uploadError: null,
-					async saveSettings() {
-						const response = await fetch('/settings', {
-							method: 'POST',
-							body: new URLSearchParams(new FormData(this.$refs.form))
-						})
-						if (response.ok) {
-							this.saved = true;
-							setTimeout(() => this.saved = false, 2000)
-						}
-					},
-					async uploadIcon() {
-						const file = this.$refs.iconFile.files[0];
-						if (!file) return;
-
-						this.uploadError = '';
-
-						if (file.size > 5 * 1024 * 1024) {
-							this.uploadError = 'file must be under 5MB';
-							this.$refs.iconFile.value = '';
-							return;
-						}
-
-						if (!['image/png', 'image/jpeg'].includes(file.type)) {
-							this.uploadError = 'file must be PNG or JPEG';
-							this.$refs.iconFile.value = '';
-							return;
-						}
-
-						setTimeout(() => this.$refs.iconFile.parentNode.submit(), 1)
-					}
-				}` }
-			>
-				<form
-					method="POST"
-					action="/settings"
-					class="space-y-6 mt-8"
-					x-ref="form"
-				>
-					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">relay information</h3>
-					<div class="space-y-4">
-						<div>
-							<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay name</label>
-							<input
-								type="text"
-								name="relay_name"
-								placeholder="pyramidal relay of..."
-								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-								x-model="relayName"
-								@blur="saveSettings()"
-							/>
-						</div>
-						<div>
-							<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay description</label>
-							<textarea
-								name="relay_description"
-								rows="2"
-								placeholder="my family and other weirdos"
-								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-								x-model="relayDescription"
-								@blur="saveSettings()"
-							></textarea>
-						</div>
-						<div>
-							<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay icon url</label>
-							<div class="flex gap-2">
-								<input
-									type="text"
-									name="relay_icon"
-									class="flex-1 px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-									x-model="relayIcon"
-									@blur="saveSettings()"
-								/>
-								<button
-									type="button"
-									@click="$refs.iconFile.click()"
-									class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
-								>
-									upload
-								</button>
-							</div>
-							<div
-								x-show="uploadError"
-								x-transition
-								class="text-sm text-red-600 dark:text-red-400 font-medium mt-2"
-								x-text="uploadError"
-							></div>
-						</div>
-						<div>
-							<label class="block text-sm font-medium mb-2 dark:text-stone-300">relay contact</label>
-							<input
-								type="text"
-								name="relay_contact"
-								placeholder="tag me on nostr or email@email.com"
-								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-								x-model="relayContact"
-								@blur="saveSettings()"
-							/>
-						</div>
-					</div>
-					<div
-						x-show="saved"
-						x-transition
-						class="text-sm text-green-600 dark:text-green-400 font-medium"
-					>
-						saved!
-					</div>
-				</form>
-				<form method="POST" action="/upload-icon" enctype="multipart/form-data" class="hidden">
-					<input
-						type="file"
-						x-ref="iconFile"
-						@change="uploadIcon()"
-						accept="image/png,image/jpeg"
-						name="file"
-					/>
-				</form>
-			</div>
-			<!-- theme Colors Section -->
+			<!-- relay metadata -->
+			@layout.RelayMetadata("main",
+				global.Settings.RelayName, global.Settings.RelayDescription, global.Settings.RelayIcon)
+			<!-- theme colors -->
 			<form
 				method="POST"
 				action="/settings"
 				class="space-y-6 mt-8"
 				x-data={ `{
-				accentColor: '`+global.Settings.Theme.AccentColor+`',
-				backgroundColor: '`+global.Settings.Theme.BackgroundColor+`',
-				textColor: '`+global.Settings.Theme.TextColor+`',
-				saved: false,
-				updateTheme() {
-					document.documentElement.style.setProperty('--accent-color', this.accentColor);
-					document.documentElement.style.setProperty('--bg-color', this.backgroundColor);
-					document.documentElement.style.setProperty('--text-color', this.textColor);
-				},
-				saveSettings(event) {
-					setTimeout(async () => {
-						const response = await fetch('/settings', {
-							method: 'POST',
-							body: new URLSearchParams(new FormData(this.$refs.form))
-						});
-						if (response.ok) {
-							this.saved = true;
-							setTimeout(() => this.saved = false, 2000);
+					accentColor: '`+global.Settings.Theme.AccentColor+`',
+					backgroundColor: '`+global.Settings.Theme.BackgroundColor+`',
+					textColor: '`+global.Settings.Theme.TextColor+`',
+					saved: false,
+					updateTheme() {
+						document.documentElement.style.setProperty('--accent-color', this.accentColor);
+						document.documentElement.style.setProperty('--bg-color', this.backgroundColor);
+						document.documentElement.style.setProperty('--text-color', this.textColor);
+					},
+					saveSettings(event) {
+						setTimeout(async () => {
+							const response = await fetch(this.$refs.form.action, {
+								method: 'POST',
+								body: new URLSearchParams(new FormData(this.$refs.form))
+							});
+							if (response.ok) {
+								this.saved = true;
+								setTimeout(() => this.saved = false, 2000);
+							}
+						}, 1)
+					},
+					resetTheme() {
+						this.accentColor = '';
+						this.backgroundColor = '';
+						this.textColor = '';
+						setTimeout(() => this.$refs.form.submit(), 1)
+					},
+					enableCustomTheme() {
+						function gen (baseLight, baseSat) {
+							let h = Math.random() * 360
+							let s = (baseSat + Math.random() * 10) / 100
+							let l = (baseLight + Math.random() * 10) / 100
+							const a = s * Math.min(l, 1 - l)
+							const f = n => {
+								const k = (n + h / 30) % 12
+								const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+								return Math.round(255 * color).toString(16).padStart(2, '0')
+							}
+							return "#" + f(0) + f(8) + f(4)
 						}
-					}, 1)
-				},
-				resetTheme() {
-					this.accentColor = '';
-					this.backgroundColor = '';
-					this.textColor = '';
-					setTimeout(() => this.$refs.form.submit(), 1)
-				},
-				enableCustomTheme() {
-					function gen (baseLight, baseSat) {
-						let h = Math.random() * 360
-						let s = (baseSat + Math.random() * 10) / 100
-						let l = (baseLight + Math.random() * 10) / 100
-						const a = s * Math.min(l, 1 - l)
-						const f = n => {
-							const k = (n + h / 30) % 12
-							const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
-							return Math.round(255 * color).toString(16).padStart(2, '0')
-						}
-						return "#" + f(0) + f(8) + f(4)
-					}
 
-					this.accentColor = gen(60, 80);
-					this.backgroundColor = gen(90, 50);
-					this.textColor = gen(30, 60);
-					setTimeout(() => this.$refs.form.submit(), 1)
-				}
-			}` }
+						this.accentColor = gen(60, 80);
+						this.backgroundColor = gen(90, 50);
+						this.textColor = gen(30, 60);
+						setTimeout(() => this.$refs.form.submit(), 1)
+					}
+				}` }
 				x-init="updateTheme()"
 				x-ref="form"
 			>
@@ -277,7 +154,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					browseUri: '` + global.Settings.BrowseURI + `',
 					saved: false,
 					async saveSettings() {
-						const response = await fetch('/settings', {
+						const response = await fetch(this.$refs.form.action, {
 							method: 'POST',
 							body: new URLSearchParams(new FormData(this.$refs.form))
 						})
@@ -379,7 +256,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					paywallPeriod: '` + fmt.Sprint(global.Settings.Paywall.PeriodDays) + `',
 					saved: false,
 					async saveSettings() {
-						const response = await fetch('/settings', {
+						const response = await fetch(this.$refs.form.action, {
 							method: 'POST',
 							body: new URLSearchParams(new FormData(this.$refs.form))
 						})
@@ -445,7 +322,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					moderatedMinPoW: ` + fmt.Sprint(global.Settings.Moderated.MinPoW) + `,
 					saved: false,
 					async saveSettings() {
-						const response = await fetch('/settings', {
+						const response = await fetch(this.$refs.form.action, {
 							method: 'POST',
 							body: new URLSearchParams(new FormData(this.$refs.form))
 						})

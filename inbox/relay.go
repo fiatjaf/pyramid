@@ -8,6 +8,7 @@ import (
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
+	"fiatjaf.com/nostr/nip11"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
@@ -42,31 +43,39 @@ func setupEnabled() {
 	secretDB := global.IL.Secret
 
 	Relay = khatru.NewRelay()
-
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/inbox"
-	Relay.Info.Name = global.Settings.GetRelayName("inbox")
-	Relay.Info.Description = global.Settings.GetRelayDescription("inbox")
-	Relay.Info.Contact = global.Settings.RelayContact
-	Relay.Info.Icon = global.Settings.GetRelayIcon("inbox")
-	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
 
 	// use dual layer store
-	dualStore := &dualLayerStore{
+	Relay.UseEventstore(&dualLayerStore{
 		normalDB: normalDB,
 		secretDB: secretDB,
-	}
-	Relay.UseEventstore(dualStore, 500)
-
+	}, 500)
 	Relay.OnRequest = policies.SeqRequest(
 		policies.NoComplexFilters,
 		policies.NoSearchQueries,
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
 		rejectFilter,
 	)
-
 	Relay.OnEvent = rejectEvent
-
 	Relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
+	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
+		info.Name = global.Settings.Inbox.Name
+		if info.Name == "" {
+			info.Name = global.Settings.RelayName + " - inbox"
+		}
+		info.Description = global.Settings.Inbox.Description
+		if info.Description == "" {
+			info.Description = "filtered notifications for relay members using a unified web of trust"
+		}
+		info.Icon = global.Settings.Inbox.Icon
+		if info.Icon == "" {
+			info.Icon = global.Settings.RelayIcon
+		}
+		info.Contact = global.Settings.RelayContact
+		info.Software = "https://github.com/fiatjaf/pyramid"
+
+		return info
+	}
 
 	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)

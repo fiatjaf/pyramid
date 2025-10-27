@@ -8,6 +8,7 @@ import (
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
+	"fiatjaf.com/nostr/nip11"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
@@ -43,11 +44,24 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/internal"
-	Relay.Info.Name = global.Settings.GetRelayName("internal")
-	Relay.Info.Description = global.Settings.GetRelayDescription("internal")
-	Relay.Info.Contact = global.Settings.RelayContact
-	Relay.Info.Icon = global.Settings.GetRelayIcon("internal")
-	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
+
+	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
+		info.Name = global.Settings.Internal.Name
+		if info.Name == "" {
+			info.Name = global.Settings.RelayName + " - internal"
+		}
+		info.Description = global.Settings.Internal.Description
+		if info.Description == "" {
+			info.Description = "internal discussions between relay members, unavailable to the external world"
+		}
+		info.Icon = global.Settings.Internal.Icon
+		if info.Icon == "" {
+			info.Icon = global.Settings.RelayIcon
+		}
+		info.Contact = global.Settings.RelayContact
+		info.Software = "https://github.com/fiatjaf/pyramid"
+		return info
+	}
 
 	Relay.UseEventstore(db, 500)
 

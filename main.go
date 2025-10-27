@@ -78,9 +78,10 @@ func main() {
 	global.Nostr.Store = global.IL.System
 
 	// init main relay
-	setupRootRelayMetadata()
-
 	relay := khatru.NewRelay()
+	relay.ServiceURL = global.Settings.Domain
+	relay.Negentropy = true
+
 	relay.UseEventstore(global.IL.Main, 500)
 	relay.QueryStored = query
 	relay.OnRequest = policies.SeqRequest(
@@ -108,9 +109,30 @@ func main() {
 	relay.OnConnect = onConnect
 	relay.PreventBroadcast = preventBroadcast
 
+	root.Relay.ServiceURL = "wss://" + global.Settings.Domain
+	root.Relay.Negentropy = true
 	root.Relay.ManagementAPI.AllowPubKey = allowPubKeyHandler
 	root.Relay.ManagementAPI.BanPubKey = banPubKeyHandler
 	root.Relay.ManagementAPI.ListAllowedPubKeys = listAllowedPubKeysHandler
+	root.Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
+		info.Name = global.Settings.RelayName
+		info.Description = global.Settings.RelayDescription
+		info.Contact = global.Settings.RelayContact
+		info.Icon = global.Settings.RelayIcon
+		info.Limitation = &nip11.RelayLimitationDocument{
+			RestrictedWrites: true,
+		}
+		info.Software = "https://github.com/fiatjaf/pyramid"
+		for member, invitedBy := range pyramid.Members {
+			if slices.Contains(invitedBy, nostr.ZeroPK) {
+				// use the first root we find here, whatever
+				info.PubKey = &member
+				break
+			}
+		}
+
+		return info
+	}
 
 	// setup routes (no auth required)
 	root.Relay.Router().HandleFunc("/setup/domain", domainSetupHandler)
@@ -121,20 +143,7 @@ func main() {
 	root.Relay.Router().HandleFunc("/cleanup", cleanupStuffFromExcludedUsersHandler)
 	root.Relay.Router().HandleFunc("/reports", reportsViewerHandler)
 	root.Relay.Router().HandleFunc("/settings", settingsHandler)
-	root.Relay.Router().HandleFunc("POST /upload-icon", uploadIconHandler)
-	root.Relay.Router().HandleFunc("POST /upload-relay-icon", uploadRelayIconHandler)
-	root.Relay.Router().HandleFunc("/icon.png", iconHandler)
-	root.Relay.Router().HandleFunc("/icon.jpg", iconHandler)
-	root.Relay.Router().HandleFunc("/icon-favorites.png", iconHandler)
-	root.Relay.Router().HandleFunc("/icon-favorites.jpg", iconHandler)
-	root.Relay.Router().HandleFunc("/icon-inbox.png", iconHandler)
-	root.Relay.Router().HandleFunc("/icon-inbox.jpg", iconHandler)
-	root.Relay.Router().HandleFunc("/icon-internal.png", iconHandler)
-	root.Relay.Router().HandleFunc("/icon-internal.jpg", iconHandler)
-	root.Relay.Router().HandleFunc("/icon-popular.png", iconHandler)
-	root.Relay.Router().HandleFunc("/icon-popular.jpg", iconHandler)
-	root.Relay.Router().HandleFunc("/icon-uppermost.png", iconHandler)
-	root.Relay.Router().HandleFunc("/icon-uppermost.jpg", iconHandler)
+	root.Relay.Router().HandleFunc("/icon/{file}", iconHandler)
 	root.Relay.Router().HandleFunc("/forum/", forumHandler)
 	root.Relay.Router().Handle("/static/", http.FileServer(http.FS(static)))
 	root.Relay.Router().HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
@@ -201,25 +210,5 @@ func main() {
 	})
 	if err := g.Wait(); err != nil {
 		log.Debug().Err(err).Msg("exit reason")
-	}
-}
-
-func setupRootRelayMetadata() {
-	root.Relay.ServiceURL = "wss://" + global.Settings.Domain
-	root.Relay.Info.Name = global.Settings.RelayName
-	root.Relay.Info.Description = global.Settings.RelayDescription
-	root.Relay.Info.Contact = global.Settings.RelayContact
-	root.Relay.Info.Icon = global.Settings.RelayIcon
-	root.Relay.Negentropy = true
-	root.Relay.Info.Limitation = &nip11.RelayLimitationDocument{
-		RestrictedWrites: true,
-	}
-	root.Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
-	for member, invitedBy := range pyramid.Members {
-		if slices.Contains(invitedBy, nostr.ZeroPK) {
-			// use the first root we find here, whatever
-			root.Relay.Info.PubKey = &member
-			break
-		}
 	}
 }

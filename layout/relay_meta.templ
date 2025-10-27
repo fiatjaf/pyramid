@@ -1,0 +1,130 @@
+package layout
+
+templ SubRelaySettings(relayId string, enabled bool, name, description, icon string) {
+	<div class="mt-24">
+		<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">configuration</h3>
+		if !enabled {
+			<form method="POST" action={ templ.SafeURL("/" + relayId + "/enable") }>
+				<button
+					type="submit"
+					class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+				>
+					enable
+				</button>
+			</form>
+		} else {
+			<details>
+				<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">relay metadata settings</summary>
+				@RelayMetadata(relayId, name, description, icon)
+			</details>
+			<details>
+				<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">disable relay</summary>
+				<form class="mt-4" method="POST" action={ templ.SafeURL("/" + relayId + "/disable") }>
+					<button
+						type="submit"
+						class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+					>
+						disable
+					</button>
+				</form>
+			</details>
+		}
+	</div>
+}
+
+templ RelayMetadata(relayId string, name, description, icon string) {
+	<div
+		class="space-y-6"
+		x-data={ `{
+			name: '` + name + `',
+			description: '` + description + `',
+			icon: '` + icon + `',
+			saved: false,
+			uploadError: null,
+			async saveSettings() {
+				const response = await fetch(this.$refs.form.action, {
+					method:'POST',
+					body: new URLSearchParams(new FormData(this.$refs.form))
+				})
+				if (response.ok) {
+					this.saved = true
+					setTimeout(() => this.saved = false, 2000)
+				}
+			},
+			async uploadIcon() {
+				const file = this.$refs.iconFile.files[0]
+				if (!file) return
+
+				this.uploadError = ''
+				if (file.size > 5*1024*1024) {
+					this.uploadError = 'file must be under 5MB'
+					this.$refs.iconFile.value = ''
+					return
+				}
+
+				setTimeout(() => this.$refs.iconFile.parentNode.submit(), 1)
+			}
+		}` }
+	>
+		<form method="POST" action="/settings" x-ref="form" class="mb-4">
+			<div class="space-y-4">
+				<div>
+					<label class="block text-sm font-medium mb-2 dark:text-stone-300" for={ relayId + "_name" }>relay name</label>
+					<input
+						type="text"
+						name={ relayId + "_name" }
+						placeholder="leave empty to use default"
+						class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+						x-model="name"
+						@blur="saveSettings()"
+					/>
+				</div>
+				<div>
+					<label class="block text-sm font-medium mb-2 dark:text-stone-300" for={ relayId + "_description" }>description</label>
+					<textarea
+						name={ relayId + "_description" }
+						rows="2"
+						placeholder="leave empty to use default"
+						class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+						x-model="description"
+						@blur="saveSettings()"
+					></textarea>
+				</div>
+				<div>
+					<label class="block text-sm font-medium mb-2 dark:text-stone-300" for={ relayId + "_icon" }>icon url</label>
+					<div class="flex gap-2">
+						<input
+							type="text"
+							name={ relayId + "_icon" }
+							placeholder="leave empty to use main icon"
+							class="flex-1 px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+							x-model="icon"
+							@blur="saveSettings()"
+						/>
+						<button
+							type="button"
+							@click="$refs.iconFile.click()"
+							class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+						>upload</button>
+					</div>
+					<div x-show="uploadError" x-transition class="text-sm text-red-600 dark:text-red-400 font-medium mt-2" x-text="uploadError"></div>
+				</div>
+			</div>
+			<div x-show="saved" x-transition class="text-sm text-green-600 dark:text-green-400 font-medium">saved!</div>
+		</form>
+		<form method="POST" action={ templ.SafeURL("/icon/" + relayId) } enctype="multipart/form-data" class="hidden">
+			<input
+				type="hidden"
+				name="relay"
+				value={ relayId }
+			/>
+			<input
+				type="file"
+				x-ref="iconFile"
+				@change="uploadIcon()"
+				accept="image/png,image/jpeg"
+				name="file"
+			/>
+		</form>
+	</div>
+}

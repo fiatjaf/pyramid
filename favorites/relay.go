@@ -8,6 +8,7 @@ import (
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
+	"fiatjaf.com/nostr/nip11"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
@@ -43,11 +44,24 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/favorites"
-	Relay.Info.Name = global.Settings.GetRelayName("favorites")
-	Relay.Info.Description = global.Settings.GetRelayDescription("favorites")
-	Relay.Info.Contact = global.Settings.RelayContact
-	Relay.Info.Icon = global.Settings.GetRelayIcon("favorites")
-	Relay.Info.Software = "https://github.com/fiatjaf/pyramid"
+
+	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
+		info.Name = global.Settings.Favorites.Name
+		if info.Name == "" {
+			info.Name = global.Settings.RelayName + " - favorites"
+		}
+		info.Description = global.Settings.Favorites.Description
+		if info.Description == "" {
+			info.Description = "posts manually curated by the members. to curate just republish any chosen event here."
+		}
+		info.Icon = global.Settings.Favorites.Icon
+		if info.Icon == "" {
+			info.Icon = global.Settings.RelayIcon
+		}
+		info.Contact = global.Settings.RelayContact
+		info.Software = "https://github.com/fiatjaf/pyramid"
+		return info
+	}
 	Relay.UseEventstore(db, 500)
 
 	Relay.OnRequest = policies.SeqRequest(
