@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -179,6 +180,33 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			case "moderated_min_pow":
 				pow, _ := strconv.ParseUint(v[0], 10, 64)
 				global.Settings.Moderated.MinPoW = uint(pow)
+				//
+				// inbox-specific
+			case "inbox_hellthread_limit":
+				global.Settings.Inbox.HellthreadLimit, _ = strconv.Atoi(v[0])
+			case "inbox_min_dm_pow":
+				global.Settings.Inbox.MinDMPoW, _ = strconv.Atoi(v[0])
+			case "inbox_specifically_blocked":
+				var blocked []nostr.PubKey
+				for _, s := range v {
+					s = strings.TrimSpace(s)
+					if s == "" {
+						continue
+					}
+					pk := pubkeyFromInput(s)
+					if pk != nostr.ZeroPK && !slices.Contains(blocked, pk) {
+						blocked = append(blocked, pk)
+					}
+				}
+				global.Settings.Inbox.SpecificallyBlocked = blocked
+				//
+				// popular-specific
+			case "popular_percent_threshold":
+				global.Settings.Popular.PercentThreshold, _ = strconv.Atoi(v[0])
+				//
+				// uppermost-specific
+			case "uppermost_percent_threshold":
+				global.Settings.Uppermost.PercentThreshold, _ = strconv.Atoi(v[0])
 			}
 		}
 

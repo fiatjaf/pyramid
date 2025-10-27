@@ -1,6 +1,9 @@
 package inbox
 
 import (
+	"fmt"
+	"strings"
+
 	"fiatjaf.com/nostr"
 
 	"github.com/fiatjaf/pyramid/global"
@@ -43,9 +46,95 @@ templ inboxPage(loggedUser nostr.PubKey) {
 						browse inbox →
 					</a>
 				}
+				{{
+					blocked := make([]string, len(global.Settings.Inbox.SpecificallyBlocked))
+					for i, pk := range global.Settings.Inbox.SpecificallyBlocked {
+						blocked[i] = pk.Hex()
+					}
+					var quoted []string
+					for _, b := range blocked {
+						quoted = append(quoted, fmt.Sprintf("'%s'", b))
+					}
+					quoted = append(quoted, "\"\"")
+				}}
 				if pyramid.IsRoot(loggedUser) {
 					@layout.SubRelaySettings("inbox", global.Settings.Inbox.Enabled,
-						global.Settings.Inbox.Name, global.Settings.Inbox.Description, global.Settings.Inbox.Icon)
+						global.Settings.Inbox.Name, global.Settings.Inbox.Description, global.Settings.Inbox.Icon) {
+						<details>
+							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">filters</summary>
+							<form
+								method="POST"
+								action="/settings"
+								x-data={ `{
+								hellthreadLimit: ` + fmt.Sprint(global.Settings.Inbox.HellthreadLimit) + `,
+								minDMPoW: ` + fmt.Sprint(global.Settings.Inbox.MinDMPoW) + `,
+								blocked: [` + strings.Join(quoted, ",") + `],
+								saved: false,
+								async saveSettings() {
+									const response = await fetch(this.$refs.form.action, {
+										method: 'POST',
+										body: new URLSearchParams(new FormData(this.$refs.form))
+									})
+									if (response.ok) {
+										this.saved = true;
+										setTimeout(() => this.saved = false, 2000)
+									}
+								}
+							}` }
+								x-ref="form"
+							>
+								<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">inbox relay</h3>
+								<div>
+									<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="inbox_hellthread_limit">hellthread limit</label>
+									<input
+										type="number"
+										name="inbox_hellthread_limit"
+										min="0"
+										class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-4"
+										x-model="hellthreadLimit"
+										@blur="saveSettings()"
+									/>
+								</div>
+								<div>
+									<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="inbox_min_dm_pow">minimum DM proof-of-work (bits, 0 to disable)</label>
+									<input
+										type="number"
+										name="inbox_min_dm_pow"
+										min="0"
+										max="32"
+										class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-4"
+										x-model="minDMPoW"
+										@blur="saveSettings()"
+									/>
+								</div>
+								<div>
+									<label class="block text-sm font-medium mb-2 dark:text-stone-300">specifically blocked pubkeys</label>
+									<div class="space-y-2 mb-4">
+										<template x-for="(pk, index) in blocked" :key="index">
+											<div class="flex items-center gap-2">
+												<input
+													type="text"
+													name="inbox_specifically_blocked"
+													class="flex-1 px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+													x-model="blocked[index]"
+													@input="if (blocked[index] && index === blocked.length - 1) blocked.push('')"
+													@blur="saveSettings()"
+												/>
+												<nostr-name x-show="blocked[index]" :pubkey="blocked[index]"></nostr-name>
+											</div>
+										</template>
+									</div>
+								</div>
+								<div
+									x-show="saved"
+									x-transition
+									class="text-sm text-green-600 dark:text-green-400 font-medium mb-4"
+								>
+									saved!
+								</div>
+							</form>
+						</details>
+					}
 				}
 			</div>
 		</div>
