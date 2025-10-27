@@ -1,0 +1,124 @@
+package moderated
+
+import (
+	"fiatjaf.com/nostr"
+	"fmt"
+	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
+	"github.com/fiatjaf/pyramid/pyramid"
+)
+
+templ moderatedPage(loggedUser nostr.PubKey) {
+	@layout.Layout(loggedUser, "moderated") {
+		<div class="max-w-3xl mx-auto">
+			<div class="space-y-4 text-gray-700 dark:text-gray-300">
+				<p class="text-lg leading-relaxed">
+					the moderated relay (also available at /public) is a public relay where events from non-members are reviewed by members before publication.
+				</p>
+				<div class="bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+					<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">how it works:</h2>
+					<ul class="list-disc list-inside space-y-1 text-sm">
+						<li>anyone can submit events to this relay</li>
+						if global.Settings.Moderated.MinPoW > 0 {
+							<li>events must meet minimum proof-of-work requirement ({ fmt.Sprintf("%d", global.Settings.Moderated.MinPoW) } bits)</li>
+						}
+						<li>events from members are published immediately</li>
+						<li>events from non-members go to a moderation queue</li>
+						<li>members can review and approve/reject queued events below</li>
+					</ul>
+				</div>
+				if pyramid.IsRoot(loggedUser) {
+					<div class="mt-8">
+						<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">moderated configuration</h3>
+						if !global.Settings.Moderated.Enabled {
+							<form method="POST" action="/moderated/enable">
+								<button
+									type="submit"
+									class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+								>
+									enable
+								</button>
+							</form>
+						} else {
+							<form method="POST" action="/moderated/disable">
+								<button
+									type="submit"
+									class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+								>
+									disable
+								</button>
+							</form>
+						}
+					</div>
+				}
+				if global.Settings.Moderated.Enabled {
+					<div class="pt-4">
+						<a
+							class={
+								"inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105",
+								templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
+								templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
+							}
+							target="_blank"
+							href={ global.Settings.BrowseURI }
+							x-init="$el.href = $el.href.replace('{url}', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
+						>
+							browse moderated →
+						</a>
+					</div>
+				}
+				if pyramid.IsMember(loggedUser) && global.Settings.Moderated.Enabled {
+					<div class="mt-8">
+						<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">moderation queue</h3>
+						@pendingEventsSection()
+					</div>
+				}
+			</div>
+		</div>
+	}
+}
+
+templ pendingEventsSection() {
+	<div class="space-y-4">
+		{{ hasAny := false }}
+		for evt := range global.IL.ModerationQueue.QueryEvents(nostr.Filter{}, 100) {
+			{{ hasAny = true }}
+			<div class="bg-white dark:bg-stone-800 rounded-lg p-4 border border-stone-200 dark:border-stone-700 shadow-sm">
+				<div class="mb-2">
+					<div class="flex items-center gap-2 mb-1">
+						<span class="text-xs text-stone-500 dark:text-stone-400">from:</span>
+						<nostr-name class="text-sm font-mono" pubkey={ evt.PubKey.Hex() }></nostr-name>
+					</div>
+					<div class="flex items-center gap-2">
+						<span class="text-xs text-stone-500 dark:text-stone-400">kind:</span>
+						<span class="text-sm">{ fmt.Sprintf("%d", evt.Kind) }</span>
+					</div>
+				</div>
+				<div class="mb-3 p-3 bg-stone-50 dark:bg-stone-900 rounded text-sm break-words max-h-32 overflow-y-auto">
+					{ evt.Content }
+				</div>
+				<div class="flex gap-2">
+					<form method="POST" action={ templ.SafeURL("/moderated/approve/" + evt.ID.String()) }>
+						<button
+							type="submit"
+							class="px-3 py-1 rounded bg-green-500 hover:bg-green-600 text-white text-sm font-medium"
+						>
+							approve
+						</button>
+					</form>
+					<form method="POST" action={ templ.SafeURL("/moderated/reject/" + evt.ID.String()) }>
+						<button
+							type="submit"
+							class="px-3 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-sm font-medium"
+						>
+							reject
+						</button>
+					</form>
+				</div>
+			</div>
+		}
+		if !hasAny {
+			<p class="text-stone-500 dark:text-stone-400 italic">no events pending moderation</p>
+		}
+	</div>
+}

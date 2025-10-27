@@ -24,6 +24,7 @@ import (
 	"github.com/fiatjaf/pyramid/groups"
 	"github.com/fiatjaf/pyramid/inbox"
 	"github.com/fiatjaf/pyramid/internal"
+	"github.com/fiatjaf/pyramid/moderated"
 	"github.com/fiatjaf/pyramid/popular"
 	"github.com/fiatjaf/pyramid/pyramid"
 	"github.com/fiatjaf/pyramid/uppermost"
@@ -172,6 +173,10 @@ func main() {
 	mux.Handle("/popular", http.StripPrefix("/popular", popular.Relay))
 	mux.Handle("/uppermost/", http.StripPrefix("/uppermost", uppermost.Relay))
 	mux.Handle("/uppermost", http.StripPrefix("/uppermost", uppermost.Relay))
+	mux.Handle("/moderated/", http.StripPrefix("/moderated", moderated.Relay))
+	mux.Handle("/moderated", http.StripPrefix("/moderated", moderated.Relay))
+	mux.Handle("/public/", http.StripPrefix("/public", moderated.Relay))
+	mux.Handle("/public", http.StripPrefix("/public", moderated.Relay))
 	mux.Handle("/", root)
 
 	server := &http.Server{Addr: global.S.Host + ":" + global.S.Port, Handler: setupCheckMiddleware(mux)}

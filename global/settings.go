@@ -64,6 +64,11 @@ type UserSettings struct {
 		Enabled          bool `json:"enabled"`
 		PercentThreshold int  `json:"percent_threshold"`
 	} `json:"uppermost"`
+
+	Moderated struct {
+		Enabled bool `json:"enabled"`
+		MinPoW  int  `json:"min_pow"`
+	} `json:"moderated"`
 }
 
 func (us UserSettings) HasThemeColors() bool {

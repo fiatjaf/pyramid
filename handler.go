@@ -128,6 +128,11 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Popular.Enabled = v[0] == "on"
 			case "uppermost_enabled":
 				global.Settings.Uppermost.Enabled = v[0] == "on"
+			case "moderated_enabled":
+				global.Settings.Moderated.Enabled = v[0] == "on"
+			case "moderated_min_pow":
+				pow, _ := strconv.Atoi(v[0])
+				global.Settings.Moderated.MinPoW = pow
 			}
 		}
 

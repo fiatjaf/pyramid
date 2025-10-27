@@ -91,6 +91,16 @@ func Init() error {
 		return fmt.Errorf("failed to ensure 'secret': %w", err)
 	}
 
+	IL.ModerationQueue, err = MMMM.EnsureLayer("moderation-queue")
+	if err != nil {
+		return fmt.Errorf("failed to ensure 'moderation-queue': %w", err)
+	}
+
+	IL.Moderated, err = MMMM.EnsureLayer("moderated")
+	if err != nil {
+		return fmt.Errorf("failed to ensure 'moderated': %w", err)
+	}
+
 	// paywall cache
 	go paywallCacheCleanup()
 
@@ -116,6 +126,10 @@ var IL struct {
 
 	// only nip44-encrypted DMs for now
 	Secret *mmm.IndexingLayer
+
+	// moderated relay
+	ModerationQueue *mmm.IndexingLayer
+	Moderated       *mmm.IndexingLayer
 
 	// algo
 	Popular   *mmm.IndexingLayer

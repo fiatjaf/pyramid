@@ -96,8 +96,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								class={ "rounded-lg px-4 py-2 font-medium flex items-center gap-1",
 									templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
 									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "groups"),
-									templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !(global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)) && !global.Settings.Groups.Enabled) }
+							templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "groups" || currentPage == "moderated"),
+							templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !(global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)) && !global.Settings.Groups.Enabled && !global.Settings.Moderated.Enabled) }
 							>
 								if currentPage == "favorites" {
 									favorites
@@ -111,6 +111,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 									internal
 								} else if currentPage == "groups" {
 									groups
+								} else if currentPage == "moderated" {
+									moderated
 								} else {
 									relays
 								}
@@ -188,6 +190,17 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 											templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "groups"),
 										}
 									>groups</a>
+								}
+								if global.Settings.Moderated.Enabled || pyramid.IsRoot(loggedUser) {
+									<a
+										href="/moderated/"
+										class={
+											"block px-4 py-2 text-sm",
+											templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+											templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
+											templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "moderated"),
+										}
+									>moderated</a>
 								}
 							</div>
 						</div>
