@@ -19,7 +19,7 @@ var (
 	Relay *khatru.Relay
 )
 
-func init() {
+func Init() {
 	if global.Settings.Inbox.Enabled {
 		// relay enabled
 		setupEnabled()
@@ -84,16 +84,19 @@ func setupEnabled() {
 
 	Relay.Router().HandleFunc("POST /disable", disableHandler)
 
-	// compute aggregated WoT in background
+	// compute aggregated WoT in background every 48h
 	go func() {
 		ctx := context.Background()
-		wot, err := computeAggregatedWoT(ctx)
-		if err != nil {
-			nostr.InfoLogger.Println("failed to compute aggregated WoT:", err)
-			return
+		time.Sleep(time.Minute * 2)
+		for {
+			wot, err := computeAggregatedWoT(ctx)
+			if err != nil {
+				nostr.InfoLogger.Println("failed to compute aggregated WoT:", err)
+			}
+			aggregatedWoT = wot
+			nostr.InfoLogger.Printf("computed aggregated WoT with %d entries", wot.Items)
+			time.Sleep(48 * time.Hour)
 		}
-		aggregatedWoT = wot
-		nostr.InfoLogger.Printf("computed aggregated WoT with %d entries", wot.Items)
 	}()
 }
 

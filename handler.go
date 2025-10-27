@@ -149,6 +149,12 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Favorites.Description = v[0]
 			case "favorites_icon":
 				global.Settings.Favorites.Icon = v[0]
+			case "moderated_name":
+				global.Settings.Moderated.Name = v[0]
+			case "moderated_description":
+				global.Settings.Moderated.Description = v[0]
+			case "moderated_icon":
+				global.Settings.Moderated.Icon = v[0]
 			case "inbox_name":
 				global.Settings.Inbox.Name = v[0]
 			case "inbox_description":
@@ -340,7 +346,7 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if strings.Contains(r.Header.Get("Accept"), "text/html") {
-			http.Redirect(w, r, "/settings", 302)
+			http.Redirect(w, r, r.Header.Get("Origin"), 302)
 		}
 	}
 

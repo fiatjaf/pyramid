@@ -22,7 +22,7 @@ var (
 	Relay *khatru.Relay
 )
 
-func init() {
+func Init() {
 	if global.Settings.Moderated.Enabled {
 		setupEnabled()
 	} else {

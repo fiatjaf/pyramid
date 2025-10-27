@@ -72,6 +72,14 @@ func main() {
 		return
 	}
 
+	favorites.Init()
+	groups.Init()
+	inbox.Init()
+	internal.Init()
+	moderated.Init()
+	popular.Init()
+	uppermost.Init()
+
 	root = khatru.NewRouter()
 
 	global.Nostr = sdk.NewSystem()

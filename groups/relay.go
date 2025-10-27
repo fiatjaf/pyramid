@@ -19,7 +19,7 @@ var (
 	Relay *khatru.Relay
 )
 
-func init() {
+func Init() {
 	if global.Settings.Groups.SecretKey == [32]byte{} || !global.Settings.Groups.Enabled {
 		// relay disabled
 		setupDisabled()

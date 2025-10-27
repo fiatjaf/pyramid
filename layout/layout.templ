@@ -25,7 +25,9 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<title>{ global.Settings.RelayName }</title>
 			<script src="https://cdn.tailwindcss.com"></script>
-			<script>tailwind.config = { darkMode: 'class' }</script>
+			if !global.Settings.HasThemeColors() {
+				<script>tailwind.config = { darkMode: 'class' }</script>
+			}
 			<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 			<script src="https://cdn.jsdelivr.net/npm/nostr-web-components@0.0.12/dist/nostr-name.js"></script>
 		</head>

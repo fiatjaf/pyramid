@@ -19,7 +19,7 @@ var (
 	Relay *khatru.Relay
 )
 
-func init() {
+func Init() {
 	if global.Settings.Popular.Enabled {
 		// relay enabled
 		setupEnabled()
