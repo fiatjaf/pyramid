@@ -44,7 +44,7 @@ func setupEnabled() {
 
 	Relay = khatru.NewRelay()
 
-	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/" + global.Settings.Popular.HTTPBasePath
+	Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Popular.HTTPBasePath
 
 	Relay.ManagementAPI.ChangeRelayName = changePopularRelayNameHandler
 	Relay.ManagementAPI.ChangeRelayDescription = changePopularRelayDescriptionHandler

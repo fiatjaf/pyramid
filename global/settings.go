@@ -2,6 +2,7 @@ package global
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -130,7 +131,7 @@ func getUserSettingsPath() string {
 func loadUserSettings() error {
 	// start it with the defaults
 	Settings = UserSettings{
-		BrowseURI:               "https://grouped-notes.dtonon.com/?r={url}",
+		BrowseURI:               "https://grouped-notes.dtonon.com/?r=__URL__",
 		MaxInvitesPerPerson:     4,
 		RequireCurrentTimestamp: true,
 		BlockedIPs:              []string{},
@@ -149,7 +150,10 @@ func loadUserSettings() error {
 	Settings.Uppermost.HTTPBasePath = "uppermost"
 	Settings.Moderated.HTTPBasePath = "moderated"
 
-	data, err := os.ReadFile(getUserSettingsPath())
+	path := getUserSettingsPath()
+	os.MkdirAll(filepath.Dir(path), 0700)
+
+	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// since the file doesn't exist, set some defaults
@@ -159,8 +163,9 @@ func loadUserSettings() error {
 			Settings.RelayInternalSecretKey = nostr.Generate()
 
 			if err := SaveUserSettings(); err != nil {
-				return err
+				return fmt.Errorf("failed to save settings: %w", err)
 			}
+
 			return nil
 		}
 
@@ -181,7 +186,7 @@ func SaveUserSettings() error {
 	}
 
 	if err := os.WriteFile(getUserSettingsPath(), data, 0644); err != nil {
-		return err
+		return fmt.Errorf("failed to write to %s: %w", getUserSettingsPath(), err)
 	}
 
 	return nil

@@ -6,6 +6,7 @@ import (
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/nip29"
+	"github.com/fiatjaf/pyramid/global"
 )
 
 type Group struct {
@@ -39,7 +40,7 @@ func (s *State) NewGroup(id string, creator nostr.PubKey) *Group {
 		Group: nip29.Group{
 			Address: nip29.GroupAddress{
 				ID:    id,
-				Relay: "wss://" + s.Domain,
+				Relay: global.Settings.WSScheme() + s.Domain,
 			},
 			Roles: []*nip29.Role{
 				creatorRole,

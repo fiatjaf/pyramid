@@ -278,7 +278,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if strings.Contains(r.Header.Get("Accept"), "text/html") {
-			http.Redirect(w, r, r.Header.Get("Origin"), 302)
+			http.Redirect(w, r, r.Header.Get("Referer"), 302)
 		}
 
 		return
@@ -402,7 +402,7 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if strings.Contains(r.Header.Get("Accept"), "text/html") {
-			http.Redirect(w, r, r.Header.Get("Origin"), 302)
+			http.Redirect(w, r, r.Header.Get("Referer"), 302)
 		}
 	}
 }

@@ -45,7 +45,7 @@ func setupEnabled() {
 	secretDB := global.IL.Secret
 
 	Relay = khatru.NewRelay()
-	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/" + global.Settings.Inbox.HTTPBasePath
+	Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Inbox.HTTPBasePath
 
 	Relay.ManagementAPI.ChangeRelayName = changeInboxRelayNameHandler
 	Relay.ManagementAPI.ChangeRelayDescription = changeInboxRelayDescriptionHandler

@@ -42,7 +42,7 @@ func setupDisabled() {
 func setupEnabled() {
 	Relay = khatru.NewRelay()
 
-	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/" + global.Settings.Moderated.HTTPBasePath
+	Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Moderated.HTTPBasePath
 
 	pk := global.Settings.RelayInternalSecretKey.Public()
 	Relay.Info.Self = &pk

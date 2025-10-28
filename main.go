@@ -97,7 +97,7 @@ func main() {
 	relay.OnConnect = onConnect
 	relay.PreventBroadcast = preventBroadcast
 
-	root.Relay.ServiceURL = "wss://" + global.Settings.Domain
+	root.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain
 	root.Relay.Info.Name = "root-router" // for debugging purposes, will be overwritten
 	root.Relay.Negentropy = true
 	root.Relay.ManagementAPI.AllowPubKey = allowPubKeyHandler

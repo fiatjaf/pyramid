@@ -43,8 +43,7 @@ func setupEnabled() {
 	db := global.IL.Groups
 
 	Relay = khatru.NewRelay()
-
-	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/" + global.Settings.Groups.HTTPBasePath
+	Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Groups.HTTPBasePath
 
 	Relay.ManagementAPI.ChangeRelayName = changeGroupsRelayNameHandler
 	Relay.ManagementAPI.ChangeRelayDescription = changeGroupsRelayDescriptionHandler

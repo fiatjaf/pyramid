@@ -204,7 +204,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 							/>
 							<button
 								type="button"
-								@mousedown="browseUri = 'https://jumble.social/?r={url}'"
+								@mousedown="browseUri = 'https://jumble.social/?r=__URL__'"
 								@mouseup="saveSettings()"
 								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 							>
@@ -212,7 +212,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 							</button>
 							<button
 								type="button"
-								@mousedown="browseUri = 'https://yakihonne.com/r/content?r={url}'"
+								@mousedown="browseUri = 'https://yakihonne.com/r/content?r=__URL__'"
 								@mouseup="saveSettings()"
 								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 							>
@@ -220,7 +220,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 							</button>
 							<button
 								type="button"
-								@mousedown="browseUri = 'https://nosotros.app/feed?relay={url}&kind=1&limit=30&type=relayfeed'"
+								@mousedown="browseUri = 'https://nosotros.app/feed?relay=__URL__&kind=1&limit=30&type=relayfeed'"
 								@mouseup="saveSettings()"
 								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 							>
@@ -228,7 +228,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 							</button>
 							<button
 								type="button"
-								@mousedown="browseUri = 'https://coracle.social/relays/{url}'"
+								@mousedown="browseUri = 'https://coracle.social/relays/__URL__'"
 								@mouseup="saveSettings()"
 								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 							>
