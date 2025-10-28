@@ -44,7 +44,7 @@ func processReactions(ctx context.Context, event nostr.Event) {
 						if votes, ok := bestVotes[target]; ok {
 							votes[reaction.PubKey] = struct{}{}
 						} else {
-							popularVotes[target] = map[nostr.PubKey]struct{}{reaction.PubKey: {}}
+							bestVotes[target] = map[nostr.PubKey]struct{}{reaction.PubKey: {}}
 						}
 					}
 				}

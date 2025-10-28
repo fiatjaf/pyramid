@@ -12,11 +12,13 @@ func sameRoles(roles []*nip29.Role, roleNames []string) bool {
 	}
 
 	for i, role := range roles {
-		if idx := slices.Index(roleNames[0:len(roleNames)-i], role.Name); idx != -1 {
-			roleNames[idx] = roleNames[len(roleNames)-i-1]
-		} else {
+		// search in the remaining unsearched portion
+		idx := slices.Index(roleNames[i:], role.Name)
+		if idx == -1 {
 			return false
 		}
+		// swap found element to position i (marking it as "used")
+		roleNames[i], roleNames[i+idx] = roleNames[i+idx], roleNames[i]
 	}
 
 	return true

@@ -50,6 +50,7 @@ func (s *State) Query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.E
 						}
 						evt := group.ToMembersEvent()
 						evt.Sign(s.secretKey)
+						yield(evt)
 					case nostr.KindSimpleGroupRoles:
 						evt := group.ToRolesEvent()
 						evt.Sign(s.secretKey)

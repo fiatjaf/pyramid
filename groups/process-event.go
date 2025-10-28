@@ -80,7 +80,7 @@ func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
 	if event.Kind == nostr.KindSimpleGroupJoinRequest {
 		// otherwise immediately add the requester
 		var inviteCode string
-		if ctag := event.Tags.Find("code"); ctag == nil {
+		if ctag := event.Tags.Find("code"); ctag != nil {
 			inviteCode = ctag[1]
 		}
 		addUser := nostr.Event{
