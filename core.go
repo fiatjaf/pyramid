@@ -57,6 +57,7 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 					return true, "we don't know anything about the target event"
 				}
 			}
+			return false, ""
 		} else if p := event.Tags.Find("p"); p != nil {
 			// pubkey report
 			if pk, err := nostr.PubKeyFromHex(p[1]); err == nil {
@@ -64,6 +65,7 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 					return true, "target pubkey is not a user of this relay"
 				}
 			}
+			return false, ""
 		}
 
 		return true, "invalid report"

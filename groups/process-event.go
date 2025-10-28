@@ -36,7 +36,7 @@ func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
 				if err := s.DB.DeleteEvent(id); err != nil {
 					log.Warn().Err(err).Stringer("event", id).Msg("failed to delete")
 				} else {
-					idx := s.deletedCacheIndex.Add(1)
+					idx := s.deletedCacheIndex.Add(1) % uint32(len(s.deletedCache))
 					s.deletedCache[idx] = id
 				}
 			}

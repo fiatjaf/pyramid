@@ -21,7 +21,7 @@ type State struct {
 
 	// events that just got deleted will be cached here such that someone doesn't rebroadcast them
 	deletedCache      [128]nostr.ID
-	deletedCacheIndex atomic.Int32
+	deletedCacheIndex atomic.Uint32
 
 	publicKey nostr.PubKey
 	secretKey nostr.SecretKey

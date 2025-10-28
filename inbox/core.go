@@ -96,7 +96,7 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 	}
 
 	// check hellthread limit
-	if pTagCount > global.Settings.Inbox.HellthreadLimit {
+	if global.Settings.Inbox.HellthreadLimit > 0 && pTagCount > global.Settings.Inbox.HellthreadLimit {
 		return true, "blocked: too many p-tags"
 	}
 

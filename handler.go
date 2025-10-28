@@ -119,11 +119,13 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			case "paywall_tag":
 				global.Settings.Paywall.Tag = v[0]
 			case "paywall_amount":
-				amt, _ := strconv.ParseUint(v[0], 10, 64)
-				global.Settings.Paywall.AmountSats = uint(amt)
+				if amt, err := strconv.ParseUint(v[0], 10, 64); err == nil {
+					global.Settings.Paywall.AmountSats = uint(amt)
+				}
 			case "paywall_period":
-				days, _ := strconv.ParseUint(v[0], 10, 64)
-				global.Settings.Paywall.PeriodDays = uint(days)
+				if days, err := strconv.ParseUint(v[0], 10, 64); err == nil {
+					global.Settings.Paywall.PeriodDays = uint(days)
+				}
 				//
 				// basic metadata of all relays
 			case "main_name":
@@ -252,11 +254,15 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				//
 				// popular-specific
 			case "popular_percent_threshold":
-				global.Settings.Popular.PercentThreshold, _ = strconv.Atoi(v[0])
+				if val, err := strconv.Atoi(v[0]); err == nil {
+					global.Settings.Popular.PercentThreshold = val
+				}
 				//
 				// uppermost-specific
 			case "uppermost_percent_threshold":
-				global.Settings.Uppermost.PercentThreshold, _ = strconv.Atoi(v[0])
+				if val, err := strconv.Atoi(v[0]); err == nil {
+					global.Settings.Uppermost.PercentThreshold = val
+				}
 			}
 		}
 
