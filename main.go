@@ -40,27 +40,6 @@ var (
 //go:embed static/*
 var static embed.FS
 
-func setupCheckMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/setup/") {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		if global.Settings.Domain == "" {
-			http.Redirect(w, r, "/setup/domain", 302)
-			return
-		}
-
-		if !pyramid.HasRootUsers() {
-			http.Redirect(w, r, "/setup/root", 302)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
 func main() {
 	if err := global.Init(); err != nil {
 		log.Fatal().Err(err).Msg("couldn't initialize")
@@ -126,6 +105,9 @@ func main() {
 	root.Relay.ManagementAPI.ChangeRelayName = changeRelayNameHandler
 	root.Relay.ManagementAPI.ChangeRelayDescription = changeRelayDescriptionHandler
 	root.Relay.ManagementAPI.ChangeRelayIcon = changeRelayIconHandler
+	root.Relay.ManagementAPI.ListBlockedIPs = listBlockedIPsHandler
+	root.Relay.ManagementAPI.BlockIP = blockIPHandler
+	root.Relay.ManagementAPI.UnblockIP = unblockIPHandler
 	root.Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		info.Name = global.Settings.RelayName
 		info.Description = global.Settings.RelayDescription
@@ -264,7 +246,7 @@ func run(ctx context.Context) error {
 
 	server := &http.Server{
 		Addr:    global.S.Host + ":" + global.S.Port,
-		Handler: setupCheckMiddleware(mux),
+		Handler: ipBlockMiddleware(setupCheckMiddleware(mux)),
 		BaseContext: func(_ net.Listener) context.Context {
 			return ctx
 		},
@@ -284,4 +266,25 @@ func run(ctx context.Context) error {
 		return nil
 	})
 	return g.Wait()
+}
+
+func setupCheckMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/setup/") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if global.Settings.Domain == "" {
+			http.Redirect(w, r, "/setup/domain", 302)
+			return
+		}
+
+		if !pyramid.HasRootUsers() {
+			http.Redirect(w, r, "/setup/root", 302)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }

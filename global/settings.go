@@ -35,6 +35,8 @@ type UserSettings struct {
 		PeriodDays uint   `json:"period_days"`
 	} `json:"paywall"`
 
+	BlockedIPs []string `json:"blocked_ips"`
+
 	// per-relay
 	Internal struct {
 		Enabled      bool   `json:"enabled"`
@@ -130,6 +132,7 @@ func loadUserSettings() error {
 		BrowseURI:               "https://grouped-notes.dtonon.com/?r={url}",
 		MaxInvitesPerPerson:     4,
 		RequireCurrentTimestamp: true,
+		BlockedIPs:              []string{},
 	}
 	Settings.Inbox.Enabled = true
 	Settings.Internal.Enabled = true
