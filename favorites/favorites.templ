@@ -11,6 +11,7 @@ import (
 templ favoritesPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "favorites") {
 		<div class="max-w-3xl mx-auto">
+			<h1 class="text-4xl font-bold mb-4">favorites</h1>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">
 					the favorites relay is a place for members of the relay to curate a feed of interesting notes from the outside.
@@ -39,8 +40,7 @@ templ favoritesPage(loggedUser nostr.PubKey) {
 					</a>
 				}
 				if pyramid.IsRoot(loggedUser) {
-					@layout.SubRelaySettings("favorites", global.Settings.Favorites.Enabled,
-						global.Settings.Favorites.Name, global.Settings.Favorites.Description, global.Settings.Favorites.Icon)
+					@layout.SubRelaySettings("favorites", global.Settings.Favorites.Enabled, global.Settings.Favorites.Name, global.Settings.Favorites.Description, global.Settings.Favorites.Icon, global.Settings.Favorites.HTTPBasePath)
 				}
 			</div>
 		</div>

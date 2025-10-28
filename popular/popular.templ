@@ -13,6 +13,7 @@ import (
 templ popularPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "popular") {
 		<div class="max-w-3xl mx-auto">
+			<h1 class="text-4xl font-bold mb-4">popular</h1>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">
 					auto-curated popular posts from relay members. this is a read-only relay where events are automatically added based on member reactions.
@@ -32,27 +33,26 @@ templ popularPage(loggedUser nostr.PubKey) {
 					</a>
 				}
 				if pyramid.IsRoot(loggedUser) {
-					@layout.SubRelaySettings("popular", global.Settings.Popular.Enabled,
-						global.Settings.Popular.Name, global.Settings.Popular.Description, global.Settings.Popular.Icon) {
+					@layout.SubRelaySettings("popular", global.Settings.Popular.Enabled, global.Settings.Popular.Name, global.Settings.Popular.Description, global.Settings.Popular.Icon, global.Settings.Popular.HTTPBasePath) {
 						<details>
 							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">threshold</summary>
 							<form
 								method="POST"
 								action="/settings"
 								x-data={ `{
-								percentThreshold: ` + fmt.Sprint(global.Settings.Popular.PercentThreshold) + `,
-								saved: false,
-								async saveSettings() {
-									const response = await fetch(this.$refs.form.action, {
-										method: 'POST',
-										body: new URLSearchParams(new FormData(this.$refs.form))
-									})
-									if (response.ok) {
-										this.saved = true;
-										setTimeout(() => this.saved = false, 2000)
+									percentThreshold: ` + fmt.Sprint(global.Settings.Popular.PercentThreshold) + `,
+									saved: false,
+									async saveSettings() {
+										const response = await fetch(this.$refs.form.action, {
+											method: 'POST',
+											body: new URLSearchParams(new FormData(this.$refs.form))
+										})
+										if (response.ok) {
+											this.saved = true;
+											setTimeout(() => this.saved = false, 2000)
+										}
 									}
-								}
-							}` }
+								}` }
 								x-ref="form"
 							>
 								<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">popular relay</h3>

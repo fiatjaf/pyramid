@@ -14,9 +14,10 @@ import (
 templ inboxPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "inbox") {
 		<div class="max-w-3xl mx-auto">
+			<h1 class="text-4xl font-bold mb-4">inbox</h1>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">
-					filtered notifications for relay members using unified web of trust filtering. only see mentions from people in your extended network.
+					filtered notifications for relay members using unified web of trust filtering. only see mentions from people in the combined relay extended network.
 				</p>
 				<div class="bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
 					<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">what gets through:</h2>
@@ -24,13 +25,15 @@ templ inboxPage(loggedUser nostr.PubKey) {
 						<li>events that mention relay members</li>
 						<li>from people in extended network</li>
 						<li>no hellthreads</li>
+						<li>option to block specific public keys and all their follows</li>
 					</ul>
 				</div>
 				<div class="bg-purple-50/50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4">
 					<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">secure messages:</h2>
-					<p class="text-sm">
-						supports encrypted messages (kinds 1059, 7375, 7376) stored separately for privacy.
-					</p>
+					<ul class="list-disc list-inside space-y-1 text-sm">
+						<li>incoming encrypted messages are stored separately and served only to their authenticated targets</li>
+						<li>optionally required proof-of-work to prevent DM spam</li>
+					</ul>
 				</div>
 				if global.Settings.Inbox.Enabled {
 					<a
@@ -58,8 +61,7 @@ templ inboxPage(loggedUser nostr.PubKey) {
 					quoted = append(quoted, "\"\"")
 				}}
 				if pyramid.IsRoot(loggedUser) {
-					@layout.SubRelaySettings("inbox", global.Settings.Inbox.Enabled,
-						global.Settings.Inbox.Name, global.Settings.Inbox.Description, global.Settings.Inbox.Icon) {
+					@layout.SubRelaySettings("inbox", global.Settings.Inbox.Enabled, global.Settings.Inbox.Name, global.Settings.Inbox.Description, global.Settings.Inbox.Icon, global.Settings.Inbox.HTTPBasePath) {
 						<details>
 							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">filters</summary>
 							<form

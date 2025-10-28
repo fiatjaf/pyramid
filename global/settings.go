@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"fiatjaf.com/nostr"
 )
@@ -36,17 +37,19 @@ type UserSettings struct {
 
 	// per-relay
 	Internal struct {
-		Enabled     bool   `json:"enabled"`
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		Icon        string `json:"icon"`
+		Enabled      bool   `json:"enabled"`
+		Name         string `json:"name"`
+		Description  string `json:"description"`
+		Icon         string `json:"icon"`
+		HTTPBasePath string `json:"path"`
 	} `json:"internal"`
 
 	Favorites struct {
-		Enabled     bool   `json:"enabled"`
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		Icon        string `json:"icon"`
+		Enabled      bool   `json:"enabled"`
+		Name         string `json:"name"`
+		Description  string `json:"description"`
+		Icon         string `json:"icon"`
+		HTTPBasePath string `json:"path"`
 	} `json:"favorites"`
 
 	Inbox struct {
@@ -54,17 +57,19 @@ type UserSettings struct {
 		Name                string         `json:"name"`
 		Description         string         `json:"description"`
 		Icon                string         `json:"icon"`
+		HTTPBasePath        string         `json:"path"`
 		SpecificallyBlocked []nostr.PubKey `json:"specifically_blocked"`
 		HellthreadLimit     int            `json:"hellthread_limit"`
 		MinDMPoW            int            `json:"min_dm_pow"`
 	} `json:"inbox"`
 
 	Groups struct {
-		Enabled     bool            `json:"enabled"`
-		Name        string          `json:"name"`
-		Description string          `json:"description"`
-		Icon        string          `json:"icon"`
-		SecretKey   nostr.SecretKey `json:"groups_secret_key"`
+		Enabled      bool            `json:"enabled"`
+		Name         string          `json:"name"`
+		Description  string          `json:"description"`
+		Icon         string          `json:"icon"`
+		HTTPBasePath string          `json:"path"`
+		SecretKey    nostr.SecretKey `json:"groups_secret_key"`
 	} `json:"groups"`
 
 	Popular struct {
@@ -72,6 +77,7 @@ type UserSettings struct {
 		Name             string `json:"name"`
 		Description      string `json:"description"`
 		Icon             string `json:"icon"`
+		HTTPBasePath     string `json:"path"`
 		PercentThreshold int    `json:"percent_threshold"`
 	} `json:"popular"`
 
@@ -80,16 +86,30 @@ type UserSettings struct {
 		Name             string `json:"name"`
 		Description      string `json:"description"`
 		Icon             string `json:"icon"`
+		HTTPBasePath     string `json:"path"`
 		PercentThreshold int    `json:"percent_threshold"`
 	} `json:"uppermost"`
 
 	Moderated struct {
-		Enabled     bool   `json:"enabled"`
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		Icon        string `json:"icon"`
-		MinPoW      uint   `json:"min_pow"`
+		Enabled      bool   `json:"enabled"`
+		Name         string `json:"name"`
+		Description  string `json:"description"`
+		Icon         string `json:"icon"`
+		HTTPBasePath string `json:"path"`
+		MinPoW       uint   `json:"min_pow"`
 	} `json:"moderated"`
+}
+
+func (us UserSettings) HTTPScheme() string {
+	if strings.HasPrefix(us.Domain, "127.0.0.1") || strings.HasPrefix(us.Domain, "0.0.0.0") || strings.HasPrefix(us.Domain, "localhost") {
+		return "http://"
+	} else {
+		return "https://"
+	}
+}
+
+func (us UserSettings) WSScheme() string {
+	return "ws" + us.HTTPScheme()[4:]
 }
 
 func (us UserSettings) HasThemeColors() bool {
@@ -117,6 +137,13 @@ func loadUserSettings() error {
 	Settings.Inbox.HellthreadLimit = 10
 	Settings.Popular.PercentThreshold = 20
 	Settings.Uppermost.PercentThreshold = 33
+	Settings.Internal.HTTPBasePath = "internal"
+	Settings.Favorites.HTTPBasePath = "favorites"
+	Settings.Inbox.HTTPBasePath = "inbox"
+	Settings.Groups.HTTPBasePath = "groups"
+	Settings.Popular.HTTPBasePath = "popular"
+	Settings.Uppermost.HTTPBasePath = "uppermost"
+	Settings.Moderated.HTTPBasePath = "moderated"
 
 	data, err := os.ReadFile(getUserSettingsPath())
 	if err != nil {

@@ -11,6 +11,7 @@ import (
 templ internalPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "internal") {
 		<div class="max-w-3xl mx-auto">
+			<h1 class="text-4xl font-bold mb-4">internal</h1>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">
 					the internal relay is only readable and writable by members. it can be used for meta discussions or anything else.
@@ -30,8 +31,7 @@ templ internalPage(loggedUser nostr.PubKey) {
 					</a>
 				}
 				if pyramid.IsRoot(loggedUser) {
-					@layout.SubRelaySettings("internal", global.Settings.Internal.Enabled,
-						global.Settings.Internal.Name, global.Settings.Internal.Description, global.Settings.Internal.Icon)
+					@layout.SubRelaySettings("internal", global.Settings.Internal.Enabled, global.Settings.Internal.Name, global.Settings.Internal.Description, global.Settings.Internal.Icon, global.Settings.Internal.HTTPBasePath)
 				}
 			</div>
 		</div>

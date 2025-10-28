@@ -85,20 +85,21 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseForm()
 
+		var delayedRedirectTarget string
 		for k, v := range r.PostForm {
 			v[0] = strings.TrimSpace(v[0])
 
 			switch k {
 			case "domain":
 				global.Settings.Domain = v[0]
-				root.Relay.ServiceURL = "wss://" + global.Settings.Domain
-				inbox.Relay.ServiceURL = "wss://" + global.Settings.Domain + "/inbox"
-				favorites.Relay.ServiceURL = "wss://" + global.Settings.Domain + "/favorites"
-				groups.Relay.ServiceURL = "wss://" + global.Settings.Domain + "/groups"
-				internal.Relay.ServiceURL = "wss://" + global.Settings.Domain + "/internal"
-				moderated.Relay.ServiceURL = "wss://" + global.Settings.Domain + "/moderated"
-				popular.Relay.ServiceURL = "wss://" + global.Settings.Domain + "/popular"
-				uppermost.Relay.ServiceURL = "wss://" + global.Settings.Domain + "/uppermost"
+				root.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain
+				inbox.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Inbox.HTTPBasePath
+				favorites.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Favorites.HTTPBasePath
+				groups.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Groups.HTTPBasePath
+				internal.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Internal.HTTPBasePath
+				moderated.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Moderated.HTTPBasePath
+				popular.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Popular.HTTPBasePath
+				uppermost.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Uppermost.HTTPBasePath
 				//
 				// theme settings
 			case "background_color":
@@ -124,18 +125,6 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				days, _ := strconv.ParseUint(v[0], 10, 64)
 				global.Settings.Paywall.PeriodDays = uint(days)
 				//
-				// enable/disable each relay
-			case "favorites_enabled":
-				global.Settings.Favorites.Enabled = v[0] == "on"
-			case "inbox_enabled":
-				global.Settings.Inbox.Enabled = v[0] == "on"
-			case "groups_enabled":
-				global.Settings.Groups.Enabled = v[0] == "on"
-			case "popular_enabled":
-				global.Settings.Popular.Enabled = v[0] == "on"
-			case "uppermost_enabled":
-				global.Settings.Uppermost.Enabled = v[0] == "on"
-				//
 				// basic metadata of all relays
 			case "main_name":
 				global.Settings.RelayName = v[0]
@@ -149,36 +138,91 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Favorites.Description = v[0]
 			case "favorites_icon":
 				global.Settings.Favorites.Icon = v[0]
+			case "favorites_httpBasePath":
+				if len(v[0]) > 0 {
+					global.Settings.Favorites.HTTPBasePath = v[0]
+					favorites.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
+					delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+					go restartSoon()
+				}
+			case "groups_name":
+				global.Settings.Groups.Name = v[0]
+			case "groups_description":
+				global.Settings.Groups.Description = v[0]
+			case "groups_icon":
+				global.Settings.Groups.Icon = v[0]
+			case "groups_httpBasePath":
+				if len(v[0]) > 0 {
+					global.Settings.Groups.HTTPBasePath = v[0]
+					groups.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
+					delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+					go restartSoon()
+				}
 			case "moderated_name":
 				global.Settings.Moderated.Name = v[0]
 			case "moderated_description":
 				global.Settings.Moderated.Description = v[0]
 			case "moderated_icon":
 				global.Settings.Moderated.Icon = v[0]
+			case "moderated_httpBasePath":
+				if len(v[0]) > 0 {
+					global.Settings.Moderated.HTTPBasePath = v[0]
+					moderated.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
+					delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+					go restartSoon()
+				}
 			case "inbox_name":
 				global.Settings.Inbox.Name = v[0]
 			case "inbox_description":
 				global.Settings.Inbox.Description = v[0]
 			case "inbox_icon":
 				global.Settings.Inbox.Icon = v[0]
+			case "inbox_httpBasePath":
+				if len(v[0]) > 0 {
+					global.Settings.Inbox.HTTPBasePath = v[0]
+					inbox.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
+					delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+					go restartSoon()
+				}
 			case "internal_name":
 				global.Settings.Internal.Name = v[0]
 			case "internal_description":
 				global.Settings.Internal.Description = v[0]
 			case "internal_icon":
 				global.Settings.Internal.Icon = v[0]
+			case "internal_httpBasePath":
+				if len(v[0]) > 0 {
+					global.Settings.Internal.HTTPBasePath = v[0]
+					internal.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
+					delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+					go restartSoon()
+				}
 			case "popular_name":
 				global.Settings.Popular.Name = v[0]
 			case "popular_description":
 				global.Settings.Popular.Description = v[0]
 			case "popular_icon":
 				global.Settings.Popular.Icon = v[0]
+			case "popular_httpBasePath":
+				if len(v[0]) > 0 {
+					global.Settings.Popular.HTTPBasePath = v[0]
+					popular.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
+					delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+					go restartSoon()
+				}
 			case "uppermost_name":
 				global.Settings.Uppermost.Name = v[0]
 			case "uppermost_description":
 				global.Settings.Uppermost.Description = v[0]
 			case "uppermost_icon":
 				global.Settings.Uppermost.Icon = v[0]
+			case "uppermost_httpBasePath":
+				if len(v[0]) > 0 {
+					global.Settings.Uppermost.HTTPBasePath = v[0]
+					uppermost.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
+					delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+					go restartSoon()
+				}
 				//
 				// moderated-specific
 			case "moderated_enabled":
@@ -221,8 +265,14 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if delayedRedirectTarget != "" {
+			r.Header.Set("Content-Type", "text/html")
+			fmt.Fprintf(w, `<!doctype html><meta http-equiv="refresh" content="2;url=`+delayedRedirectTarget+`">restarting...`)
+			return
+		}
+
 		if strings.Contains(r.Header.Get("Accept"), "text/html") {
-			http.Redirect(w, r, r.Referer(), 302)
+			http.Redirect(w, r, r.Header.Get("Origin"), 302)
 		}
 
 		return
@@ -323,21 +373,21 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 		// update settings with new icon URL
 		switch base {
 		case "main":
-			global.Settings.RelayIcon = r.Header.Get("Origin") + "/icon/" + base + ext
+			global.Settings.RelayIcon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		case "favorites":
-			global.Settings.Favorites.Icon = r.Header.Get("Origin") + "/icon/" + base + ext
+			global.Settings.Favorites.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		case "inbox":
-			global.Settings.Inbox.Icon = r.Header.Get("Origin") + "/icon/" + base + ext
+			global.Settings.Inbox.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		case "internal":
-			global.Settings.Internal.Icon = r.Header.Get("Origin") + "/icon/" + base + ext
+			global.Settings.Internal.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		case "popular":
-			global.Settings.Popular.Icon = r.Header.Get("Origin") + "/icon/" + base + ext
+			global.Settings.Popular.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		case "uppermost":
-			global.Settings.Uppermost.Icon = r.Header.Get("Origin") + "/icon/" + base + ext
+			global.Settings.Uppermost.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		case "moderated":
-			global.Settings.Moderated.Icon = r.Header.Get("Origin") + "/icon/" + base + ext
+			global.Settings.Moderated.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		case "groups":
-			global.Settings.Groups.Icon = r.Header.Get("Origin") + "/icon/" + base + ext
+			global.Settings.Groups.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		}
 
 		if err := global.SaveUserSettings(); err != nil {

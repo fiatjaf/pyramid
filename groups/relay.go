@@ -43,7 +43,7 @@ func setupEnabled() {
 
 	Relay = khatru.NewRelay()
 
-	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/groups"
+	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/" + global.Settings.Groups.HTTPBasePath
 
 	Relay.UseEventstore(db, 500)
 	Relay.DisableExpirationManager()

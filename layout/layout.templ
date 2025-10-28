@@ -102,22 +102,23 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "groups" || currentPage == "moderated"),
 							templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !(global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)) && !global.Settings.Groups.Enabled && !global.Settings.Moderated.Enabled) }
 							>
-								if currentPage == "favorites" {
-									favorites
-								} else if currentPage == "uppermost" {
-									uppermost
-								} else if currentPage == "popular" {
-									popular
-								} else if currentPage == "inbox" {
-									inbox
-								} else if currentPage == "internal" {
-									internal
-								} else if currentPage == "groups" {
-									groups
-								} else if currentPage == "moderated" {
-									moderated
-								} else {
-									relays
+								switch currentPage {
+									case "favorites":
+										{ global.Settings.Favorites.HTTPBasePath }
+									case "uppermost":
+										{ global.Settings.Uppermost.HTTPBasePath }
+									case "popular":
+										{ global.Settings.Popular.HTTPBasePath }
+									case "inbox":
+										{ global.Settings.Inbox.HTTPBasePath }
+									case "internal":
+										{ global.Settings.Internal.HTTPBasePath }
+									case "groups":
+										{ global.Settings.Groups.HTTPBasePath }
+									case "moderated":
+										{ global.Settings.Moderated.HTTPBasePath }
+									default:
+										relays
 								}
 								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -128,82 +129,49 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								x-transition
 								class="absolute left-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50"
 							>
-								if global.Settings.Favorites.Enabled || pyramid.IsRoot(loggedUser) {
-									<a
-										href="/favorites/"
-										class={
-											"block px-4 py-2 text-sm",
-											templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-											templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-											templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "favorites"),
-										}
-									>favorites</a>
-								}
-								if global.Settings.Uppermost.Enabled || pyramid.IsRoot(loggedUser) {
-									<a
-										href="/uppermost/"
-										class={
-											"block px-4 py-2 text-sm",
-											templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-											templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-											templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "uppermost"),
-										}
-									>uppermost</a>
-								}
-								if global.Settings.Popular.Enabled || pyramid.IsRoot(loggedUser) {
-									<a
-										href="/popular/"
-										class={
-											"block px-4 py-2 text-sm",
-											templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-											templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-											templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "popular"),
-										}
-									>popular</a>
-								}
-								if global.Settings.Inbox.Enabled || pyramid.IsRoot(loggedUser) {
-									<a
-										href="/inbox/"
-										class={
-											"block px-4 py-2 text-sm",
-											templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-											templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-											templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "inbox"),
-										}
-									>inbox</a>
-								}
-								if pyramid.IsMember(loggedUser) && global.Settings.Groups.Enabled || pyramid.IsRoot(loggedUser) {
-									<a
-										href="/internal/"
-										class={
-											"block px-4 py-2 text-sm",
-											templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-											templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-											templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "internal"),
-										}
-									>internal</a>
-								}
-								if global.Settings.Groups.Enabled || pyramid.IsRoot(loggedUser) {
-									<a
-										href="/groups/"
-										class={
-											"block px-4 py-2 text-sm",
-											templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-											templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-											templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "groups"),
-										}
-									>groups</a>
-								}
-								if global.Settings.Moderated.Enabled || pyramid.IsRoot(loggedUser) {
-									<a
-										href="/moderated/"
-										class={
-											"block px-4 py-2 text-sm",
-											templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-											templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-											templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == "moderated"),
-										}
-									>moderated</a>
+								for _, page := range []string {"internal", "inbox", "moderated", "groups", "favorites", "popular", "uppermost"} {
+									{{ var path string }}
+									{{ var enabled bool }}
+									{{switch page {
+case "internal":
+	path = global.Settings.Internal.HTTPBasePath
+	enabled = global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)
+case "inbox":
+	path = global.Settings.Inbox.HTTPBasePath
+	enabled = global.Settings.Inbox.Enabled
+case "moderated":
+	path = global.Settings.Moderated.HTTPBasePath
+	enabled = global.Settings.Moderated.Enabled
+case "groups":
+	path = global.Settings.Groups.HTTPBasePath
+	enabled = global.Settings.Groups.Enabled
+case "favorites":
+	path = global.Settings.Favorites.HTTPBasePath
+	enabled = global.Settings.Favorites.Enabled
+case "popular":
+	path = global.Settings.Popular.HTTPBasePath
+	enabled = global.Settings.Popular.Enabled
+case "uppermost":
+	path = global.Settings.Uppermost.HTTPBasePath
+	enabled = global.Settings.Uppermost.Enabled
+}
+									}}
+									if enabled || pyramid.IsRoot(loggedUser) {
+										<a
+											href={ templ.SafeURL("/" + path + "/") }
+											class={
+												"block px-4 py-2 text-sm",
+												templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+												templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
+												templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == page),
+											}
+										>
+											{ path }
+											if path != page {
+												<span class="text-sm opacity-70">&nbsp;({ page })</span>
+											}
+										</a>
+									}
 								}
 							</div>
 						</div>

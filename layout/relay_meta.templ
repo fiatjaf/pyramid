@@ -1,6 +1,6 @@
 package layout
 
-templ SubRelaySettings(relayId string, enabled bool, name, description, icon string) {
+templ SubRelaySettings(relayId string, enabled bool, name, description, icon, httpBasePath string) {
 	<div class="mt-24">
 		<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">configuration</h3>
 		if !enabled {
@@ -20,13 +20,47 @@ templ SubRelaySettings(relayId string, enabled bool, name, description, icon str
 			{ children... }
 			<details>
 				<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">disable relay</summary>
-				<form class="mt-4" method="POST" action={ templ.SafeURL("/" + relayId + "/disable") }>
+				<form class="my-4" method="POST" action={ templ.SafeURL("/" + relayId + "/disable") }>
 					<button
 						type="submit"
 						class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
 					>
 						disable
 					</button>
+				</form>
+			</details>
+			<details
+				x-data={ `{
+					httpBasePath: '` + httpBasePath + `',
+					httpBasePathUpdateOk: '` + httpBasePath + `' === '',
+				}` }
+			>
+				<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">dangerous</summary>
+				<form
+					method="POST"
+					action="/settings"
+					x-ref="form"
+					class="mb-4"
+					@submit="confirm('this will cause the relay to restart with the new path configuration, the old one will stop working. are you sure?') ? '' : $event.preventDefault()"
+				>
+					<label class="block text-sm font-medium mb-2 dark:text-stone-300" for={ relayId + "_httpBasePath" }>http base path</label>
+					<div class="flex gap-2">
+						<input
+							type="text"
+							name={ relayId + "_httpBasePath" }
+							placeholder="leave empty to use default"
+							class="px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+							x-model="httpBasePath"
+							@keydown="httpBasePathUpdateOk || (confirm('this is dangerous as it may break links, are you sure?') ? httpBasePathUpdateOk = true : $event.preventDefault())"
+							pattern="\w+"
+							required
+						/>
+						<button
+							type="submit"
+							:class="httpBasePathUpdateOk ? '' : 'hidden'"
+							class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+						>update path</button>
+					</div>
 				</form>
 			</details>
 		}

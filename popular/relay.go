@@ -43,7 +43,7 @@ func setupEnabled() {
 
 	Relay = khatru.NewRelay()
 
-	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/popular"
+	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/" + global.Settings.Popular.HTTPBasePath
 
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		info.Name = global.Settings.Popular.Name

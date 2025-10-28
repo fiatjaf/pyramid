@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"embed"
+	"errors"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -66,7 +68,6 @@ func main() {
 	}
 	defer global.End()
 
-	// load pyramid early for setup checks
 	if err := pyramid.LoadManagement(); err != nil {
 		log.Fatal().Err(err).Msg("failed to load members")
 		return
@@ -186,37 +187,98 @@ func main() {
 	root.Route().
 		Relay(relay)
 
-	log.Info().Msg("running on http://" + global.S.Host + ":" + global.S.Port)
+	start()
+}
 
+var restarting = errors.New("restarting")
+var restartCancel func()
+
+func restartSoon() {
+	log.Info().Msg("restarting in 1 second")
+	time.Sleep(time.Second * 1)
+	restartCancel()
+}
+
+func start() {
+	ctx, cancelWithCause := context.WithCancelCause(context.Background())
+	restartCancel = func() { cancelWithCause(restarting) }
+
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	if err := run(ctx); err != nil {
+		if context.Cause(ctx) != restarting {
+			log.Debug().Err(err).Msg("exit reason")
+			return
+		}
+	}
+
+	// restart if it was a restart request
+	if context.Cause(ctx) == restarting {
+		start()
+	}
+}
+
+func run(ctx context.Context) error {
 	mux := http.NewServeMux()
-	mux.Handle("/internal/", http.StripPrefix("/internal", internal.Relay))
-	mux.Handle("/internal", http.StripPrefix("/internal", internal.Relay))
-	mux.Handle("/favorites/", http.StripPrefix("/favorites", favorites.Relay))
-	mux.Handle("/favorites", http.StripPrefix("/favorites", favorites.Relay))
-	mux.Handle("/groups/", http.StripPrefix("/groups", groups.Relay))
-	mux.Handle("/groups", http.StripPrefix("/groups", groups.Relay))
-	mux.Handle("/inbox/", http.StripPrefix("/inbox", inbox.Relay))
-	mux.Handle("/inbox", http.StripPrefix("/inbox", inbox.Relay))
-	mux.Handle("/popular/", http.StripPrefix("/popular", popular.Relay))
-	mux.Handle("/popular", http.StripPrefix("/popular", popular.Relay))
-	mux.Handle("/uppermost/", http.StripPrefix("/uppermost", uppermost.Relay))
-	mux.Handle("/uppermost", http.StripPrefix("/uppermost", uppermost.Relay))
-	mux.Handle("/moderated/", http.StripPrefix("/moderated", moderated.Relay))
-	mux.Handle("/moderated", http.StripPrefix("/moderated", moderated.Relay))
-	mux.Handle("/public/", http.StripPrefix("/public", moderated.Relay))
-	mux.Handle("/public", http.StripPrefix("/public", moderated.Relay))
+
+	mux.Handle("/"+global.Settings.Internal.HTTPBasePath+"/",
+		http.StripPrefix("/"+global.Settings.Internal.HTTPBasePath, internal.Relay))
+	mux.Handle("/"+global.Settings.Internal.HTTPBasePath,
+		http.StripPrefix("/"+global.Settings.Internal.HTTPBasePath, internal.Relay))
+
+	mux.Handle("/"+global.Settings.Favorites.HTTPBasePath+"/",
+		http.StripPrefix("/"+global.Settings.Favorites.HTTPBasePath, favorites.Relay))
+	mux.Handle("/"+global.Settings.Favorites.HTTPBasePath,
+		http.StripPrefix("/"+global.Settings.Favorites.HTTPBasePath, favorites.Relay))
+
+	mux.Handle("/"+global.Settings.Groups.HTTPBasePath+"/",
+		http.StripPrefix("/"+global.Settings.Groups.HTTPBasePath, groups.Relay))
+	mux.Handle("/"+global.Settings.Groups.HTTPBasePath,
+		http.StripPrefix("/"+global.Settings.Groups.HTTPBasePath, groups.Relay))
+
+	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath+"/",
+		http.StripPrefix("/"+global.Settings.Inbox.HTTPBasePath, inbox.Relay))
+	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath,
+		http.StripPrefix("/"+global.Settings.Inbox.HTTPBasePath, inbox.Relay))
+
+	mux.Handle("/"+global.Settings.Popular.HTTPBasePath+"/",
+		http.StripPrefix("/"+global.Settings.Popular.HTTPBasePath, popular.Relay))
+	mux.Handle("/"+global.Settings.Popular.HTTPBasePath,
+		http.StripPrefix("/"+global.Settings.Popular.HTTPBasePath, popular.Relay))
+
+	mux.Handle("/"+global.Settings.Uppermost.HTTPBasePath+"/",
+		http.StripPrefix("/"+global.Settings.Uppermost.HTTPBasePath, uppermost.Relay))
+	mux.Handle("/"+global.Settings.Uppermost.HTTPBasePath,
+		http.StripPrefix("/"+global.Settings.Uppermost.HTTPBasePath, uppermost.Relay))
+
+	mux.Handle("/"+global.Settings.Moderated.HTTPBasePath+"/",
+		http.StripPrefix("/"+global.Settings.Moderated.HTTPBasePath, moderated.Relay))
+	mux.Handle("/"+global.Settings.Moderated.HTTPBasePath,
+		http.StripPrefix("/"+global.Settings.Moderated.HTTPBasePath, moderated.Relay))
+
 	mux.Handle("/", root)
 
-	server := &http.Server{Addr: global.S.Host + ":" + global.S.Port, Handler: setupCheckMiddleware(mux)}
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
+	server := &http.Server{
+		Addr:    global.S.Host + ":" + global.S.Port,
+		Handler: setupCheckMiddleware(mux),
+		BaseContext: func(_ net.Listener) context.Context {
+			return ctx
+		},
+	}
+
+	log.Info().Msg("running on http://" + global.S.Host + ":" + global.S.Port)
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(server.ListenAndServe)
 	g.Go(func() error {
 		<-ctx.Done()
-		return server.Shutdown(context.Background())
+		if err := server.Shutdown(context.Background()); err != nil {
+			return err
+		}
+		if err := server.Close(); err != nil {
+			return err
+		}
+		return nil
 	})
-	if err := g.Wait(); err != nil {
-		log.Debug().Err(err).Msg("exit reason")
-	}
+	return g.Wait()
 }
