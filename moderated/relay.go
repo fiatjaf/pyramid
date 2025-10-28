@@ -44,6 +44,10 @@ func setupEnabled() {
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/" + global.Settings.Moderated.HTTPBasePath
 
+	pk := global.Settings.RelayInternalSecretKey.Public()
+	Relay.Info.Self = &pk
+	Relay.Info.PubKey = &pk
+
 	Relay.ManagementAPI.ChangeRelayName = changeModeratedRelayNameHandler
 	Relay.ManagementAPI.ChangeRelayDescription = changeModeratedRelayDescriptionHandler
 	Relay.ManagementAPI.ChangeRelayIcon = changeModeratedRelayIconHandler

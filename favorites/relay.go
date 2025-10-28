@@ -69,6 +69,10 @@ func setupEnabled() {
 	}
 	Relay.UseEventstore(db, 500)
 
+	pk := global.Settings.RelayInternalSecretKey.Public()
+	Relay.Info.Self = &pk
+	Relay.Info.PubKey = &pk
+
 	Relay.OnRequest = policies.SeqRequest(
 		policies.NoComplexFilters,
 		policies.NoSearchQueries,

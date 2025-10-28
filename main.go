@@ -67,7 +67,7 @@ func main() {
 
 	// init main relay
 	relay := khatru.NewRelay()
-	relay.ServiceURL = global.Settings.Domain
+	relay.Info.Name = "main" // for debugging purposes
 	relay.Negentropy = true
 
 	relay.UseEventstore(global.IL.Main, 500)
@@ -98,6 +98,7 @@ func main() {
 	relay.PreventBroadcast = preventBroadcast
 
 	root.Relay.ServiceURL = "wss://" + global.Settings.Domain
+	root.Relay.Info.Name = "root-router" // for debugging purposes, will be overwritten
 	root.Relay.Negentropy = true
 	root.Relay.ManagementAPI.AllowPubKey = allowPubKeyHandler
 	root.Relay.ManagementAPI.BanPubKey = banPubKeyHandler
@@ -109,6 +110,10 @@ func main() {
 	root.Relay.ManagementAPI.BlockIP = blockIPHandler
 	root.Relay.ManagementAPI.UnblockIP = unblockIPHandler
 	root.Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
+		pk := global.Settings.RelayInternalSecretKey.Public()
+		info.Self = &pk
+		info.PubKey = &pk
+
 		info.Name = global.Settings.RelayName
 		info.Description = global.Settings.RelayDescription
 		info.Contact = global.Settings.RelayContact
@@ -117,14 +122,6 @@ func main() {
 			RestrictedWrites: true,
 		}
 		info.Software = "https://github.com/fiatjaf/pyramid"
-		for member, invitedBy := range pyramid.Members.Range {
-			if slices.Contains(invitedBy, pyramid.AbsoluteKey) {
-				// use the first root we find here, whatever
-				info.PubKey = &member
-				break
-			}
-		}
-
 		return info
 	}
 
@@ -150,7 +147,7 @@ func main() {
 	root.Relay.Router().HandleFunc("/{$}", inviteTreeHandler)
 
 	// route nostr requests for nip29 groups to the groupsRelay directly
-	if global.Settings.Groups.Enabled && groups.Relay != nil {
+	if global.Settings.Groups.Enabled {
 		root.Route().
 			Event(func(evt *nostr.Event) bool { return evt.Tags.Find("h") != nil }).
 			Req(func(filter nostr.Filter) bool {
@@ -168,8 +165,10 @@ func main() {
 			}).
 			Relay(groups.Relay)
 	}
-	// (all the others go to the root relay)
+	// (all the others go to the main relay)
 	root.Route().
+		AnyEvent().
+		AnyReq().
 		Relay(relay)
 
 	start()
