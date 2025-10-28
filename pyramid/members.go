@@ -11,11 +11,15 @@ import (
 	"slices"
 
 	"fiatjaf.com/nostr"
-	"github.com/fiatjaf/pyramid/global"
 	"github.com/puzpuzpuz/xsync/v3"
+
+	"github.com/fiatjaf/pyramid/global"
 )
 
-var Members = xsync.NewMapOf[nostr.PubKey, []nostr.PubKey]() // { [user_pubkey]: [invited_by_list] }
+var (
+	AbsoluteKey nostr.PubKey
+	Members     = xsync.NewMapOf[nostr.PubKey, []nostr.PubKey]() // { [user_pubkey]: [invited_by_list] }
+)
 
 func IsMember(pubkey nostr.PubKey) bool {
 	parents, _ := Members.Load(pubkey)
@@ -24,12 +28,12 @@ func IsMember(pubkey nostr.PubKey) bool {
 
 func IsRoot(pubkey nostr.PubKey) bool {
 	parents, _ := Members.Load(pubkey)
-	return slices.Contains(parents, nostr.ZeroPK)
+	return slices.Contains(parents, AbsoluteKey)
 }
 
 func HasRootUsers() bool {
 	for _, parents := range Members.Range {
-		if slices.Contains(parents, nostr.ZeroPK) {
+		if slices.Contains(parents, AbsoluteKey) {
 			return true
 		}
 	}
@@ -50,7 +54,7 @@ func GetChildren(parent nostr.PubKey) iter.Seq[nostr.PubKey] {
 }
 
 func CanInviteMore(pubkey nostr.PubKey) bool {
-	if IsRoot(pubkey) || pubkey == nostr.ZeroPK {
+	if IsRoot(pubkey) || pubkey == AbsoluteKey {
 		return true
 	}
 
@@ -117,7 +121,7 @@ type managementAction struct {
 }
 
 func AddAction(type_ string, author nostr.PubKey, target nostr.PubKey) error {
-	if !IsMember(author) && author != nostr.ZeroPK {
+	if !IsMember(author) && author != AbsoluteKey {
 		return fmt.Errorf("pubkey %s doesn't have permission to invite", author)
 	}
 
@@ -148,7 +152,7 @@ func LoadManagement() error {
 	file, err := os.Open(filepath.Join(global.S.DataPath, "management.jsonl"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			// initialize with empty members, root will be set on first invite from ZeroPK
+			// initialize with empty members, root will be set on first invite from relay pubkey
 			return nil
 		}
 		return err

@@ -118,7 +118,7 @@ func main() {
 		}
 		info.Software = "https://github.com/fiatjaf/pyramid"
 		for member, invitedBy := range pyramid.Members.Range {
-			if slices.Contains(invitedBy, nostr.ZeroPK) {
+			if slices.Contains(invitedBy, pyramid.AbsoluteKey) {
 				// use the first root we find here, whatever
 				info.PubKey = &member
 				break

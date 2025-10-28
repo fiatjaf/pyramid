@@ -14,6 +14,7 @@ func TestApplyAction(t *testing.T) {
 	user4 := nostr.PubKey{4}
 	user5 := nostr.PubKey{5}
 
+	AbsoluteKey = nostr.MustPubKeyFromHex("0707070707070707070707070707070707070707070707070707070707070707")
 	Members.Clear()
 
 	applyAction("invite", user1, user2)
@@ -69,7 +70,7 @@ func TestApplyAction(t *testing.T) {
 func TestSpecificFailureCase(t *testing.T) {
 	Members.Clear()
 
-	applyAction("invite", nostr.MustPubKeyFromHex("0000000000000000000000000000000000000000000000000000000000000000"), nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"))
+	applyAction("invite", AbsoluteKey, nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"))
 	applyAction("invite", nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"), nostr.MustPubKeyFromHex("00ce6537d4ff04531a6caeab2ca0b254f5f570b49d6a3d4e7b716d16b922d8ca"))
 	applyAction("invite", nostr.MustPubKeyFromHex("00ce6537d4ff04531a6caeab2ca0b254f5f570b49d6a3d4e7b716d16b922d8ca"), nostr.MustPubKeyFromHex("63fe6318dc58583cfe16810f86dd09e18bfd76aabc24a0081ce2856f330504ed"))
 	applyAction("invite", nostr.MustPubKeyFromHex("63fe6318dc58583cfe16810f86dd09e18bfd76aabc24a0081ce2856f330504ed"), nostr.MustPubKeyFromHex("82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2"))
@@ -93,7 +94,7 @@ func TestSpecificFailureCase(t *testing.T) {
 			nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"),
 		},
 		nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"): {
-			nostr.ZeroPK,
+			AbsoluteKey,
 		},
 	}, getMembersMap())
 
@@ -110,7 +111,7 @@ func TestSpecificFailureCase(t *testing.T) {
 			nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"),
 		},
 		nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"): {
-			nostr.ZeroPK,
+			AbsoluteKey,
 		},
 	}, getMembersMap())
 }
@@ -123,18 +124,19 @@ func TestMultipleRoots(t *testing.T) {
 	userC := nostr.PubKey{'C'}
 	userD := nostr.PubKey{'D'}
 
+	AbsoluteKey = nostr.MustPubKeyFromHex("0909090909090909090909090909090909090909090909090909090909090909")
 	Members.Clear()
 
-	applyAction("invite", nostr.ZeroPK, root1)
-	applyAction("invite", nostr.ZeroPK, root2)
+	applyAction("invite", AbsoluteKey, root1)
+	applyAction("invite", AbsoluteKey, root2)
 	applyAction("invite", root1, userA)
 	applyAction("invite", root1, userB)
 	applyAction("invite", root2, userC)
 	applyAction("invite", userA, userD)
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
-		root1: {nostr.ZeroPK},
-		root2: {nostr.ZeroPK},
+		root1: {AbsoluteKey},
+		root2: {AbsoluteKey},
 		userA: {root1},
 		userB: {root1},
 		userC: {root2},
@@ -144,8 +146,8 @@ func TestMultipleRoots(t *testing.T) {
 	applyAction("drop", root1, userA)
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
-		root1: {nostr.ZeroPK},
-		root2: {nostr.ZeroPK},
+		root1: {AbsoluteKey},
+		root2: {AbsoluteKey},
 		userB: {root1},
 		userC: {root2},
 	}, getMembersMap())
@@ -155,18 +157,18 @@ func TestMultipleRoots(t *testing.T) {
 	applyAction("invite", userA, userD)
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
-		root1: {nostr.ZeroPK},
-		root2: {nostr.ZeroPK},
+		root1: {AbsoluteKey},
+		root2: {AbsoluteKey},
 		userA: {root2},
 		userB: {root1, userA},
 		userC: {root2},
 		userD: {userA},
 	}, getMembersMap())
 
-	applyAction("drop", nostr.ZeroPK, root1)
+	applyAction("drop", AbsoluteKey, root1)
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
-		root2: {nostr.ZeroPK},
+		root2: {AbsoluteKey},
 		userA: {root2},
 		userB: {userA},
 		userC: {root2},
@@ -176,7 +178,7 @@ func TestMultipleRoots(t *testing.T) {
 	applyAction("drop", root2, userA)
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
-		root2: {nostr.ZeroPK},
+		root2: {AbsoluteKey},
 		userC: {root2},
 	}, getMembersMap())
 }

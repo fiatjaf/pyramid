@@ -47,7 +47,7 @@ templ inviteTreePage(loggedUser nostr.PubKey) {
 					class="text-gray-700 dark:text-gray-300"
 				}
 			>
-				@inviteTreeComponent(nostr.ZeroPK, loggedUser, false)
+				@inviteTreeComponent(pyramid.AbsoluteKey, loggedUser, false)
 			</div>
 		</div>
 	}

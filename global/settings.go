@@ -35,6 +35,8 @@ type UserSettings struct {
 		PeriodDays uint   `json:"period_days"`
 	} `json:"paywall"`
 
+	RelayInternalSecretKey nostr.SecretKey `json:"relay_internal_secret_key"`
+
 	BlockedIPs []string `json:"blocked_ips"`
 
 	// per-relay
@@ -66,12 +68,11 @@ type UserSettings struct {
 	} `json:"inbox"`
 
 	Groups struct {
-		Enabled      bool            `json:"enabled"`
-		Name         string          `json:"name"`
-		Description  string          `json:"description"`
-		Icon         string          `json:"icon"`
-		HTTPBasePath string          `json:"path"`
-		SecretKey    nostr.SecretKey `json:"groups_secret_key"`
+		Enabled      bool   `json:"enabled"`
+		Name         string `json:"name"`
+		Description  string `json:"description"`
+		Icon         string `json:"icon"`
+		HTTPBasePath string `json:"path"`
 	} `json:"groups"`
 
 	Popular struct {
@@ -155,6 +156,7 @@ func loadUserSettings() error {
 			Settings.RelayName = "<unnamed pyramid>"
 			Settings.RelayDescription = "<an undescribed relay>"
 			Settings.RelayIcon = "https://cdn.britannica.com/06/122506-050-C8E03A8A/Pyramid-of-Khafre-Giza-Egypt.jpg"
+			Settings.RelayInternalSecretKey = nostr.Generate()
 
 			if err := SaveUserSettings(); err != nil {
 				return err

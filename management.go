@@ -40,7 +40,7 @@ func listAllowedPubKeysHandler(ctx context.Context) ([]nip86.PubKeyReason, error
 			if j > 0 {
 				reason += ", "
 			}
-			if inv == nostr.ZeroPK {
+			if inv == pyramid.AbsoluteKey {
 				reason += "root"
 			} else {
 				reason += inv.Hex()

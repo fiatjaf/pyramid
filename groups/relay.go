@@ -21,7 +21,7 @@ var (
 )
 
 func Init() {
-	if global.Settings.Groups.SecretKey == [32]byte{} || !global.Settings.Groups.Enabled {
+	if !global.Settings.Groups.Enabled {
 		// relay disabled
 		setupDisabled()
 	} else {
@@ -54,7 +54,7 @@ func setupEnabled() {
 	Relay.DisableExpirationManager()
 	Relay.Info.SupportedNIPs = append(Relay.Info.SupportedNIPs, 29)
 
-	pk := global.Settings.Groups.SecretKey.Public()
+	pk := global.Settings.RelayInternalSecretKey.Public()
 	Relay.Info.Self = &pk
 	Relay.Info.PubKey = &pk
 
@@ -79,7 +79,7 @@ func setupEnabled() {
 	state := NewState(Options{
 		Domain:    global.Settings.Domain,
 		DB:        db,
-		SecretKey: global.Settings.Groups.SecretKey,
+		SecretKey: global.Settings.RelayInternalSecretKey,
 	})
 
 	Relay.QueryStored = state.Query
@@ -145,7 +145,6 @@ func enableHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	global.Settings.Groups.SecretKey = nostr.Generate()
 	global.Settings.Groups.Enabled = true
 
 	if err := global.SaveUserSettings(); err != nil {

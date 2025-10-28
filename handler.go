@@ -405,7 +405,6 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, r.Header.Get("Origin"), 302)
 		}
 	}
-
 }
 
 func domainSetupHandler(w http.ResponseWriter, r *http.Request) {
@@ -449,7 +448,7 @@ func rootUserSetupHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := pyramid.AddAction("invite", nostr.ZeroPK, target); err != nil {
+		if err := pyramid.AddAction("invite", pyramid.AbsoluteKey, target); err != nil {
 			http.Error(w, "failed to add root user: "+err.Error(), 500)
 			return
 		}
