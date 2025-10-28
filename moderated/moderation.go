@@ -41,8 +41,10 @@ func approveEvent(approver nostr.PubKey, id nostr.ID) error {
 		log.Error().Err(err).Str("id", evt.ID.String()).Msg("failed to delete from queue after approval")
 	}
 
-	log.Info().Str("id", evt.ID.Hex()).Str("approver", approver.Hex()).Msg("event approved")
-	Relay.BroadcastEvent(evt)
+	count := Relay.BroadcastEvent(evt)
+	log.Info().Str("id", evt.ID.Hex()).Str("approver", approver.Hex()).Int("broadcasted", count).
+		Msg("event approved")
+
 	return nil
 }
 
@@ -75,7 +77,7 @@ func approveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/moderated/", 302)
+	http.Redirect(w, r, "/"+global.Settings.Moderated.HTTPBasePath+"/", 302)
 }
 
 func rejectHandler(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +99,7 @@ func rejectHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/moderated/", 302)
+	http.Redirect(w, r, "/"+global.Settings.Moderated.HTTPBasePath+"/", 302)
 }
 
 func listEventsNeedingModerationHandler(ctx context.Context) ([]nip86.IDReason, error) {

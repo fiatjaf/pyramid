@@ -122,7 +122,7 @@ templ pendingEventsSection() {
 					{ evt.Content }
 				</div>
 				<div class="flex gap-2">
-					<form method="POST" action={ templ.SafeURL("/moderated/approve/" + evt.ID.String()) }>
+					<form method="POST" action={ templ.SafeURL("/" + global.Settings.Moderated.HTTPBasePath + "/approve/" + evt.ID.Hex()) }>
 						<button
 							type="submit"
 							class="px-3 py-1 rounded bg-green-500 hover:bg-green-600 text-white text-sm font-medium"
@@ -130,7 +130,7 @@ templ pendingEventsSection() {
 							approve
 						</button>
 					</form>
-					<form method="POST" action={ templ.SafeURL("/moderated/reject/" + evt.ID.String()) }>
+					<form method="POST" action={ templ.SafeURL("/" + global.Settings.Moderated.HTTPBasePath + "/reject/" + evt.ID.Hex()) }>
 						<button
 							type="submit"
 							class="px-3 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-sm font-medium"

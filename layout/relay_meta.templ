@@ -4,7 +4,7 @@ templ SubRelaySettings(relayId string, enabled bool, name, description, icon, ht
 	<div class="mt-24">
 		<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">configuration</h3>
 		if !enabled {
-			<form method="POST" action={ templ.SafeURL("/" + relayId + "/enable") }>
+			<form method="POST" action={ templ.SafeURL("/" + httpBasePath + "/enable") }>
 				<button
 					type="submit"
 					class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
@@ -20,7 +20,7 @@ templ SubRelaySettings(relayId string, enabled bool, name, description, icon, ht
 			{ children... }
 			<details>
 				<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">disable relay</summary>
-				<form class="my-4" method="POST" action={ templ.SafeURL("/" + relayId + "/disable") }>
+				<form class="my-4" method="POST" action={ templ.SafeURL("/" + httpBasePath + "/disable") }>
 					<button
 						type="submit"
 						class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"

@@ -1,11 +1,14 @@
 package main
 
 import (
+	"regexp"
 	"strings"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/nip19"
 )
+
+var justLetters = regexp.MustCompile(`^\w+$`)
 
 func pubkeyFromInput(input string) nostr.PubKey {
 	input = strings.TrimSpace(input)

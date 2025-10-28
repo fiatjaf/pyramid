@@ -141,12 +141,14 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			case "favorites_icon":
 				global.Settings.Favorites.Icon = v[0]
 			case "favorites_httpBasePath":
-				if len(v[0]) > 0 {
-					global.Settings.Favorites.HTTPBasePath = v[0]
-					favorites.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
-					delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
-					go restartSoon()
+				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
+					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)
+					return
 				}
+				global.Settings.Favorites.HTTPBasePath = v[0]
+				favorites.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
+				delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+				go restartSoon()
 			case "groups_name":
 				global.Settings.Groups.Name = v[0]
 			case "groups_description":
@@ -154,12 +156,14 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			case "groups_icon":
 				global.Settings.Groups.Icon = v[0]
 			case "groups_httpBasePath":
-				if len(v[0]) > 0 {
-					global.Settings.Groups.HTTPBasePath = v[0]
-					groups.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
-					delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
-					go restartSoon()
+				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
+					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)
+					return
 				}
+				global.Settings.Groups.HTTPBasePath = v[0]
+				groups.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
+				delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+				go restartSoon()
 			case "moderated_name":
 				global.Settings.Moderated.Name = v[0]
 			case "moderated_description":
@@ -180,12 +184,14 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			case "inbox_icon":
 				global.Settings.Inbox.Icon = v[0]
 			case "inbox_httpBasePath":
-				if len(v[0]) > 0 {
-					global.Settings.Inbox.HTTPBasePath = v[0]
-					inbox.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
-					delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
-					go restartSoon()
+				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
+					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)
+					return
 				}
+				global.Settings.Inbox.HTTPBasePath = v[0]
+				inbox.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
+				delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+				go restartSoon()
 			case "internal_name":
 				global.Settings.Internal.Name = v[0]
 			case "internal_description":
@@ -193,12 +199,14 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			case "internal_icon":
 				global.Settings.Internal.Icon = v[0]
 			case "internal_httpBasePath":
-				if len(v[0]) > 0 {
-					global.Settings.Internal.HTTPBasePath = v[0]
-					internal.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
-					delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
-					go restartSoon()
+				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
+					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)
+					return
 				}
+				global.Settings.Internal.HTTPBasePath = v[0]
+				internal.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
+				delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+				go restartSoon()
 			case "popular_name":
 				global.Settings.Popular.Name = v[0]
 			case "popular_description":
@@ -206,12 +214,14 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			case "popular_icon":
 				global.Settings.Popular.Icon = v[0]
 			case "popular_httpBasePath":
-				if len(v[0]) > 0 {
-					global.Settings.Popular.HTTPBasePath = v[0]
-					popular.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
-					delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
-					go restartSoon()
+				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
+					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)
+					return
 				}
+				global.Settings.Popular.HTTPBasePath = v[0]
+				popular.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
+				delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+				go restartSoon()
 			case "uppermost_name":
 				global.Settings.Uppermost.Name = v[0]
 			case "uppermost_description":
@@ -219,12 +229,14 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			case "uppermost_icon":
 				global.Settings.Uppermost.Icon = v[0]
 			case "uppermost_httpBasePath":
-				if len(v[0]) > 0 {
-					global.Settings.Uppermost.HTTPBasePath = v[0]
-					uppermost.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
-					delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
-					go restartSoon()
+				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
+					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)
+					return
 				}
+				global.Settings.Uppermost.HTTPBasePath = v[0]
+				uppermost.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
+				delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+				go restartSoon()
 				//
 				// moderated-specific
 			case "moderated_enabled":

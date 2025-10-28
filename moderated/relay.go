@@ -81,7 +81,6 @@ func setupEnabled() {
 		return global.IL.Moderated.CountEvents(filter)
 	}
 	Relay.StoreEvent = func(ctx context.Context, event nostr.Event) error {
-		fmt.Println("storing", event)
 		return global.IL.ModerationQueue.SaveEvent(event)
 	}
 	Relay.ReplaceEvent = func(ctx context.Context, event nostr.Event) error {
@@ -116,10 +115,14 @@ func setupEnabled() {
 		},
 	)
 
-	Relay.Router().HandleFunc("/", moderatedPageHandler)
-	Relay.Router().HandleFunc("POST /disable", disableHandler)
+	Relay.PreventBroadcast = func(ws *khatru.WebSocket, event nostr.Event) bool {
+		return true
+	}
+
 	Relay.Router().HandleFunc("POST /approve/{eventId}", approveHandler)
 	Relay.Router().HandleFunc("POST /reject/{eventId}", rejectHandler)
+	Relay.Router().HandleFunc("POST /disable", disableHandler)
+	Relay.Router().HandleFunc("/", moderatedPageHandler)
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {
