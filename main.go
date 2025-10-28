@@ -123,6 +123,9 @@ func main() {
 	root.Relay.ManagementAPI.AllowPubKey = allowPubKeyHandler
 	root.Relay.ManagementAPI.BanPubKey = banPubKeyHandler
 	root.Relay.ManagementAPI.ListAllowedPubKeys = listAllowedPubKeysHandler
+	root.Relay.ManagementAPI.ChangeRelayName = changeRelayNameHandler
+	root.Relay.ManagementAPI.ChangeRelayDescription = changeRelayDescriptionHandler
+	root.Relay.ManagementAPI.ChangeRelayIcon = changeRelayIconHandler
 	root.Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		info.Name = global.Settings.RelayName
 		info.Description = global.Settings.RelayDescription

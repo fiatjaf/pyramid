@@ -7,6 +7,7 @@ import (
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/nip86"
+	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
@@ -48,4 +49,88 @@ func listAllowedPubKeysHandler(ctx context.Context) ([]nip86.PubKeyReason, error
 		list = append(list, nip86.PubKeyReason{PubKey: pubkey, Reason: reason})
 	}
 	return list, nil
+}
+
+func changeRelayNameHandler(ctx context.Context, name string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.RelayName = name
+	return global.SaveUserSettings()
+}
+
+func changeRelayDescriptionHandler(ctx context.Context, description string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.RelayDescription = description
+	return global.SaveUserSettings()
+}
+
+func changeRelayIconHandler(ctx context.Context, icon string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.RelayIcon = icon
+	return global.SaveUserSettings()
+}
+
+func changeGroupsRelayNameHandler(ctx context.Context, name string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Groups.Name = name
+	return global.SaveUserSettings()
+}
+
+func changeGroupsRelayDescriptionHandler(ctx context.Context, description string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Groups.Description = description
+	return global.SaveUserSettings()
+}
+
+func changeGroupsRelayIconHandler(ctx context.Context, icon string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Groups.Icon = icon
+	return global.SaveUserSettings()
 }

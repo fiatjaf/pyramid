@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -44,6 +45,10 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/" + global.Settings.Internal.HTTPBasePath
+
+	Relay.ManagementAPI.ChangeRelayName = changeInternalRelayNameHandler
+	Relay.ManagementAPI.ChangeRelayDescription = changeInternalRelayDescriptionHandler
+	Relay.ManagementAPI.ChangeRelayIcon = changeInternalRelayIconHandler
 
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		info.Name = global.Settings.Internal.Name
@@ -144,4 +149,46 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 
 	setupDisabled()
 	http.Redirect(w, r, "/", 302)
+}
+
+func changeInternalRelayNameHandler(ctx context.Context, name string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Internal.Name = name
+	return global.SaveUserSettings()
+}
+
+func changeInternalRelayDescriptionHandler(ctx context.Context, description string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Internal.Description = description
+	return global.SaveUserSettings()
+}
+
+func changeInternalRelayIconHandler(ctx context.Context, icon string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Internal.Icon = icon
+	return global.SaveUserSettings()
 }

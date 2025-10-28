@@ -2,6 +2,7 @@ package groups
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -44,6 +45,10 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/" + global.Settings.Groups.HTTPBasePath
+
+	Relay.ManagementAPI.ChangeRelayName = changeGroupsRelayNameHandler
+	Relay.ManagementAPI.ChangeRelayDescription = changeGroupsRelayDescriptionHandler
+	Relay.ManagementAPI.ChangeRelayIcon = changeGroupsRelayIconHandler
 
 	Relay.UseEventstore(db, 500)
 	Relay.DisableExpirationManager()
@@ -169,4 +174,46 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 
 	setupDisabled()
 	http.Redirect(w, r, "/", 302)
+}
+
+func changeGroupsRelayNameHandler(ctx context.Context, name string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Groups.Name = name
+	return global.SaveUserSettings()
+}
+
+func changeGroupsRelayDescriptionHandler(ctx context.Context, description string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Groups.Description = description
+	return global.SaveUserSettings()
+}
+
+func changeGroupsRelayIconHandler(ctx context.Context, icon string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Groups.Icon = icon
+	return global.SaveUserSettings()
 }

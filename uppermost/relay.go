@@ -2,6 +2,7 @@ package uppermost
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -44,6 +45,10 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/" + global.Settings.Uppermost.HTTPBasePath
+
+	Relay.ManagementAPI.ChangeRelayName = changeUppermostRelayNameHandler
+	Relay.ManagementAPI.ChangeRelayDescription = changeUppermostRelayDescriptionHandler
+	Relay.ManagementAPI.ChangeRelayIcon = changeUppermostRelayIconHandler
 
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		info.Name = global.Settings.Uppermost.Name
@@ -120,4 +125,46 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 
 	setupDisabled()
 	http.Redirect(w, r, "/", 302)
+}
+
+func changeUppermostRelayNameHandler(ctx context.Context, name string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Uppermost.Name = name
+	return global.SaveUserSettings()
+}
+
+func changeUppermostRelayDescriptionHandler(ctx context.Context, description string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Uppermost.Description = description
+	return global.SaveUserSettings()
+}
+
+func changeUppermostRelayIconHandler(ctx context.Context, icon string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Uppermost.Icon = icon
+	return global.SaveUserSettings()
 }

@@ -2,6 +2,7 @@ package popular
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -44,6 +45,10 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/" + global.Settings.Popular.HTTPBasePath
+
+	Relay.ManagementAPI.ChangeRelayName = changePopularRelayNameHandler
+	Relay.ManagementAPI.ChangeRelayDescription = changePopularRelayDescriptionHandler
+	Relay.ManagementAPI.ChangeRelayIcon = changePopularRelayIconHandler
 
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		info.Name = global.Settings.Popular.Name
@@ -120,4 +125,46 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 
 	setupDisabled()
 	http.Redirect(w, r, "/popular", 302)
+}
+
+func changePopularRelayNameHandler(ctx context.Context, name string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Popular.Name = name
+	return global.SaveUserSettings()
+}
+
+func changePopularRelayDescriptionHandler(ctx context.Context, description string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Popular.Description = description
+	return global.SaveUserSettings()
+}
+
+func changePopularRelayIconHandler(ctx context.Context, icon string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Popular.Icon = icon
+	return global.SaveUserSettings()
 }

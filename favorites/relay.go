@@ -2,6 +2,7 @@ package favorites
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -44,6 +45,10 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/" + global.Settings.Favorites.HTTPBasePath
+
+	Relay.ManagementAPI.ChangeRelayName = changeFavoritesRelayNameHandler
+	Relay.ManagementAPI.ChangeRelayDescription = changeFavoritesRelayDescriptionHandler
+	Relay.ManagementAPI.ChangeRelayIcon = changeFavoritesRelayIconHandler
 
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		info.Name = global.Settings.Favorites.Name
@@ -141,4 +146,46 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 
 	setupDisabled()
 	http.Redirect(w, r, "/", 302)
+}
+
+func changeFavoritesRelayNameHandler(ctx context.Context, name string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Favorites.Name = name
+	return global.SaveUserSettings()
+}
+
+func changeFavoritesRelayDescriptionHandler(ctx context.Context, description string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Favorites.Description = description
+	return global.SaveUserSettings()
+}
+
+func changeFavoritesRelayIconHandler(ctx context.Context, icon string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Favorites.Icon = icon
+	return global.SaveUserSettings()
 }

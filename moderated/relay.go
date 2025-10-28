@@ -44,6 +44,10 @@ func setupEnabled() {
 
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/" + global.Settings.Moderated.HTTPBasePath
 
+	Relay.ManagementAPI.ChangeRelayName = changeModeratedRelayNameHandler
+	Relay.ManagementAPI.ChangeRelayDescription = changeModeratedRelayDescriptionHandler
+	Relay.ManagementAPI.ChangeRelayIcon = changeModeratedRelayIconHandler
+
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		info.Name = global.Settings.Moderated.Name
 		if info.Name == "" {
@@ -152,4 +156,46 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 func moderatedPageHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 	moderatedPage(loggedUser).Render(r.Context(), w)
+}
+
+func changeModeratedRelayNameHandler(ctx context.Context, name string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Moderated.Name = name
+	return global.SaveUserSettings()
+}
+
+func changeModeratedRelayDescriptionHandler(ctx context.Context, description string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Moderated.Description = description
+	return global.SaveUserSettings()
+}
+
+func changeModeratedRelayIconHandler(ctx context.Context, icon string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Moderated.Icon = icon
+	return global.SaveUserSettings()
 }

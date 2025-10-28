@@ -2,6 +2,7 @@ package inbox
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -44,6 +45,10 @@ func setupEnabled() {
 
 	Relay = khatru.NewRelay()
 	Relay.ServiceURL = "wss://" + global.Settings.Domain + "/" + global.Settings.Inbox.HTTPBasePath
+
+	Relay.ManagementAPI.ChangeRelayName = changeInboxRelayNameHandler
+	Relay.ManagementAPI.ChangeRelayDescription = changeInboxRelayDescriptionHandler
+	Relay.ManagementAPI.ChangeRelayIcon = changeInboxRelayIconHandler
 
 	// use dual layer store
 	Relay.UseEventstore(&dualLayerStore{
@@ -136,4 +141,46 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 
 	setupDisabled()
 	http.Redirect(w, r, "/", 302)
+}
+
+func changeInboxRelayNameHandler(ctx context.Context, name string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Inbox.Name = name
+	return global.SaveUserSettings()
+}
+
+func changeInboxRelayDescriptionHandler(ctx context.Context, description string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Inbox.Description = description
+	return global.SaveUserSettings()
+}
+
+func changeInboxRelayIconHandler(ctx context.Context, icon string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("unauthorized")
+	}
+
+	global.Settings.Inbox.Icon = icon
+	return global.SaveUserSettings()
 }
