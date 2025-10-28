@@ -47,6 +47,9 @@ func setupEnabled() {
 	Relay.ManagementAPI.ChangeRelayName = changeModeratedRelayNameHandler
 	Relay.ManagementAPI.ChangeRelayDescription = changeModeratedRelayDescriptionHandler
 	Relay.ManagementAPI.ChangeRelayIcon = changeModeratedRelayIconHandler
+	Relay.ManagementAPI.ListEventsNeedingModeration = listEventsNeedingModerationHandler
+	Relay.ManagementAPI.AllowEvent = allowEventHandler
+	Relay.ManagementAPI.BanEvent = banEventHandler
 
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		info.Name = global.Settings.Moderated.Name
