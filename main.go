@@ -117,7 +117,7 @@ func main() {
 			RestrictedWrites: true,
 		}
 		info.Software = "https://github.com/fiatjaf/pyramid"
-		for member, invitedBy := range pyramid.Members {
+		for member, invitedBy := range pyramid.Members.Range {
 			if slices.Contains(invitedBy, nostr.ZeroPK) {
 				// use the first root we find here, whatever
 				info.PubKey = &member
@@ -175,8 +175,10 @@ func main() {
 	start()
 }
 
-var restarting = errors.New("restarting")
-var restartCancel func()
+var (
+	restarting    = errors.New("restarting")
+	restartCancel func()
+)
 
 func restartSoon() {
 	log.Info().Msg("restarting in 1 second")

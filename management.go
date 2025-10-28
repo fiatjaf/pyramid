@@ -30,8 +30,8 @@ func banPubKeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string) e
 }
 
 func listAllowedPubKeysHandler(ctx context.Context) ([]nip86.PubKeyReason, error) {
-	list := make([]nip86.PubKeyReason, 0, len(pyramid.Members))
-	for pubkey, inviters := range pyramid.Members {
+	list := make([]nip86.PubKeyReason, 0, pyramid.Members.Size())
+	for pubkey, inviters := range pyramid.Members.Range {
 		if len(inviters) == 0 {
 			continue
 		}

@@ -16,7 +16,7 @@ import (
 var reactionKinds = []nostr.Kind{6, 7, 9321, 9735, 9802, 1, 1111}
 
 func processReactions(ctx context.Context, event nostr.Event) {
-	totalMembers := len(pyramid.Members)
+	totalMembers := pyramid.Members.Size()
 	if totalMembers <= 10 {
 		// makes no sense to have this in this case
 		return

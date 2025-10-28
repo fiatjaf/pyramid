@@ -5,31 +5,48 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"iter"
 	"os"
 	"path/filepath"
 	"slices"
 
 	"fiatjaf.com/nostr"
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/puzpuzpuz/xsync/v3"
 )
 
-var Members = make(map[nostr.PubKey][]nostr.PubKey) // { [user_pubkey]: [invited_by_list] }
+var Members = xsync.NewMapOf[nostr.PubKey, []nostr.PubKey]() // { [user_pubkey]: [invited_by_list] }
 
 func IsMember(pubkey nostr.PubKey) bool {
-	return len(Members[pubkey]) > 0
+	parents, _ := Members.Load(pubkey)
+	return len(parents) > 0
 }
 
 func IsRoot(pubkey nostr.PubKey) bool {
-	return slices.Contains(Members[pubkey], nostr.ZeroPK)
+	parents, _ := Members.Load(pubkey)
+	return slices.Contains(parents, nostr.ZeroPK)
 }
 
 func HasRootUsers() bool {
-	for _, invitedBy := range Members {
-		if slices.Contains(invitedBy, nostr.ZeroPK) {
+	for _, parents := range Members.Range {
+		if slices.Contains(parents, nostr.ZeroPK) {
 			return true
 		}
 	}
+
 	return false
+}
+
+func GetChildren(parent nostr.PubKey) iter.Seq[nostr.PubKey] {
+	return func(yield func(nostr.PubKey) bool) {
+		for pubkey, parents := range Members.Range {
+			if slices.Contains(parents, parent) {
+				if !yield(pubkey) {
+					return
+				}
+			}
+		}
+	}
 }
 
 func CanInviteMore(pubkey nostr.PubKey) bool {
@@ -41,15 +58,23 @@ func CanInviteMore(pubkey nostr.PubKey) bool {
 		return false
 	}
 
-	return len(Members[pubkey]) < global.Settings.MaxInvitesPerPerson
+	totalInvited := 0
+	for _, parents := range Members.Range {
+		if slices.Contains(parents, pubkey) {
+			totalInvited++
+		}
+	}
+
+	return totalInvited < global.Settings.MaxInvitesPerPerson
 }
 
 func IsParentOf(parent nostr.PubKey, target nostr.PubKey) bool {
-	return slices.Contains(Members[target], parent)
+	parents, _ := Members.Load(target)
+	return slices.Contains(parents, parent)
 }
 
 func IsAncestorOf(ancestor nostr.PubKey, target nostr.PubKey) bool {
-	parents := Members[target]
+	parents, _ := Members.Load(target)
 	if len(parents) == 0 {
 		return false
 	}
@@ -70,7 +95,7 @@ func hasSingleRootAncestor(ancestor nostr.PubKey, target nostr.PubKey) bool {
 		return true
 	}
 
-	parents, _ := Members[target]
+	parents, _ := Members.Load(target)
 	if len(parents) == 0 {
 		return false
 	}
@@ -156,11 +181,11 @@ func LoadManagement() error {
 func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
 	switch type_ {
 	case "invite":
-		if !slices.Contains(Members[target], author) {
-			Members[target] = append(Members[target], author)
-		}
+		Members.Compute(target, func(parents []nostr.PubKey, loaded bool) (newParents []nostr.PubKey, delete bool) {
+			return append(parents, author), false
+		})
 	case "drop":
-		parents := Members[target]
+		parents, _ := Members.Load(target)
 
 		// remove parent links that trace back to author
 		for i := 0; i < len(parents); {
@@ -174,12 +199,12 @@ func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
 
 		// if target has no parents left, remove it and cascade
 		if len(parents) == 0 {
-			delete(Members, target)
+			Members.Delete(target)
 
 			// recursively remove nodes that only have target as ancestor
 			var removeDescendants func(nostr.PubKey)
 			removeDescendants = func(dropped nostr.PubKey) {
-				for node, nodeParents := range Members {
+				for node, nodeParents := range Members.Range {
 					// remove links from dropped node to this node
 					for i := 0; i < len(nodeParents); {
 						if nodeParents[i] == dropped {
@@ -192,16 +217,16 @@ func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
 
 					// if node has no parents left, remove it and recurse
 					if len(nodeParents) == 0 {
-						delete(Members, node)
+						Members.Delete(node)
 						removeDescendants(node)
 					} else {
-						Members[node] = nodeParents
+						Members.Store(node, nodeParents)
 					}
 				}
 			}
 			removeDescendants(target)
 		} else {
-			Members[target] = parents
+			Members.Store(target, parents)
 		}
 	}
 }

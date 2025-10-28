@@ -1,8 +1,6 @@
 package main
 
 import (
-	"slices"
-
 	"fiatjaf.com/nostr"
 
 	"github.com/fiatjaf/pyramid/global"
@@ -49,61 +47,59 @@ templ inviteTreePage(loggedUser nostr.PubKey) {
 					class="text-gray-700 dark:text-gray-300"
 				}
 			>
-				@inviteTreeComponent(nostr.ZeroPK, loggedUser)
+				@inviteTreeComponent(nostr.ZeroPK, loggedUser, false)
 			</div>
 		</div>
 	}
 }
 
-templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey) {
+templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey, isAncestorOfLoggedUser bool) {
 	<ul>
-		for pubkey, parents := range pyramid.Members {
-			if slices.Contains(parents, curr) {
-				<li class="ml-6 py-1 group">
-					<div class="flex items-center gap-2">
-						<span
-							if global.Settings.HasThemeColors() {
-								class="text-gray-700 hover:text-gray-500"
-							} else {
-								class="text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400"
-							}
-						>
-							<a
-								href={ templ.URL("https://njump.me/p/" + pubkey.Hex()) }
-								target="_blank"
-								class="font-mono text-sm"
-							>
-								<nostr-name pubkey={ pubkey.Hex() } class="text-lg">{ pubkey.Hex() }</nostr-name>
-							</a>
-							if slices.Contains(parents, nostr.ZeroPK) {
-								<span
-									class={
-										"cursor-default ml-2 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium",
-										templ.KV("bg-[var(--accent-color)] text-white", global.Settings.HasThemeColors()),
-										templ.KV("bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-900/20 dark:text-blue-400 dark:ring-blue-500/20", !global.Settings.HasThemeColors()),
-									}
-								>
-									root
-								</span>
-							}
-						</span>
-						if pyramid.IsAncestorOf(loggedUser, pubkey) && loggedUser != nostr.ZeroPK {
-							<form method="post" action="/action" class="inline">
-								<input type="hidden" name="target" value={ pubkey.Hex() }/>
-								<input type="hidden" name="type" value="drop"/>
-								<button
-									type="submit"
-									onclick="return confirm('really drop this user and its descendants?')"
-									class="opacity-40 hover:opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-red-500/10 hover:text-red-500 text-gray-600 dark:text-gray-400"
-								>
-									drop
-								</button>
-							</form>
+		for child := range pyramid.GetChildren(curr) {
+			<li class="ml-6 py-1 group">
+				<div class="flex items-center gap-2">
+					<span
+						if global.Settings.HasThemeColors() {
+							class="text-gray-700 hover:text-gray-500"
+						} else {
+							class="text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400"
 						}
-					</div>
-					@inviteTreeComponent(pubkey, loggedUser)
-				</li>
-			}
+					>
+						<a
+							href={ templ.URL("https://njump.me/p/" + child.Hex()) }
+							target="_blank"
+							class="font-mono text-sm"
+						>
+							<nostr-name pubkey={ child.Hex() } class="text-lg">{ child.Hex() }</nostr-name>
+						</a>
+						if pyramid.IsRoot(child) {
+							<span
+								class={
+									"cursor-default ml-2 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium",
+									templ.KV("bg-[var(--accent-color)] text-white", global.Settings.HasThemeColors()),
+									templ.KV("bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-900/20 dark:text-blue-400 dark:ring-blue-500/20", !global.Settings.HasThemeColors()),
+								}
+							>
+								root
+							</span>
+						}
+					</span>
+					if (loggedUser != nostr.ZeroPK && loggedUser == curr) || isAncestorOfLoggedUser {
+						<form method="post" action="/action" class="inline">
+							<input type="hidden" name="target" value={ child.Hex() }/>
+							<input type="hidden" name="type" value="drop"/>
+							<button
+								type="submit"
+								onclick="return confirm('really drop this user and its descendants?')"
+								class="opacity-40 hover:opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-red-500/10 hover:text-red-500 text-gray-600 dark:text-gray-400"
+							>
+								drop
+							</button>
+						</form>
+					}
+				</div>
+				@inviteTreeComponent(child, loggedUser, isAncestorOfLoggedUser || (loggedUser != nostr.ZeroPK && loggedUser == curr))
+			</li>
 		}
 	</ul>
 }

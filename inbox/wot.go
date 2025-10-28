@@ -34,12 +34,17 @@ func (wxf WotXorFilter) Contains(pubkey nostr.PubKey) bool {
 func computeAggregatedWoT(ctx context.Context) (WotXorFilter, error) {
 	res := make(chan nostr.PubKey)
 
-	queue := make(map[nostr.PubKey]struct{}, len(pyramid.Members)*100)
+	members := make([]nostr.PubKey, 0, pyramid.Members.Size())
+	for k := range pyramid.Members.Range {
+		members = append(members, k)
+	}
+
+	queue := make(map[nostr.PubKey]struct{}, len(members)*100)
 	wg := sync.WaitGroup{}
 	sem := semaphore.NewWeighted(15)
 
-	log.Info().Int("n", len(pyramid.Members)).Msg("fetching primary follow lists for members")
-	for member := range pyramid.Members {
+	log.Info().Int("n", len(members)).Msg("fetching primary follow lists for members")
+	for _, member := range members {
 		if err := sem.Acquire(ctx, 1); err != nil {
 			return WotXorFilter{}, fmt.Errorf("failed to acquire: %w", err)
 		}
