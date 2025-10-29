@@ -19,6 +19,7 @@ import (
 	"fiatjaf.com/nostr/nip11"
 	"fiatjaf.com/nostr/nip29"
 	"fiatjaf.com/nostr/sdk"
+	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/fiatjaf/pyramid/favorites"
@@ -253,9 +254,23 @@ func run(ctx context.Context) error {
 		},
 	}
 
-	log.Info().Msg("running on http://" + global.S.Host + ":" + global.S.Port)
+	var listenFunc func() error
+	if global.S.Port == "443" {
+		manager := &autocert.Manager{
+			Prompt:     func(_ string) bool { return true },
+			HostPolicy: autocert.HostWhitelist(global.Settings.Domain),
+			Cache:      autocert.DirCache("certs"),
+		}
+		server.TLSConfig = manager.TLSConfig()
+		listenFunc = func() error { return server.ListenAndServeTLS("", "") }
+		log.Info().Msg("running on https://" + global.S.Host + ":" + global.S.Port)
+	} else {
+		listenFunc = server.ListenAndServe
+		log.Info().Msg("running on http://" + global.S.Host + ":" + global.S.Port)
+	}
+
 	g, ctx := errgroup.WithContext(ctx)
-	g.Go(server.ListenAndServe)
+	g.Go(listenFunc)
 	g.Go(func() error {
 		<-ctx.Done()
 		if err := server.Shutdown(context.Background()); err != nil {
