@@ -2,25 +2,23 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"iter"
 	"slices"
 	"unsafe"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/nip70"
+	"github.com/mailru/easyjson"
 
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/pyramid"
-	"github.com/mailru/easyjson"
 )
 
 func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, msg string) {
-	// allow ephemeral from anyone
-	if event.Kind.IsEphemeral() {
-		return false, ""
-	}
-
 	if global.Settings.RequireCurrentTimestamp {
 		if event.CreatedAt > nostr.Now()+60 {
 			return true, "event too much in the future"
@@ -30,6 +28,7 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		}
 	}
 
+	// handle special kinds
 	switch event.Kind {
 	case 9735:
 		// we accept outgoing zaps if they include a zap receipt from a member
@@ -47,6 +46,8 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		if !ok {
 			return true, "unknown zap source or invalid zap"
 		}
+
+		return false, ""
 	case 1984:
 		// we accept reports from anyone
 		if e := event.Tags.Find("e"); e != nil {
@@ -69,6 +70,53 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		}
 
 		return true, "invalid report"
+	case 28934:
+		// check join request
+		claim := event.Tags.Find("claim")
+		if claim == nil {
+			return true, "missing claim tag"
+		}
+
+		// rebuild and check the authorization for this invite code
+		if len(claim[1]) != 64+128 {
+			return true, "invalid invite code size"
+		}
+		parent, err := nostr.PubKeyFromHex(claim[1][0:64])
+		if err != nil {
+			return true, "invalid invite code part 1"
+		}
+		authorization := virtualInviteValidationEvent(parent)
+		if _, err := hex.Decode(authorization.Sig[:], []byte(claim[1][64:64+128])); err != nil {
+			return true, "invalid invite code part 2"
+		}
+		if !authorization.VerifySignature() {
+			return true, "invalid invite code"
+		}
+
+		// check if this person can still join
+		if !pyramid.IsMember(parent) {
+			return true, "inviter isn't a member"
+		}
+		if pyramid.IsMember(event.PubKey) {
+			return true, "you are already a member of this relay"
+		}
+		if pyramid.CanInviteMore(parent) {
+			return true, "end of inviter quota"
+		}
+
+		// valid
+		return false, "welcome to " + global.Settings.Domain
+	case 28936:
+		// leave requests are ok as long as they come from members
+		if !pyramid.IsMember(event.PubKey) {
+			return true, "can't leave if you're not a member"
+		}
+		return false, "goodbye"
+	}
+
+	// allow ephemeral from anyone
+	if event.Kind.IsEphemeral() {
+		return false, ""
 	}
 
 	// for all other events we only accept stuff from members
@@ -147,9 +195,41 @@ var supportedKinds = []nostr.Kind{
 // if paywall settings are configured it stops at each paywalled event (events with the
 // "-" plus the specific paywall "t" tag) to check if the querier is eligible for reading.
 func query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
-	if global.Settings.Paywall.AmountSats > 0 && global.Settings.Paywall.PeriodDays > 0 {
-		// use this special query that filters content for paying visitors
-		return func(yield func(nostr.Event) bool) {
+	return func(yield func(nostr.Event) bool) {
+		// handle special invite requests
+		if idx := slices.Index(filter.Kinds, 28935); idx != -1 {
+			if authed, ok := khatru.GetAuthed(ctx); ok && pyramid.IsMember(authed) {
+				// generate invite codes for members if authenticated
+				vivevt := virtualInviteValidationEvent(authed)
+				vivevt.Sign(global.Settings.RelayInternalSecretKey)
+				inviteCode := make([]byte, 64+128)
+				hex.Encode(inviteCode[0:64], authed[:])
+				hex.Encode(inviteCode[64:64+128], vivevt.Sig[:])
+
+				// generate the event containing the 192-letter invite code
+				evt := nostr.Event{
+					Kind:      28935,
+					PubKey:    global.Settings.RelayInternalSecretKey.Public(),
+					CreatedAt: nostr.Now(),
+					Tags: nostr.Tags{
+						{"-"},
+						{"claim", string(inviteCode)},
+					},
+				}
+				evt.Sign(global.Settings.RelayInternalSecretKey)
+				if !yield(evt) {
+					return
+				}
+
+				// don't query stored events for this kind (swap-remove)
+				filter.Kinds[idx] = filter.Kinds[len(filter.Kinds)-1]
+				filter.Kinds = filter.Kinds[0 : len(filter.Kinds)-1]
+			}
+		}
+
+		// normal query
+		if global.Settings.Paywall.AmountSats > 0 && global.Settings.Paywall.PeriodDays > 0 {
+			// use this special query that filters content for paying visitors
 			authed := khatru.GetConnection(ctx).AuthedPublicKeys
 
 			for evt := range global.IL.Main.QueryEvents(filter, 500) {
@@ -170,10 +250,14 @@ func query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 					}
 				}
 			}
+		} else {
+			// otherwise do a normal query
+			for evt := range global.IL.Main.QueryEvents(filter, 500) {
+				if !yield(evt) {
+					return
+				}
+			}
 		}
-	} else {
-		// otherwise do a normal query
-		return global.IL.Main.QueryEvents(filter, 500)
 	}
 }
 
@@ -205,4 +289,93 @@ func preventBroadcast(ws *khatru.WebSocket, event nostr.Event) bool {
 		// no paywalls, anyone can read
 		return false
 	}
+}
+
+func processJoinRequest(ctx context.Context, event nostr.Event) {
+	// here we know the event is already validated
+	parent := nostr.MustPubKeyFromHex(event.Tags.Find("claim")[1][0:64])
+
+	if err := pyramid.AddAction(pyramid.ActionInvite, parent, event.PubKey); err != nil {
+		log.Warn().Err(err).Str("parent", parent.Hex()).Str("child", event.PubKey.Hex()).Stringer("event", event).
+			Msg("failed to add from join request")
+		return
+	}
+
+	publishMembershipChange(event.PubKey, true)
+}
+
+func processLeaveRequest(ctx context.Context, event nostr.Event) {
+	err := pyramid.AddAction(pyramid.ActionLeave, event.PubKey, event.PubKey)
+	if err != nil {
+		log.Warn().Err(err).Str("member", event.PubKey.Hex()).Stringer("event", event).
+			Msg("failed to leave from leave request")
+		return
+	}
+
+	publishMembershipChange(event.PubKey, false)
+}
+
+func publishMembershipChange(pubkey nostr.PubKey, added bool) {
+	// publish to main and internal
+	for _, c := range []struct {
+		store *mmm.IndexingLayer
+		relay *khatru.Relay
+	}{{global.IL.Main, relay}, {global.IL.Internal, internal.Relay}} {
+		if added {
+			// publish kind 8000
+			evt := nostr.Event{
+				Kind:      8000,
+				CreatedAt: nostr.Now(),
+				Tags: nostr.Tags{
+					{"-"},
+					{"p", pubkey.Hex()},
+				},
+			}
+			evt.Sign(global.Settings.RelayInternalSecretKey)
+			c.store.SaveEvent(evt)
+			c.relay.BroadcastEvent(evt)
+		} else {
+			// publish kind 8001
+			evt := nostr.Event{
+				Kind:      8001,
+				CreatedAt: nostr.Now(),
+				Tags: nostr.Tags{
+					{"-"},
+					{"p", pubkey.Hex()},
+				},
+			}
+			evt.Sign(global.Settings.RelayInternalSecretKey)
+			c.store.SaveEvent(evt)
+			c.relay.BroadcastEvent(evt)
+		}
+
+		// publish updated relay member list
+		members := []string{}
+		for pubkey := range pyramid.Members.Range {
+			members = append(members, pubkey.Hex())
+		}
+		evt := nostr.Event{
+			Kind:      13534,
+			CreatedAt: nostr.Now(),
+			Tags:      nostr.Tags{{"-"}},
+		}
+		for _, m := range members {
+			evt.Tags = append(evt.Tags, nostr.Tag{"member", m})
+		}
+		evt.Sign(global.Settings.RelayInternalSecretKey)
+		c.store.SaveEvent(evt)
+		c.relay.BroadcastEvent(evt)
+	}
+}
+
+func virtualInviteValidationEvent(inviter nostr.PubKey) nostr.Event {
+	vivevt := nostr.Event{
+		CreatedAt: 0,
+		Kind:      28936,
+		Content:   "",
+		Tags:      nostr.Tags{{"P", inviter.Hex()}},
+		PubKey:    global.Settings.RelayInternalSecretKey.Public(),
+	}
+	vivevt.ID = vivevt.GetID()
+	return vivevt
 }

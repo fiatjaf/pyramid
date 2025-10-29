@@ -29,7 +29,15 @@ func inviteTreeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func actionHandler(w http.ResponseWriter, r *http.Request) {
-	type_ := r.PostFormValue("type")
+	var type_ pyramid.Action
+	switch r.PostFormValue("type") {
+	case pyramid.ActionInvite:
+		type_ = pyramid.ActionInvite
+	case pyramid.ActionDrop:
+		type_ = pyramid.ActionDrop
+	case pyramid.ActionLeave:
+		type_ = pyramid.ActionLeave
+	}
 	author, _ := global.GetLoggedUser(r)
 	target := pubkeyFromInput(r.PostFormValue("target"))
 
@@ -38,6 +46,7 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go publishMembershipChange(target, type_ == pyramid.ActionInvite)
 	http.Redirect(w, r, "/", 302)
 }
 

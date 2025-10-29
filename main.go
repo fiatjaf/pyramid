@@ -34,8 +34,9 @@ import (
 )
 
 var (
-	root *khatru.Router
-	log  = global.Log
+	root  *khatru.Router
+	relay *khatru.Relay
+	log   = global.Log
 )
 
 //go:embed static/*
@@ -67,7 +68,7 @@ func main() {
 	global.Nostr.Store = global.IL.System
 
 	// init main relay
-	relay := khatru.NewRelay()
+	relay = khatru.NewRelay()
 	relay.Info.Name = "main" // for debugging purposes
 	relay.Negentropy = true
 
@@ -95,6 +96,15 @@ func main() {
 			global.IL.System.SaveEvent(event)
 		}
 	}
+	relay.OnEphemeralEvent = func(ctx context.Context, event nostr.Event) {
+		switch event.Kind {
+		case 28934:
+			processJoinRequest(ctx, event)
+		case 28936:
+			processLeaveRequest(ctx, event)
+		}
+	}
+
 	relay.OnConnect = onConnect
 	relay.PreventBroadcast = preventBroadcast
 
