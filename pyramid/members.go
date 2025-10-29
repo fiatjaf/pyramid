@@ -21,6 +21,14 @@ var (
 	Members     = xsync.NewMapOf[nostr.PubKey, []nostr.PubKey]() // { [user_pubkey]: [invited_by_list] }
 )
 
+type Action string
+
+const (
+	ActionInvite = "invite"
+	ActionDrop   = "drop"
+	ActionLeave  = "leave"
+)
+
 func IsMember(pubkey nostr.PubKey) bool {
 	parents, _ := Members.Load(pubkey)
 	return len(parents) > 0
@@ -114,19 +122,19 @@ func hasSingleRootAncestor(ancestor nostr.PubKey, target nostr.PubKey) bool {
 }
 
 type managementAction struct {
-	Type   string          `json:"type"`
+	Type   Action          `json:"type"`
 	Author string          `json:"author"`
 	Target string          `json:"target"`
 	When   nostr.Timestamp `json:"when"`
 }
 
-func AddAction(type_ string, author nostr.PubKey, target nostr.PubKey) error {
+func AddAction(type_ Action, author nostr.PubKey, target nostr.PubKey) error {
 	if !IsMember(author) && author != AbsoluteKey {
 		return fmt.Errorf("pubkey %s doesn't have permission to invite", author)
 	}
 
 	switch type_ {
-	case "invite":
+	case ActionInvite:
 		if !CanInviteMore(author) {
 			return fmt.Errorf("cannot invite more than %d", global.Settings.MaxInvitesPerPerson)
 		}
@@ -139,10 +147,12 @@ func AddAction(type_ string, author nostr.PubKey, target nostr.PubKey) error {
 		if target == author {
 			return fmt.Errorf("can't invite yourself")
 		}
-	case "drop":
+	case ActionDrop:
 		if !IsAncestorOf(author, target) {
 			return fmt.Errorf("insufficient permissions to drop this")
 		}
+	case ActionLeave:
+		// anyone can leave anytime
 	}
 
 	return appendActionToFile(type_, author, target)
@@ -182,13 +192,13 @@ func LoadManagement() error {
 	return scanner.Err()
 }
 
-func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
+func applyAction(type_ Action, author nostr.PubKey, target nostr.PubKey) {
 	switch type_ {
-	case "invite":
+	case ActionInvite:
 		Members.Compute(target, func(parents []nostr.PubKey, loaded bool) (newParents []nostr.PubKey, delete bool) {
 			return append(parents, author), false
 		})
-	case "drop":
+	case ActionDrop:
 		parents, _ := Members.Load(target)
 
 		// remove parent links that trace back to author
@@ -201,41 +211,46 @@ func applyAction(type_ string, author nostr.PubKey, target nostr.PubKey) {
 			}
 		}
 
-		// if target has no parents left, remove it and cascade
-		if len(parents) == 0 {
-			Members.Delete(target)
+		// if there are still parents we can't delete this, we just break the links we can and keep it like that
+		if len(parents) > 0 {
+			Members.Store(target, parents)
+			return
+		}
 
-			// recursively remove nodes that only have target as ancestor
-			var removeDescendants func(nostr.PubKey)
-			removeDescendants = func(dropped nostr.PubKey) {
-				for node, nodeParents := range Members.Range {
-					// remove links from dropped node to this node
-					for i := 0; i < len(nodeParents); {
-						if nodeParents[i] == dropped {
-							nodeParents[i] = nodeParents[len(nodeParents)-1]
-							nodeParents = nodeParents[:len(nodeParents)-1]
-						} else {
-							i++
-						}
-					}
+		// otherwise, when there are no parents left, this member can be removed
+		fallthrough
+	case ActionLeave:
+		// when leaving unilaterally breaks all relationships it may still have with parents (and children too)
+		Members.Delete(target)
 
-					// if node has no parents left, remove it and recurse
-					if len(nodeParents) == 0 {
-						Members.Delete(node)
-						removeDescendants(node)
+		// recursively remove nodes that only have target as ancestor
+		var removeDescendants func(nostr.PubKey)
+		removeDescendants = func(dropped nostr.PubKey) {
+			for node, nodeParents := range Members.Range {
+				// remove links from dropped node to this node
+				for i := 0; i < len(nodeParents); {
+					if nodeParents[i] == dropped {
+						nodeParents[i] = nodeParents[len(nodeParents)-1]
+						nodeParents = nodeParents[:len(nodeParents)-1]
 					} else {
-						Members.Store(node, nodeParents)
+						i++
 					}
 				}
+
+				// if node has no parents left, remove it and recurse
+				if len(nodeParents) == 0 {
+					Members.Delete(node)
+					removeDescendants(node)
+				} else {
+					Members.Store(node, nodeParents)
+				}
 			}
-			removeDescendants(target)
-		} else {
-			Members.Store(target, parents)
 		}
+		removeDescendants(target)
 	}
 }
 
-func appendActionToFile(type_ string, author, target nostr.PubKey) error {
+func appendActionToFile(type_ Action, author, target nostr.PubKey) error {
 	action := managementAction{
 		Type:   type_,
 		Author: author.Hex(),
