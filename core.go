@@ -74,34 +74,34 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		// check join request
 		claim := event.Tags.Find("claim")
 		if claim == nil {
-			return true, "missing claim tag"
+			return true, "restricted: missing claim tag"
 		}
 
 		// rebuild and check the authorization for this invite code
 		if len(claim[1]) != 64+128 {
-			return true, "invalid invite code size"
+			return true, "restricted: invalid invite code size"
 		}
 		parent, err := nostr.PubKeyFromHex(claim[1][0:64])
 		if err != nil {
-			return true, "invalid invite code part 1"
+			return true, "restricted: invalid invite code part 1"
 		}
 		authorization := virtualInviteValidationEvent(parent)
 		if _, err := hex.Decode(authorization.Sig[:], []byte(claim[1][64:64+128])); err != nil {
-			return true, "invalid invite code part 2"
+			return true, "restricted: invalid invite code part 2"
 		}
 		if !authorization.VerifySignature() {
-			return true, "invalid invite code"
+			return true, "restricted: invalid invite code"
 		}
 
 		// check if this person can still join
 		if !pyramid.IsMember(parent) {
-			return true, "inviter isn't a member"
+			return true, "restricted: inviter isn't a member"
 		}
 		if pyramid.IsMember(event.PubKey) {
-			return true, "you are already a member of this relay"
+			return true, "restricted: you are already a member of this relay"
 		}
 		if pyramid.CanInviteMore(parent) {
-			return true, "end of inviter quota"
+			return true, "restricted: end of inviter quota"
 		}
 
 		// valid
@@ -109,7 +109,7 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 	case 28936:
 		// leave requests are ok as long as they come from members
 		if !pyramid.IsMember(event.PubKey) {
-			return true, "can't leave if you're not a member"
+			return true, "restricted: can't leave if you're not a member"
 		}
 		return false, "goodbye"
 	}
@@ -191,6 +191,22 @@ var supportedKinds = []nostr.Kind{
 	39701,
 }
 
+func rejectInviteRequestsNonAuthed(ctx context.Context, filter nostr.Filter) (bool, string) {
+	if idx := slices.Index(filter.Kinds, 28935); idx != -1 {
+		if authed, ok := khatru.GetAuthed(ctx); ok {
+			if pyramid.IsMember(authed) {
+				return false, ""
+			} else {
+				return true, "restricted: only members can request invite codes"
+			}
+		} else {
+			return true, "auth-required: only members can request invite codes"
+		}
+	}
+
+	return false, ""
+}
+
 // query does a normal query unless paywall settings are configured.
 // if paywall settings are configured it stops at each paywalled event (events with the
 // "-" plus the specific paywall "t" tag) to check if the querier is eligible for reading.
@@ -224,6 +240,10 @@ func query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 				// don't query stored events for this kind (swap-remove)
 				filter.Kinds[idx] = filter.Kinds[len(filter.Kinds)-1]
 				filter.Kinds = filter.Kinds[0 : len(filter.Kinds)-1]
+				if len(filter.Kinds) == 0 {
+					// if the only kind requests was this, end here
+					return
+				}
 			}
 		}
 
