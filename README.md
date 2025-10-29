@@ -1,50 +1,79 @@
 # pyramid
 
-recreate the social ladder
+**pyramid** serves as a wondrous furnace of communityzenship for your Nostr experience, enabling users to build and nurture vibrant communities through a hierarchical relay system. With powerful subrelay features, extensive optional configurations, and easy theming options, **pyramid** makes it effortless to create and manage personalized Nostr environments tailored to your personal or community's needs.
 
-## how it works
+- **easy install**
+  - a single-line install setup and no need to fiddle with configuration files
+  - if you can buy VPS access you can setup one of these
+  - lean resource usage, because this is not javascript, cheap servers will go very far
 
-Relay members can **invite** others to join and they can also **drop** anyone below them in the hierarchy, that will recursively remove a user and all their descendants (a user can have more than one parent, which ensures they will keep existing even if one of their ancestors deletes them or is dropped).
+<img width="600" align="left" src="https://github.com/user-attachments/assets/9162cd0f-f442-45f6-a505-f1771e6b5ab4" />
 
-## running
+- **hierarchical membership system**
+  - members can invite other members, up to a configurable number of invites
+  - every member is responsible by all its children and descendants, and can decide to kick them out anytime
+  - a log of invites and drops is kept for rebuilding state and clarifying confusions
+  - a member can be invited by more than one parent at the same time, safeguarding them from despotic future drops
+  - a self-organizing system that can scale relay membership to thousands
+  - anyone can leave anytime, breaking their links in the ladder
+  - adding and dropping can be done through the web UI or using standard relay management tools
+  - two-step standardized invite codes interface combined with event-based join requests also works
 
-- You must install [templ](https://templ.guide) for generating the HTML templates.
-- [just](https://just.systems), [entr](https://eradman.com/entrproject/) and [fd](https://github.com/sharkdp/fd) are also helpful.
-- [godotenv](https://github.com/joho/godotenv) is used to read the `.env` file when developing.
+<br clear="all">
 
-```
-PORT=3002
-DOMAIN=0.0.0.0:3002
-```
+<img align="right" width="400" src="https://github.com/user-attachments/assets/f53b7e34-6be1-45be-802a-fa17df3a4b7f" />
+<img align="right" width="400" src="https://github.com/user-attachments/assets/9b3979a3-4ab5-4723-8df2-696c74fd83c3" />
+<img align="right" width="400" src="https://github.com/user-attachments/assets/7f2d9bb0-505b-475c-b75e-0bca843f9831" />
 
-### development
+- **custom-featured multi-relays**
+  - each relay listens in its own HTTP path and can be treated as completely independent
+    - some are useful for members, others are useful for externals, others are like services an inner group of a community can provide to its external members
+    - storage is shared in a single memory-mapped file for very fast access and automatic disk-saving deduplication, but indexes are independent so there is no risk of mixing events
+  - _main_: the basic pyramid relay functionality
+    - listens at the top-level path
+    - only members can publish
+    - also accepts zaps issued by relay members even though these are signed by zapper services
+  - _internal_: a relay private to members of the hierarchy, both for reading and for writing
+  - _favorites_: notes from external users manually curated by relay members through republishing chosen events
+  - _inbox_: a safe inbox with protection against hellthreads and spam, with
+    - filtering out anyone outside the extended (2-level) social graph of relay members
+    - custom bans invalidate specific users and their social graph
+    - optional proof-of-work requirements
+  - _popular_: notes from external users automatically curated by relay members based on reactions and interactions
+  - _uppermost_: only the notes most loved by a higher percentage of relay members
+  - _moderated_: a multi-use relay open to the public, but for which pyramid members have to approve each post manually
+  - _groups_: a relay that also listens at the top-level path, but provides moderated group functionality
+    - members can create groups and they become admins of such groups
+    - non-pyramid members can join these groups, provided that their admins allow
+    - groups can be private, in which case messages will only be shown to members of each group
+    - invite code functionality also supported
+    - pyramid root admin can see all the groups and moderate them
 
-To run the project call `just dev` (watches for changes and restarts automatically) or `templ generate && godotenv go run .`.
+<br clear="all">
 
-### production
+<img align="left" width="400" src="https://github.com/user-attachments/assets/9bb08e0d-29b7-48dc-817a-c5a06c2418bb" />
 
-For production builds, use `just build` to create a static binary (if you have `musl`, otherwise just run `templ generate && go build`).
+- **extensive optional configurations**
+  - almost everything is configurable from the UI
+  - from relay metadata to numeric settings, for both the main relay and for all sub-relays
+  - event the path under which each sub-relay listens can be (dangerously) changed
+  - smart defaults allow you to get started easily and learn later
+  - some settings can be configured using standard relay management tools
+  - everything kept in a JSON file that can be edited manually
 
-Copy the binary to your server (say, to a directory at `/root/pyramid`) by running `scp ./pyramid server:/root/pyramid/pyramid` and run it with systemd by adding a file like this to `/etc/systemd/system/pyramid.service`:
+<br clear="all">
 
-```
-[Service]
-ExecStart=/root/pyramid/pyramid
-Restart=no
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=pyramid
-User=myname
-Group=myname
-WorkingDirectory=/root/pyramid
-Environment=PORT=4002 DOMAIN=pyramid.myname.com
+- **easy theming options**
+  - default looks with dark/light toggle by default
+  - but as the relay owner you can opt out of that and pick some crazy colors
+  - theme colors are forced upon whoever is visiting the webpages
 
-[Unit]
-StartLimitIntervalSec=10min
-StartLimitBurst=10
+<div align="center"><img width="600" src="https://github.com/user-attachments/assets/f6986613-faa7-4857-a447-ad4ed2d8a8ef" /></div>
+<div align="center"><img width="600" src="https://github.com/user-attachments/assets/a618f2ce-96b2-4e2d-a4b9-ad2876aedd41" /></div>
+<div align="center"><img width="600" src="https://github.com/user-attachments/assets/ae238bcf-6908-49af-adad-52455871b074" /></div>
 
-[Install]
-WantedBy=multi-user.target
-```
-
-Then run `systemctl enable pyramid` and `systemctl start pyramid`.
+- **paywall functionality**
+  - a special hashtag, amount (in satoshis) and period (in days) can be configured
+  - notes published by members with the `"-"` tag and the special hashtag are marked as "paid"
+  - these notes will only be shown to viewers who have zapped the specific member at least the specified amount in the past specified days
+  - normal zaps and nutzaps supported, sourced from the _inbox_ relay
