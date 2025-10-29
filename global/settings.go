@@ -131,7 +131,7 @@ func getUserSettingsPath() string {
 func loadUserSettings() error {
 	// start it with the defaults
 	Settings = UserSettings{
-		BrowseURI:               "https://grouped-notes.dtonon.com/?r=__URL__",
+		BrowseURI:               "https://fevela.me/?r=__URL__",
 		MaxInvitesPerPerson:     4,
 		RequireCurrentTimestamp: true,
 		BlockedIPs:              []string{},
