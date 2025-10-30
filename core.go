@@ -94,13 +94,10 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		}
 
 		// check if this person can still join
-		if !pyramid.IsMember(parent) {
-			return true, "restricted: inviter isn't a member"
-		}
 		if pyramid.IsMember(event.PubKey) {
 			return true, "restricted: you are already a member of this relay"
 		}
-		if pyramid.CanInviteMore(parent) {
+		if !pyramid.CanInviteMore(parent) {
 			return true, "restricted: end of inviter quota"
 		}
 
@@ -195,7 +192,11 @@ func rejectInviteRequestsNonAuthed(ctx context.Context, filter nostr.Filter) (bo
 	if idx := slices.Index(filter.Kinds, 28935); idx != -1 {
 		if authed, ok := khatru.GetAuthed(ctx); ok {
 			if pyramid.IsMember(authed) {
-				return false, ""
+				if pyramid.CanInviteMore(authed) {
+					return false, ""
+				} else {
+					return true, "you've exhausted your invite quota"
+				}
 			} else {
 				return true, "restricted: only members can request invite codes"
 			}
@@ -214,7 +215,7 @@ func query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 	return func(yield func(nostr.Event) bool) {
 		// handle special invite requests
 		if idx := slices.Index(filter.Kinds, 28935); idx != -1 {
-			if authed, ok := khatru.GetAuthed(ctx); ok && pyramid.IsMember(authed) {
+			if authed, ok := khatru.GetAuthed(ctx); ok && pyramid.CanInviteMore(authed) {
 				// generate invite codes for members if authenticated
 				vivevt := virtualInviteValidationEvent(authed)
 				vivevt.Sign(global.Settings.RelayInternalSecretKey)
@@ -391,7 +392,7 @@ func publishMembershipChange(pubkey nostr.PubKey, added bool) {
 func virtualInviteValidationEvent(inviter nostr.PubKey) nostr.Event {
 	vivevt := nostr.Event{
 		CreatedAt: 0,
-		Kind:      28936,
+		Kind:      28937,
 		Content:   "",
 		Tags:      nostr.Tags{{"P", inviter.Hex()}},
 		PubKey:    global.Settings.RelayInternalSecretKey.Public(),

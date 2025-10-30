@@ -112,7 +112,7 @@ func main() {
 	root.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain
 	root.Relay.Info.Name = "root-router" // for debugging purposes, will be overwritten
 	root.Relay.Negentropy = true
-	root.Relay.Info.SupportedNIPs = append(root.Relay.Info.SupportedNIPs, 43)
+	root.Relay.Info.SupportedNIPs = append(root.Relay.Info.SupportedNIPs, 43, 29)
 	root.Relay.ManagementAPI.AllowPubKey = allowPubKeyHandler
 	root.Relay.ManagementAPI.BanPubKey = banPubKeyHandler
 	root.Relay.ManagementAPI.ListAllowedPubKeys = listAllowedPubKeysHandler
