@@ -115,7 +115,8 @@ func setupEnabled() {
 		},
 	)
 
-	Relay.PreventBroadcast = func(ws *khatru.WebSocket, event nostr.Event) bool {
+	Relay.PreventBroadcast = func(ws *khatru.WebSocket, filter nostr.Filter, event nostr.Event) bool {
+		// prevent all broadcasts because we don't want anyone to see events that haven't yet been moderated
 		return true
 	}
 

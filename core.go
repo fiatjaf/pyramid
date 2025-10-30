@@ -292,8 +292,41 @@ func onConnect(ctx context.Context) {
 	}
 }
 
-func preventBroadcast(ws *khatru.WebSocket, event nostr.Event) bool {
-	// if there is a paywall check for it here too
+func preventBroadcast(ws *khatru.WebSocket, filter nostr.Filter, event nostr.Event) bool {
+	// nip29 metadata event
+	if slices.Contains(nip29.MetadataEventKinds, event.Kind) {
+		if filter.Kinds == nil {
+			// when a subscription doesn't specify kinds, assume they don't want nip29 metadata
+			return true
+		} else {
+			// (because we're checking event by event here, if there are kinds in the filter we assume this matches)
+			if group, ok := groups.State.Groups.Load(event.Tags.GetD()); ok {
+				return group.Private || !group.AnyOfTheseIsAMember(ws.AuthedPublicKeys)
+			} else {
+				log.Warn().Stringer("event", event).Msg("unexpected group not found")
+			}
+		}
+	}
+
+	// nip29 message
+	if h := event.Tags.Find("h"); h != nil {
+		if filter.Tags["h"] == nil {
+			// when a subscription doesn't specify the "h" tag, don't send them messages from nip29 groups
+			return true
+		} else {
+			// (because we're checking event by event here, if there are kinds in the filter we assume this matches)
+			// now even if they specify these we have to check if they can read
+			if group := groups.State.GetGroupFromEvent(event); group == nil {
+				log.Warn().Stringer("event", event).Msg("unexpected group not found")
+				return true
+			} else {
+				return group.Private || !group.AnyOfTheseIsAMember(ws.AuthedPublicKeys)
+			}
+		}
+	}
+
+	// main relay logic:
+	// if there is a paywall check for it here
 	if global.Settings.Paywall.AmountSats > 0 && global.Settings.Paywall.PeriodDays > 0 {
 		if nip70.IsProtected(event) && (global.Settings.Paywall.Tag == "" || event.Tags.FindWithValue("t", global.Settings.Paywall.Tag) != nil) {
 			// this is a paywalled event, check if reader can read

@@ -26,13 +26,14 @@ type GroupsState struct {
 	publicKey nostr.PubKey
 	secretKey nostr.SecretKey
 
-	broadcast func(nostr.Event)
+	broadcast func(nostr.Event) int
 }
 
 type Options struct {
 	Domain    string
 	DB        eventstore.Store
 	SecretKey nostr.SecretKey
+	Broadcast func(nostr.Event) int
 }
 
 func NewGroupsState(opts Options) *GroupsState {
@@ -45,6 +46,8 @@ func NewGroupsState(opts Options) *GroupsState {
 		Domain: opts.Domain,
 		Groups: groups,
 		DB:     opts.DB,
+
+		broadcast: opts.Broadcast,
 
 		publicKey: pubkey,
 		secretKey: opts.SecretKey,

@@ -54,22 +54,25 @@ func main() {
 		return
 	}
 
+	// init main relay
+	relay = khatru.NewRelay()
+	relay.Info.Name = "main" // for debugging purposes
+	relay.Negentropy = true
+
+	// init sdk
+	global.Nostr = sdk.NewSystem()
+	global.Nostr.Store = global.IL.System
+
+	// init sub relays
 	favorites.Init()
-	groups.Init()
+	groups.Init(relay)
 	inbox.Init()
 	internal.Init()
 	moderated.Init()
 	popular.Init()
 	uppermost.Init()
 
-	global.Nostr = sdk.NewSystem()
-	global.Nostr.Store = global.IL.System
-
-	// init main relay
-	relay = khatru.NewRelay()
-	relay.Info.Name = "main" // for debugging purposes
-	relay.Negentropy = true
-
+	// setup main relay hooks and so on
 	relay.QueryStored = query
 	relay.Count = func(ctx context.Context, filter nostr.Filter) (uint32, error) {
 		// ignore groups in this case for now

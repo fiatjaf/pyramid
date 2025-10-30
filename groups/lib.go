@@ -4,18 +4,23 @@ import (
 	"net/http"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/khatru"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
 var (
-	log     = global.Log.With().Str("relay", "groups").Logger()
+	log       = global.Log.With().Str("relay", "groups").Logger()
+	hostRelay *khatru.Relay // hack to get the main relay object into here
+
 	State   *GroupsState
 	Handler http.Handler
 )
 
-func Init() {
+func Init(relay *khatru.Relay) {
+	hostRelay = relay
+
 	if !global.Settings.Groups.Enabled {
 		// relay disabled
 		setupDisabled()
@@ -41,6 +46,7 @@ func setupEnabled() {
 		Domain:    global.Settings.Domain,
 		DB:        global.IL.Groups,
 		SecretKey: global.Settings.RelayInternalSecretKey,
+		Broadcast: hostRelay.BroadcastEvent,
 	})
 
 	mux := http.NewServeMux()
@@ -76,7 +82,10 @@ func setupEnabled() {
 		loggedUser, _ := global.GetLoggedUser(r)
 		listGroupsPage(loggedUser).Render(r.Context(), w)
 	})
+
 	mux.HandleFunc("POST /disable", disableHandler)
+
+	Handler = mux
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {

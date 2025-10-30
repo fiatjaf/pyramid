@@ -41,7 +41,7 @@ func approveEvent(approver nostr.PubKey, id nostr.ID) error {
 		log.Error().Err(err).Str("id", evt.ID.String()).Msg("failed to delete from queue after approval")
 	}
 
-	count := Relay.BroadcastEvent(evt)
+	count := Relay.ForceBroadcastEvent(evt)
 	log.Info().Str("id", evt.ID.Hex()).Str("approver", approver.Hex()).Int("broadcasted", count).
 		Msg("event approved")
 
