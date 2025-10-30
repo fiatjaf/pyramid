@@ -14,7 +14,6 @@ import (
 
 	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
-	"github.com/fiatjaf/pyramid/groups"
 	"github.com/fiatjaf/pyramid/inbox"
 	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/moderated"
@@ -101,10 +100,9 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			switch k {
 			case "domain":
 				global.Settings.Domain = v[0]
-				root.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain
+				relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain
 				inbox.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Inbox.HTTPBasePath
 				favorites.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Favorites.HTTPBasePath
-				groups.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Groups.HTTPBasePath
 				internal.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Internal.HTTPBasePath
 				moderated.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Moderated.HTTPBasePath
 				popular.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Popular.HTTPBasePath
@@ -156,21 +154,6 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				}
 				global.Settings.Favorites.HTTPBasePath = v[0]
 				favorites.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
-				delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
-				go restartSoon()
-			case "groups_name":
-				global.Settings.Groups.Name = v[0]
-			case "groups_description":
-				global.Settings.Groups.Description = v[0]
-			case "groups_icon":
-				global.Settings.Groups.Icon = v[0]
-			case "groups_httpBasePath":
-				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
-					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)
-					return
-				}
-				global.Settings.Groups.HTTPBasePath = v[0]
-				groups.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
 				delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
 				go restartSoon()
 			case "moderated_name":

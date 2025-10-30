@@ -7,7 +7,7 @@ import (
 	"fiatjaf.com/nostr/nip29"
 )
 
-func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
+func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) {
 	// apply moderation action
 	if action, err := nip29.PrepareModerationAction(event); err == nil {
 		// get group (or create it)
@@ -66,7 +66,7 @@ func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
 		}[event.Kind] {
 			evt := toBroadcast()
 			evt.Sign(s.secretKey)
-			Relay.BroadcastEvent(evt)
+			s.broadcast(evt)
 		}
 	}
 
@@ -96,11 +96,12 @@ func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
 			log.Error().Err(err).Msg("failed to sign add-user event")
 			return
 		}
-		if _, err := Relay.AddEvent(ctx, addUser); err != nil {
+		if err := s.DB.SaveEvent(addUser); err != nil {
 			log.Error().Err(err).Msg("failed to add user who requested to join")
 			return
 		}
-		Relay.BroadcastEvent(addUser)
+		s.ProcessEvent(context.Background(), addUser)
+		s.broadcast(addUser)
 	}
 
 	// react to leave request
@@ -120,11 +121,13 @@ func (s *State) ProcessEvent(ctx context.Context, event nostr.Event) {
 				log.Error().Err(err).Msg("failed to sign remove-user event")
 				return
 			}
-			if _, err := Relay.AddEvent(ctx, removeUser); err != nil {
+
+			if err := s.DB.SaveEvent(removeUser); err != nil {
 				log.Error().Err(err).Msg("failed to remove user who requested to leave")
 				return
 			}
-			Relay.BroadcastEvent(removeUser)
+			s.ProcessEvent(context.Background(), removeUser)
+			s.broadcast(removeUser)
 		}
 	}
 

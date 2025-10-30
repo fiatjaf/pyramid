@@ -8,12 +8,15 @@ import (
 	"unsafe"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/eventstore"
 	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/khatru"
+	"fiatjaf.com/nostr/nip29"
 	"fiatjaf.com/nostr/nip70"
 	"github.com/mailru/easyjson"
 
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/groups"
 	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
@@ -208,10 +211,10 @@ func rejectInviteRequestsNonAuthed(ctx context.Context, filter nostr.Filter) (bo
 	return false, ""
 }
 
-// query does a normal query unless paywall settings are configured.
+// does a normal query unless paywall settings are configured.
 // if paywall settings are configured it stops at each paywalled event (events with the
 // "-" plus the specific paywall "t" tag) to check if the querier is eligible for reading.
-func query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
+func queryMain(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 	return func(yield func(nostr.Event) bool) {
 		// handle special invite requests
 		if idx := slices.Index(filter.Kinds, 28935); idx != -1 {
@@ -399,4 +402,42 @@ func virtualInviteValidationEvent(inviter nostr.PubKey) nostr.Event {
 	}
 	vivevt.ID = vivevt.GetID()
 	return vivevt
+}
+
+// splits the query between the main relay and the groups relay
+func query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
+	if len(filter.Kinds) == 0 {
+		// only normal kinds or no kinds specified
+		return query(ctx, filter)
+	}
+
+	if len(filter.Tags["h"]) > 0 {
+		return groups.State.Query(ctx, filter)
+	}
+
+	groupsFilter := filter
+	groupsFilter.Kinds = nil
+	mainFilter := filter
+	mainFilter.Kinds = nil
+	for _, kind := range filter.Kinds {
+		if slices.Contains(nip29.MetadataEventKinds, kind) {
+			groupsFilter.Kinds = append(groupsFilter.Kinds, kind)
+		} else {
+			mainFilter.Kinds = append(mainFilter.Kinds, kind)
+		}
+	}
+
+	if len(groupsFilter.Kinds) > 0 && len(mainFilter.Kinds) > 0 {
+		// mixed kinds - need to split the filter and query both
+		return eventstore.SortedMerge(
+			query(ctx, mainFilter),
+			groups.State.Query(ctx, groupsFilter),
+		)
+	} else if len(groupsFilter.Kinds) > 0 && len(mainFilter.Kinds) == 0 {
+		// only groups kinds requested
+		return groups.State.Query(ctx, filter)
+	} else {
+		// only normal kinds requested
+		return query(ctx, filter)
+	}
 }

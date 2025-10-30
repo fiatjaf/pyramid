@@ -30,7 +30,7 @@ func (g *Group) AnyOfTheseIsAMember(pubkeys []nostr.PubKey) bool {
 }
 
 // NewGroup creates a new group from scratch (but doesn't store it in the groups map)
-func (s *State) NewGroup(id string, creator nostr.PubKey) *Group {
+func (s *GroupsState) NewGroup(id string, creator nostr.PubKey) *Group {
 	creatorRole := &nip29.Role{
 		Name:        PRIMARY_ROLE_NAME,
 		Description: "",
@@ -61,7 +61,7 @@ func (s *State) NewGroup(id string, creator nostr.PubKey) *Group {
 }
 
 // loadGroupsFromDB loads all the group metadata from all the past action messages.
-func (s *State) loadGroupsFromDB() error {
+func (s *GroupsState) loadGroupsFromDB() error {
 	for evt := range s.DB.QueryEvents(nostr.Filter{
 		Kinds: []nostr.Kind{
 			nostr.KindSimpleGroupCreateGroup,
@@ -110,7 +110,7 @@ func (s *State) loadGroupsFromDB() error {
 	return nil
 }
 
-func (s *State) GetGroupFromEvent(event nostr.Event) *Group {
+func (s *GroupsState) GetGroupFromEvent(event nostr.Event) *Group {
 	group, _ := s.Groups.Load(GetGroupIDFromEvent(event))
 	return group
 }

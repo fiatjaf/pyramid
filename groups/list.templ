@@ -10,7 +10,7 @@ import (
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
-templ listGroupsPage(loggedUser nostr.PubKey, state *State) {
+templ listGroupsPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "groups") {
 		<div class="max-w-3xl mx-auto">
 			<h1 class="text-4xl font-bold mb-4">groups</h1>
@@ -31,10 +31,10 @@ templ listGroupsPage(loggedUser nostr.PubKey, state *State) {
 				@layout.SubRelaySettings("groups", global.Settings.Groups.Enabled, global.Settings.Groups.Name, global.Settings.Groups.Description, global.Settings.Groups.Icon, global.Settings.Groups.HTTPBasePath)
 			}
 			// groups table section
-			if state != nil {
+			if State != nil {
 				<div class="mt-8">
 					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">existing groups</h3>
-					if state.Groups.Size() == 0 {
+					if State.Groups.Size() == 0 {
 						<p class="text-sm text-stone-600 dark:text-stone-400">no groups created yet</p>
 					} else {
 						<div class="overflow-x-auto">
@@ -50,7 +50,7 @@ templ listGroupsPage(loggedUser nostr.PubKey, state *State) {
 									</tr>
 								</thead>
 								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
-									for _, group := range state.Groups.Range {
+									for _, group := range State.Groups.Range {
 										if pyramid.IsRoot(loggedUser) || !group.Private {
 											<tr>
 												<td class="px-4 py-3 text-sm text-center">
@@ -127,7 +127,7 @@ templ listGroupsPage(loggedUser nostr.PubKey, state *State) {
 									</tr>
 								</thead>
 								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
-									for _, group := range state.Groups.Range {
+									for _, group := range State.Groups.Range {
 										if _, isMember := group.Members[loggedUser]; isMember {
 											<tr>
 												<td class="px-4 py-3 text-sm text-center">

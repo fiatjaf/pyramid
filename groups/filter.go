@@ -7,7 +7,7 @@ import (
 	"fiatjaf.com/nostr/khatru"
 )
 
-func (s *State) RequestAuthWhenNecessary(
+func (s *GroupsState) RequestAuthWhenNecessary(
 	ctx context.Context,
 	filter nostr.Filter,
 ) (reject bool, msg string) {

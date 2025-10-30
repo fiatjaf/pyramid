@@ -12,7 +12,7 @@ import (
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
-func (s *State) RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg string) {
+func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg string) {
 	// the relay root key can write to any group
 	if event.PubKey == s.publicKey {
 		return false, ""

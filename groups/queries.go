@@ -9,7 +9,7 @@ import (
 	"fiatjaf.com/nostr/nip29"
 )
 
-func (s *State) Query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
+func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 	return func(yield func(nostr.Event) bool) {
 		authed := khatru.GetConnection(ctx).AuthedPublicKeys
 		groupIds, hasGroupIds := filter.Tags["d"]

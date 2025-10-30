@@ -41,9 +41,6 @@ func setupDisabled() {
 }
 
 func setupEnabled() {
-	normalDB := global.IL.Inbox
-	secretDB := global.IL.Secret
-
 	Relay = khatru.NewRelay()
 	Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Inbox.HTTPBasePath
 
@@ -55,10 +52,7 @@ func setupEnabled() {
 	Relay.ManagementAPI.AllowPubKey = allowPubkeyHandler
 
 	// use dual layer store
-	Relay.UseEventstore(&dualLayerStore{
-		normalDB: normalDB,
-		secretDB: secretDB,
-	}, 500)
+	Relay.UseEventstore(&dualLayerStore{}, 500)
 
 	pk := global.Settings.RelayInternalSecretKey.Public()
 	Relay.Info.Self = &pk

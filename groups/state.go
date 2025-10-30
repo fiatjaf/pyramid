@@ -14,7 +14,7 @@ const (
 	SECONDARY_ROLE_NAME = "moderator"
 )
 
-type State struct {
+type GroupsState struct {
 	Domain string
 	Groups *xsync.MapOf[string, *Group]
 	DB     eventstore.Store
@@ -25,6 +25,8 @@ type State struct {
 
 	publicKey nostr.PubKey
 	secretKey nostr.SecretKey
+
+	broadcast func(nostr.Event)
 }
 
 type Options struct {
@@ -33,13 +35,13 @@ type Options struct {
 	SecretKey nostr.SecretKey
 }
 
-func NewState(opts Options) *State {
+func NewGroupsState(opts Options) *GroupsState {
 	pubkey := opts.SecretKey.Public()
 
 	// we keep basic data about all groups in memory
 	groups := xsync.NewMapOf[string, *Group]()
 
-	state := &State{
+	state := &GroupsState{
 		Domain: opts.Domain,
 		Groups: groups,
 		DB:     opts.DB,
