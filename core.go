@@ -438,10 +438,10 @@ func virtualInviteValidationEvent(inviter nostr.PubKey) nostr.Event {
 }
 
 // splits the query between the main relay and the groups relay
-func query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
+func queryStored(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 	if len(filter.Kinds) == 0 {
 		// only normal kinds or no kinds specified
-		return query(ctx, filter)
+		return queryMain(ctx, filter)
 	}
 
 	if len(filter.Tags["h"]) > 0 {
@@ -463,7 +463,7 @@ func query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 	if len(groupsFilter.Kinds) > 0 && len(mainFilter.Kinds) > 0 {
 		// mixed kinds - need to split the filter and query both
 		return eventstore.SortedMerge(
-			query(ctx, mainFilter),
+			queryMain(ctx, mainFilter),
 			groups.State.Query(ctx, groupsFilter),
 		)
 	} else if len(groupsFilter.Kinds) > 0 && len(mainFilter.Kinds) == 0 {
@@ -471,6 +471,6 @@ func query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 		return groups.State.Query(ctx, filter)
 	} else {
 		// only normal kinds requested
-		return query(ctx, filter)
+		return queryMain(ctx, filter)
 	}
 }

@@ -1,11 +1,12 @@
 package global
 
 import (
+	"time"
+
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/nip57"
 	"fiatjaf.com/nostr/nip61"
 	"github.com/puzpuzpuz/xsync/v3"
-	"time"
 )
 
 var canReadCache = xsync.NewMapOf[[16]byte, bool]()

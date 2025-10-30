@@ -73,7 +73,7 @@ func main() {
 	uppermost.Init()
 
 	// setup main relay hooks and so on
-	relay.QueryStored = query
+	relay.QueryStored = queryStored
 	relay.Count = func(ctx context.Context, filter nostr.Filter) (uint32, error) {
 		// ignore groups in this case for now
 		return global.IL.Main.CountEvents(filter)
@@ -107,7 +107,7 @@ func main() {
 		return nil
 	}
 
-	// do not expire groups stuff
+	// do not expire groups stuff, but do expire main stuff
 	relay.StartExpirationManager(
 		func(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 			return global.IL.Main.QueryEvents(filter, 500)
