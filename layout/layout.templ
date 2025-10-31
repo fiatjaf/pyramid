@@ -89,6 +89,17 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							href={ global.Settings.BrowseURI }
 							x-init="$el.href = $el.href.replace('__URL__', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 3).join('/')))"
 						>browse</a>
+						if global.Settings.Groups.Enabled || pyramid.IsRoot(loggedUser) {
+							<a
+								href="/groups/"
+								class={
+									"rounded-lg px-4 py-2 font-medium",
+									templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
+									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "groups"),
+								}
+							>groups</a>
+						}
 						<div
 							x-data="{ open: false }"
 							@click.away="open = false"
@@ -99,8 +110,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								class={ "rounded-lg px-4 py-2 font-medium flex items-center gap-1",
 									templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
 									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-							templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "groups" || currentPage == "moderated"),
-							templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !(global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)) && !global.Settings.Groups.Enabled && !global.Settings.Moderated.Enabled) }
+							templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "moderated"),
+							templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !(global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)) && !global.Settings.Moderated.Enabled) }
 							>
 								switch currentPage {
 									case "favorites":
@@ -113,8 +124,6 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 										{ global.Settings.Inbox.HTTPBasePath }
 									case "internal":
 										{ global.Settings.Internal.HTTPBasePath }
-									case "groups":
-										groups
 									case "moderated":
 										{ global.Settings.Moderated.HTTPBasePath }
 									default:
@@ -129,7 +138,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								x-transition
 								class="absolute left-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50"
 							>
-								for _, page := range []string {"internal", "inbox", "moderated", "groups", "favorites", "popular", "uppermost"} {
+								for _, page := range []string {"internal", "inbox", "moderated", "favorites", "popular", "uppermost"} {
 									{{ var path string }}
 									{{ var enabled bool }}
 									{{switch page {
@@ -142,9 +151,6 @@ case "inbox":
 case "moderated":
 	path = global.Settings.Moderated.HTTPBasePath
 	enabled = global.Settings.Moderated.Enabled
-case "groups":
-	path = "groups"
-	enabled = global.Settings.Groups.Enabled
 case "favorites":
 	path = global.Settings.Favorites.HTTPBasePath
 	enabled = global.Settings.Favorites.Enabled
