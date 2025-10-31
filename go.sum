@@ -1,3 +1,5 @@
+fiatjaf.com/nostr v0.0.0-20251031160519-32bbff615a04 h1:gu7gne78LVD1RUF3wqEXubJKPju+R/cHfHxhin0q6KQ=
+fiatjaf.com/nostr v0.0.0-20251031160519-32bbff615a04/go.mod h1:Nq86Jjsd0OmsOEImUg0iCcLuqM5B67Nj2eu/2dP74Ss=
 github.com/FastFilter/xorfilter v0.2.1 h1:lbdeLG9BdpquK64ZsleBS8B4xO/QW1IM0gMzF7KaBKc=
 github.com/FastFilter/xorfilter v0.2.1/go.mod h1:aumvdkhscz6YBZF9ZA/6O4fIoNod4YR50kIVGGZ7l9I=
 github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3 h1:ClzzXMDDuUbWfNNZqGeYq4PnYOlwlOVIvSyNaIy0ykg=
