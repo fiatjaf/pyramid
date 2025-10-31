@@ -214,7 +214,10 @@ func main() {
 
 	relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain
 	relay.Negentropy = true
-	relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 43, 29)
+	relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 43)
+	if global.Settings.Groups.Enabled {
+		relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 29)
+	}
 	relay.ManagementAPI.AllowPubKey = allowPubKeyHandler
 	relay.ManagementAPI.BanPubKey = banPubKeyHandler
 	relay.ManagementAPI.ListAllowedPubKeys = listAllowedPubKeysHandler
