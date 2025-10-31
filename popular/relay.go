@@ -109,7 +109,7 @@ func enableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setupEnabled()
-	http.Redirect(w, r, "/popular", 302)
+	http.Redirect(w, r, "/"+global.Settings.Popular.HTTPBasePath+"/", 302)
 }
 
 func disableHandler(w http.ResponseWriter, r *http.Request) {
@@ -128,7 +128,7 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setupDisabled()
-	http.Redirect(w, r, "/popular", 302)
+	http.Redirect(w, r, "/"+global.Settings.Popular.HTTPBasePath+"/", 302)
 }
 
 func changePopularRelayNameHandler(ctx context.Context, name string) error {
