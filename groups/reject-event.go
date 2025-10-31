@@ -9,6 +9,7 @@ import (
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/nip29"
+
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
@@ -129,31 +130,9 @@ func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (rejec
 			return true, "restricted: insufficient permissions"
 		}
 
-		// disallow moderators from deleting anything from other moderators or from the admin
-		if !slices.ContainsFunc(roles, func(r *nip29.Role) bool { return r.Name == PRIMARY_ROLE_NAME }) {
-			if del, ok := action.(nip29.DeleteEvent); ok {
-				authors := make([]nostr.PubKey, 0, len(del.Targets))
-				for target := range s.DB.QueryEvents(nostr.Filter{IDs: del.Targets}, 500) {
-					if !slices.Contains(authors, target.PubKey) {
-						authors = append(authors, target.PubKey)
-					}
-				}
-				group.mu.RLock()
-				for _, author := range authors {
-					authorRoles, _ := group.Members[author]
-					for _, authorRole := range authorRoles {
-						if authorRole.Name == PRIMARY_ROLE_NAME {
-							group.mu.RUnlock()
-							return true, "can't delete messages from an admin"
-						}
-					}
-				}
-				group.mu.RUnlock()
-				return true, ""
-			}
-		}
+		isPrimaryRole := slices.ContainsFunc(roles, func(role *nip29.Role) bool { return role.Name == PRIMARY_ROLE_NAME })
 
-		// disallow useless states
+		// check each type of action, disallowing useless states and restricting what each role can do
 		switch a := action.(type) {
 		case nip29.CreateInvite:
 			if !group.Closed {
@@ -206,6 +185,33 @@ func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (rejec
 			}
 			if ineffective {
 				return true, "none of the targets exist in this relay"
+			}
+
+			// disallow moderators from deleting anything from other moderators or from the admin
+			if !isPrimaryRole {
+				if del, ok := action.(nip29.DeleteEvent); ok {
+					authors := make([]nostr.PubKey, 0, len(del.Targets))
+					for target := range s.DB.QueryEvents(nostr.Filter{IDs: del.Targets}, 500) {
+						if !slices.Contains(authors, target.PubKey) {
+							authors = append(authors, target.PubKey)
+						}
+					}
+					group.mu.RLock()
+					for _, author := range authors {
+						authorRoles, _ := group.Members[author]
+						for _, authorRole := range authorRoles {
+							if authorRole.Name == PRIMARY_ROLE_NAME {
+								group.mu.RUnlock()
+								return true, "can't delete messages from an admin"
+							}
+						}
+					}
+					group.mu.RUnlock()
+				}
+			}
+		case nip29.DeleteGroup:
+			if !isPrimaryRole {
+				return true, "can't delete group"
 			}
 		}
 	}

@@ -11,7 +11,144 @@ import (
 
 templ listGroupsPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "groups") {
-		<div class="max-w-3xl mx-auto">
+		<div
+			class="max-w-3xl mx-auto"
+			x-data={ `{
+				groupName: "",
+				description: "",
+				imageUrl: "",
+				closed: false,
+				private: false,
+				creating: false,
+				groupsRelayURL: window.location.href
+					.replace("http", "ws")
+					.split("/")
+					.slice(0, 3)
+					.join("/"),
+				async createGroup() {
+					if (!this.groupName.trim()) {
+						alert("group name is required");
+						return;
+					}
+
+					try {
+						creating = true;
+
+						// generate random readable id
+						const v = ["a", "e", "i", "o", "u", "ay", "ey", "oy", "ou", "ia", "ea", "ough", "oo", "ee", "argh"]
+						const c = ["p", "b", "t", "d", "k", "g", "ch", "sh", "th", "f", "v", "s", "z", "l", "r", "m", "n", "pl", "bl", "cl", "gl", "pr", "br", "tr", "dr", "kr", "gr", "fl", "sl", "fr", "thr", "str", "sk", "sp", "st"]
+						const n = 6 + Math.random()*2|0, s = [c, v]
+						Math.random() < 0.5 && s.reverse()
+						groupId = Array.from({length: n}, (_, i) => s[i%2].splice(Math.random()*s[i%2].length|0, 1)).join("")
+
+						// create-group event
+						await this.publishEvent(await window.nostr.signEvent({
+							kind: 9007,
+							created_at: Math.floor(Date.now() / 1000),
+							tags: [
+								["h", groupId]
+							],
+							content: ""
+						}))
+
+						// edit-metadata event
+						await this.publishEvent(await window.nostr.signEvent({
+							kind: 9002,
+							created_at: Math.floor(Date.now() / 1000),
+							tags: [
+								["h", groupId],
+								["name", this.groupName],
+								...(this.description ? [["about", this.description]] : []),
+								...(this.imageUrl ? [["picture", this.imageUrl]] : []),
+								...(this.closed ? [["closed"]] : [["open"]]),
+								...(this.private ? [["private"]] : [["public"]])
+							],
+							content: ""
+						}))
+
+						alert("group created successfully!")
+						window.location.reload()
+					} catch (error) {
+						console.error("error creating group:", error)
+						alert("failed to create group: " + error.message)
+					} finally {
+						creating = false
+					}
+				},
+				async deleteGroup(groupId, groupName) {
+					if (!confirm("Are you sure you want to delete group \"" + groupName + "\"?")) return;
+					try {
+						await this.publishEvent(await window.nostr.signEvent({
+							kind: 9008,
+							created_at: Math.floor(Date.now() / 1000),
+							tags: [
+								["h", groupId]
+							],
+							content: ""
+						}));
+						alert("Group deleted successfully!");
+						window.location.reload();
+					} catch (error) {
+						console.error("Error deleting group:", error);
+						alert("Failed to delete group: " + error.message);
+					}
+				},
+				async publishEvent(event) {
+					return new Promise((resolve, reject) => {
+						const ws = new WebSocket(this.groupsRelayURL)
+						let timeout = setTimeout(() => {
+							ws.close()
+							reject(new Error("timeout waiting for relay response"))
+						}, 5000)
+
+						ws.onopen = () => {
+							ws.send(JSON.stringify(["EVENT", event]))
+						}
+
+						ws.onmessage = async (msg) => {
+							const message = JSON.parse(msg.data)
+							switch (message[0]) {
+								case "OK": {
+									if (message[3].startsWith("auth-required:")) {
+										await new Promise(resolve => setTimeout(resolve, 500))
+										ws.send(JSON.stringify(["EVENT", event]))
+									} else if (message[2] === true && message[1] === event.id) {
+										resolve()
+										clearTimeout(timeout)
+										ws.onmessage = null
+										ws.close()
+									} else if (message[2] === false) {
+										reject(new Error(message[3] || "event rejected by relay"))
+										clearTimeout(timeout)
+										ws.onmessage = null
+										ws.close()
+									}
+									break
+								}
+								case "AUTH": {
+									ws.send(JSON.stringify(["AUTH", await window.nostr.signEvent({
+										created_at: Math.round(Date.now() / 1000),
+										kind: 22242,
+										content: "",
+										tags: [
+											["relay", this.groupsRelayURL],
+											["challenge", message[1]]
+										]
+									})]))
+									break
+								}
+							}
+						}
+
+						ws.onerror = () => {
+							clearTimeout(timeout)
+							ws.close()
+							reject(new Error("websocket connection error"))
+						}
+					})
+				}
+			}` }
+		>
 			<h1 class="text-4xl font-bold mb-4">groups</h1>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">
@@ -43,6 +180,7 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">moderators</th>
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">closed</th>
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">private</th>
+										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider"></th>
 									</tr>
 								</thead>
 								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
@@ -98,6 +236,16 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 														☐
 													}
 												</td>
+												<td class="px-4 py-3 text-sm text-center">
+													if group.IsPrimaryRole(loggedUser) || pyramid.IsRoot(loggedUser) {
+														<button
+															@click="deleteGroup(group.Address.ID, group.Name)"
+															class="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded"
+														>
+															delete
+														</button>
+													}
+												</td>
 											</tr>
 										}
 									}
@@ -120,6 +268,7 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">moderators</th>
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">closed</th>
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">private</th>
+										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider"></th>
 									</tr>
 								</thead>
 								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
@@ -175,6 +324,16 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 														☐
 													}
 												</td>
+												<td class="px-4 py-3 text-sm text-center">
+													if group.IsPrimaryRole(loggedUser) || pyramid.IsRoot(loggedUser) {
+														<button
+															@click="deleteGroup(group.Address.ID, group.Name)"
+															class="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded"
+														>
+															delete
+														</button>
+													}
+												</td>
 											</tr>
 										}
 									}
@@ -185,126 +344,7 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 				}
 				// create new group form - visible for all logged relay members
 				if pyramid.IsMember(loggedUser) {
-					<div
-						class="mt-8"
-						x-data="{
-							groupName: '',
-							description: '',
-							imageUrl: '',
-							closed: false,
-							private: false,
-							creating: false,
-							groupsRelayURL: window.location.href
-								.replace('http', 'ws')
-								.split('/')
-								.slice(0, 3)
-								.join('/'),
-							async createGroup() {
-								if (!this.groupName.trim()) {
-									alert('group name is required');
-									return;
-								}
-
-								try {
-									creating = true;
-
-									// generate random readable id
-									const v = ['a', 'e', 'i', 'o', 'u', 'ay', 'ey', 'oy', 'ou', 'ia', 'ea', 'ough', 'oo', 'ee', 'argh']
-									const c = ['p', 'b', 't', 'd', 'k', 'g', 'ch', 'sh', 'th', 'f', 'v', 's', 'z', 'l', 'r', 'm', 'n', 'pl', 'bl', 'cl', 'gl', 'pr', 'br', 'tr', 'dr', 'kr', 'gr', 'fl', 'sl', 'fr', 'thr', 'str', 'sk', 'sp', 'st']
-									const n = 6 + Math.random()*2|0, s = [c, v]
-									Math.random() < 0.5 && s.reverse()
-									groupId = Array.from({length: n}, (_, i) => s[i%2].splice(Math.random()*s[i%2].length|0, 1)).join('')
-
-									// create-group event
-									await this.publishEvent(await window.nostr.signEvent({
-										kind: 9007,
-										created_at: Math.floor(Date.now() / 1000),
-										tags: [
-											['h', groupId]
-										],
-										content: ''
-									}))
-
-									// edit-metadata event
-									await this.publishEvent(await window.nostr.signEvent({
-										kind: 9002,
-										created_at: Math.floor(Date.now() / 1000),
-										tags: [
-											['h', groupId],
-											['name', this.groupName],
-											...(this.description ? [['about', this.description]] : []),
-											...(this.imageUrl ? [['picture', this.imageUrl]] : []),
-											...(this.closed ? [['closed']] : [['open']]),
-											...(this.private ? [['private']] : [['public']])
-										],
-										content: ''
-									}))
-
-									alert('group created successfully!')
-									window.location.reload()
-								} catch (error) {
-									console.error('error creating group:', error)
-									alert('failed to create group: ' + error.message)
-								} finally {
-									creating = false
-								}
-							},
-							async publishEvent(event) {
-								return new Promise((resolve, reject) => {
-									const ws = new WebSocket(this.groupsRelayURL)
-									let timeout = setTimeout(() => {
-										ws.close()
-										reject(new Error('timeout waiting for relay response'))
-									}, 5000)
-
-									ws.onopen = () => {
-										ws.send(JSON.stringify(['EVENT', event]))
-									}
-
-									ws.onmessage = async (msg) => {
-										const message = JSON.parse(msg.data)
-										switch (message[0]) {
-											case 'OK': {
-												if (message[3].startsWith('auth-required:')) {
-													await new Promise(resolve => setTimeout(resolve, 500))
-													ws.send(JSON.stringify(['EVENT', event]))
-												} else if (message[2] === true && message[1] === event.id) {
-													resolve()
-													clearTimeout(timeout)
-													ws.onmessage = null
-													ws.close()
-												} else if (message[2] === false) {
-													reject(new Error(message[3] || 'event rejected by relay'))
-													clearTimeout(timeout)
-													ws.onmessage = null
-													ws.close()
-												}
-												break
-											}
-											case 'AUTH': {
-												ws.send(JSON.stringify(['AUTH', await window.nostr.signEvent({
-													created_at: Math.round(Date.now() / 1000),
-													kind: 22242,
-													content: '',
-													tags: [
-														['relay', this.groupsRelayURL],
-														['challenge', message[1]]
-													]
-												})]))
-												break
-											}
-										}
-									}
-
-									ws.onerror = () => {
-										clearTimeout(timeout)
-										ws.close()
-										reject(new Error('websocket connection error'))
-									}
-								})
-							}
-						}"
-					>
+					<div class="mt-8">
 						<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">create new group</h3>
 						<form
 							class="space-y-6"

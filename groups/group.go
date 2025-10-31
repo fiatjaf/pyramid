@@ -29,6 +29,16 @@ func (g *Group) AnyOfTheseIsAMember(pubkeys []nostr.PubKey) bool {
 	return false
 }
 
+func (g *Group) IsPrimaryRole(member nostr.PubKey) bool {
+	roles, _ := g.Members[member]
+	for _, role := range roles {
+		if role.Name == PRIMARY_ROLE_NAME {
+			return true
+		}
+	}
+	return false
+}
+
 // NewGroup creates a new group from scratch (but doesn't store it in the groups map)
 func (s *GroupsState) NewGroup(id string) *Group {
 	return &Group{
