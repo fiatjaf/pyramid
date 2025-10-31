@@ -15,8 +15,28 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) {
 		if event.Kind == nostr.KindSimpleGroupCreateGroup {
 			// if it's a group creation event we create the group first
 			groupId := GetGroupIDFromEvent(event)
-			group = s.NewGroup(groupId, event.PubKey)
+			group = s.NewGroup(groupId)
 			s.Groups.Store(groupId, group)
+
+			// create a put-user event for the creator to ensure membership is recorded
+			addCreator := nostr.Event{
+				CreatedAt: event.CreatedAt, // use the same timestamp as the creation event
+				Kind:      nostr.KindSimpleGroupPutUser,
+				Tags: nostr.Tags{
+					nostr.Tag{"h", groupId},
+					nostr.Tag{"p", event.PubKey.Hex(), group.Roles[0].Name},
+				},
+			}
+			if err := addCreator.Sign(s.secretKey); err != nil {
+				log.Error().Err(err).Msg("failed to sign add-creator event")
+				return
+			}
+			if err := s.DB.SaveEvent(addCreator); err != nil {
+				log.Error().Err(err).Msg("failed to save add-creator event")
+				return
+			}
+			s.ProcessEvent(context.Background(), addCreator)
+			s.broadcast(addCreator)
 		} else {
 			group = s.GetGroupFromEvent(event)
 		}

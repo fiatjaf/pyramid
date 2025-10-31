@@ -30,20 +30,18 @@ func (g *Group) AnyOfTheseIsAMember(pubkeys []nostr.PubKey) bool {
 }
 
 // NewGroup creates a new group from scratch (but doesn't store it in the groups map)
-func (s *GroupsState) NewGroup(id string, creator nostr.PubKey) *Group {
-	creatorRole := &nip29.Role{
-		Name:        PRIMARY_ROLE_NAME,
-		Description: "",
-	}
-
-	group := &Group{
+func (s *GroupsState) NewGroup(id string) *Group {
+	return &Group{
 		Group: nip29.Group{
 			Address: nip29.GroupAddress{
 				ID:    id,
 				Relay: global.Settings.WSScheme() + s.Domain,
 			},
 			Roles: []*nip29.Role{
-				creatorRole,
+				{
+					Name:        PRIMARY_ROLE_NAME,
+					Description: "",
+				},
 				{
 					Name:        SECONDARY_ROLE_NAME,
 					Description: "",
@@ -54,14 +52,11 @@ func (s *GroupsState) NewGroup(id string, creator nostr.PubKey) *Group {
 		},
 		last50: make([]nostr.ID, 50),
 	}
-
-	group.Members[creator] = []*nip29.Role{creatorRole}
-
-	return group
 }
 
 // loadGroupsFromDB loads all the group metadata from all the past action messages.
 func (s *GroupsState) loadGroupsFromDB() error {
+nextgroup:
 	for evt := range s.DB.QueryEvents(nostr.Filter{
 		Kinds: []nostr.Kind{
 			nostr.KindSimpleGroupCreateGroup,
@@ -73,28 +68,30 @@ func (s *GroupsState) loadGroupsFromDB() error {
 		}
 
 		id := gtag[1]
-		group := s.NewGroup(id, evt.PubKey)
+		group := s.NewGroup(id)
 
 		events := make([]nostr.Event, 0, 5000)
 		for event := range s.DB.QueryEvents(nostr.Filter{
 			Kinds: nip29.ModerationEventKinds,
 			Tags:  nostr.TagMap{"h": []string{id}},
 		}, 50000) {
+			if event.Kind == nostr.KindSimpleGroupDeleteGroup {
+				// we don't keep track of this group if it was deleted at any point
+				continue nextgroup
+			}
+
 			events = append(events, event)
 		}
+
+		// start from the last one
 		for i := len(events) - 1; i >= 0; i-- {
 			evt := events[i]
 			act, err := nip29.PrepareModerationAction(evt)
 			if err != nil {
 				return err
 			}
-			act.Apply(&group.Group)
-		}
 
-		// if the group was deleted there will be no actions after the delete
-		if len(events) > 0 && events[0].Kind == nostr.KindSimpleGroupDeleteGroup {
-			// we don't keep track of this if it was deleted
-			continue
+			act.Apply(&group.Group)
 		}
 
 		// load the last 50 event ids for "previous" tag checking
