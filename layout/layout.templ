@@ -114,7 +114,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 									case "internal":
 										{ global.Settings.Internal.HTTPBasePath }
 									case "groups":
-										{ global.Settings.Groups.HTTPBasePath }
+										groups
 									case "moderated":
 										{ global.Settings.Moderated.HTTPBasePath }
 									default:
@@ -143,7 +143,7 @@ case "moderated":
 	path = global.Settings.Moderated.HTTPBasePath
 	enabled = global.Settings.Moderated.Enabled
 case "groups":
-	path = global.Settings.Groups.HTTPBasePath
+	path = "groups"
 	enabled = global.Settings.Groups.Enabled
 case "favorites":
 	path = global.Settings.Favorites.HTTPBasePath

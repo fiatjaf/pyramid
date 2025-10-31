@@ -311,10 +311,10 @@ func run(ctx context.Context) error {
 	mux.Handle("/"+global.Settings.Favorites.HTTPBasePath,
 		http.StripPrefix("/"+global.Settings.Favorites.HTTPBasePath, favorites.Relay))
 
-	mux.Handle("/"+global.Settings.Groups.HTTPBasePath+"/",
-		http.StripPrefix("/"+global.Settings.Groups.HTTPBasePath, groups.Handler))
-	mux.Handle("/"+global.Settings.Groups.HTTPBasePath,
-		http.StripPrefix("/"+global.Settings.Groups.HTTPBasePath, groups.Handler))
+	mux.Handle("/groups/",
+		http.StripPrefix("/groups", groups.Handler))
+	mux.Handle("/groups",
+		http.StripPrefix("/groups", groups.Handler))
 
 	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath+"/",
 		http.StripPrefix("/"+global.Settings.Inbox.HTTPBasePath, inbox.Relay))

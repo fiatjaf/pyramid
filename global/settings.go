@@ -69,11 +69,7 @@ type UserSettings struct {
 	} `json:"inbox"`
 
 	Groups struct {
-		Enabled      bool   `json:"enabled"`
-		Name         string `json:"name"`
-		Description  string `json:"description"`
-		Icon         string `json:"icon"`
-		HTTPBasePath string `json:"path"`
+		Enabled bool `json:"enabled"`
 	} `json:"groups"`
 
 	Popular struct {
@@ -145,7 +141,6 @@ func loadUserSettings() error {
 	Settings.Internal.HTTPBasePath = "internal"
 	Settings.Favorites.HTTPBasePath = "favorites"
 	Settings.Inbox.HTTPBasePath = "inbox"
-	Settings.Groups.HTTPBasePath = "groups"
 	Settings.Popular.HTTPBasePath = "popular"
 	Settings.Uppermost.HTTPBasePath = "uppermost"
 	Settings.Moderated.HTTPBasePath = "moderated"

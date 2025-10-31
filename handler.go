@@ -396,8 +396,6 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 			global.Settings.Uppermost.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		case "moderated":
 			global.Settings.Moderated.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
-		case "groups":
-			global.Settings.Groups.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		}
 
 		if err := global.SaveUserSettings(); err != nil {

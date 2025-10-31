@@ -5,7 +5,6 @@ import (
 
 	"fiatjaf.com/nostr"
 
-	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
@@ -27,9 +26,6 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 					</ul>
 				</div>
 			</div>
-			if pyramid.IsRoot(loggedUser) {
-				@layout.SubRelaySettings("groups", global.Settings.Groups.Enabled, global.Settings.Groups.Name, global.Settings.Groups.Description, global.Settings.Groups.Icon, global.Settings.Groups.HTTPBasePath)
-			}
 			// groups table section
 			if State != nil {
 				<div class="mt-8">
