@@ -49,6 +49,8 @@ func main() {
 	}
 	defer global.End()
 
+	pyramid.AbsoluteKey = global.Settings.RelayInternalSecretKey.Public()
+
 	if err := pyramid.LoadManagement(); err != nil {
 		log.Fatal().Err(err).Msg("failed to load members")
 		return
