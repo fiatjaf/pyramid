@@ -25,6 +25,7 @@ import (
 
 	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/grasp"
 	"github.com/fiatjaf/pyramid/groups"
 	"github.com/fiatjaf/pyramid/inbox"
 	"github.com/fiatjaf/pyramid/internal"
@@ -65,8 +66,34 @@ func main() {
 	global.Nostr = sdk.NewSystem()
 	global.Nostr.Store = global.IL.System
 
+	// init setup routes (no auth required) -- for one-time use only
+	if global.Settings.Domain == "" {
+		relay.Router().HandleFunc("/setup/domain", domainSetupHandler)
+	}
+	if !pyramid.HasRootUsers() {
+		relay.Router().HandleFunc("/setup/root", rootUserSetupHandler)
+	}
+
+	// init basic http routes
+	relay.Router().HandleFunc("/action", actionHandler)
+	relay.Router().HandleFunc("/cleanup", cleanupStuffFromExcludedUsersHandler)
+	relay.Router().HandleFunc("/reports", reportsViewerHandler)
+	relay.Router().HandleFunc("/settings", settingsHandler)
+	relay.Router().HandleFunc("/icon/{relayId}", iconHandler)
+	relay.Router().HandleFunc("/forum/", forumHandler)
+	relay.Router().Handle("/static/", http.FileServer(http.FS(static)))
+	relay.Router().HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		if global.Settings.RelayIcon != "" {
+			http.Redirect(w, r, global.Settings.RelayIcon, 302)
+		} else {
+			http.Redirect(w, r, "/static/icon.png", 302)
+		}
+	})
+	relay.Router().HandleFunc("/{$}", inviteTreeHandler)
+
 	// init sub relays
 	favorites.Init()
+	grasp.Init(relay)
 	groups.Init(relay)
 	inbox.Init()
 	internal.Init()
@@ -245,27 +272,6 @@ func main() {
 		return info
 	}
 
-	// setup routes (no auth required)
-	relay.Router().HandleFunc("/setup/domain", domainSetupHandler)
-	relay.Router().HandleFunc("/setup/root", rootUserSetupHandler)
-
-	// http routes
-	relay.Router().HandleFunc("/action", actionHandler)
-	relay.Router().HandleFunc("/cleanup", cleanupStuffFromExcludedUsersHandler)
-	relay.Router().HandleFunc("/reports", reportsViewerHandler)
-	relay.Router().HandleFunc("/settings", settingsHandler)
-	relay.Router().HandleFunc("/icon/{relayId}", iconHandler)
-	relay.Router().HandleFunc("/forum/", forumHandler)
-	relay.Router().Handle("/static/", http.FileServer(http.FS(static)))
-	relay.Router().HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-		if global.Settings.RelayIcon != "" {
-			http.Redirect(w, r, global.Settings.RelayIcon, 302)
-		} else {
-			http.Redirect(w, r, "/static/icon.png", 302)
-		}
-	})
-	relay.Router().HandleFunc("/{$}", inviteTreeHandler)
-
 	start()
 }
 
@@ -312,6 +318,11 @@ func run(ctx context.Context) error {
 		http.StripPrefix("/"+global.Settings.Favorites.HTTPBasePath, favorites.Relay))
 	mux.Handle("/"+global.Settings.Favorites.HTTPBasePath,
 		http.StripPrefix("/"+global.Settings.Favorites.HTTPBasePath, favorites.Relay))
+
+	mux.Handle("/grasp/",
+		http.StripPrefix("/grasp", grasp.Handler))
+	mux.Handle("/grasp",
+		http.StripPrefix("/grasp", grasp.Handler))
 
 	mux.Handle("/groups/",
 		http.StripPrefix("/groups", groups.Handler))

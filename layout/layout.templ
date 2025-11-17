@@ -100,6 +100,17 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								}
 							>groups</a>
 						}
+					if global.Settings.Grasp.Enabled || pyramid.IsRoot(loggedUser) {
+							<a
+								href="/grasp/"
+								class={
+									"rounded-lg px-4 py-2 font-medium",
+									templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
+									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
+									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "grasp"),
+								}
+							>grasp</a>
+						}
 						<div
 							x-data="{ open: false }"
 							@click.away="open = false"

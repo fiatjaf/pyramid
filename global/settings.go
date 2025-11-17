@@ -72,6 +72,10 @@ type UserSettings struct {
 		Enabled bool `json:"enabled"`
 	} `json:"groups"`
 
+	Grasp struct {
+		Enabled bool `json:"enabled"`
+	} `json:"grasp"`
+
 	Popular struct {
 		Enabled          bool   `json:"enabled"`
 		Name             string `json:"name"`
