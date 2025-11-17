@@ -32,7 +32,7 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 					}
 
 					try {
-						creating = true;
+						this.creating = true;
 
 						// generate random readable id
 						const v = ["a", "e", "i", "o", "u", "ay", "ey", "oy", "ou", "ia", "ea", "ough", "oo", "ee", "argh"]
@@ -72,7 +72,7 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 						console.error("error creating group:", error)
 						alert("failed to create group: " + error.message)
 					} finally {
-						creating = false
+						this.creating = false
 					}
 				},
 				async deleteGroup(groupId, groupName) {
@@ -231,7 +231,7 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 												<td class="px-4 py-3 text-sm text-center">
 													if group.IsPrimaryRole(loggedUser) || pyramid.IsRoot(loggedUser) {
 														<button
-															@click="deleteGroup(group.Address.ID, group.Name)"
+															@click={ "deleteGroup('" + group.Address.ID + "', '" + group.Name + "')" }
 															class="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded"
 														>
 															delete
@@ -319,7 +319,7 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 												<td class="px-4 py-3 text-sm text-center">
 													if group.IsPrimaryRole(loggedUser) || pyramid.IsRoot(loggedUser) {
 														<button
-															@click="deleteGroup(group.Address.ID, group.Name)"
+															@click={ "deleteGroup('" + group.Address.ID + "', '" + group.Name + "')" }
 															class="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded"
 														>
 															delete
