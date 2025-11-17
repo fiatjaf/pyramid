@@ -76,7 +76,7 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 					}
 				},
 				async deleteGroup(groupId, groupName) {
-					if (!confirm("Are you sure you want to delete group \"" + groupName + "\"?")) return;
+					if (!confirm("are you sure you want to delete group \"" + groupName + "\"?")) return;
 					try {
 						await this.publishEvent(await window.nostr.signEvent({
 							kind: 9008,
@@ -86,11 +86,11 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 							],
 							content: ""
 						}));
-						alert("Group deleted successfully!");
+						alert("group deleted successfully!");
 						window.location.reload();
 					} catch (error) {
 						console.error("Error deleting group:", error);
-						alert("Failed to delete group: " + error.message);
+						alert("failed to delete group: " + error.message);
 					}
 				},
 				async publishEvent(event) {

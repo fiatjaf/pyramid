@@ -62,6 +62,11 @@ func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (rejec
 		return true, "group '" + groupId + "' doesn't exist"
 	}
 
+	// the pyramid root can delete groups
+	if event.Kind == nostr.KindSimpleGroupDeleteGroup && pyramid.IsRoot(event.PubKey) {
+		return false, ""
+	}
+
 	// validate join request
 	if event.Kind == nostr.KindSimpleGroupJoinRequest {
 		group.mu.RLock()
