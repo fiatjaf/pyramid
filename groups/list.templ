@@ -152,16 +152,8 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 			<h1 class="text-4xl font-bold mb-4">groups</h1>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">
-					the groups relay implements NIP-29: moderated group chat functionality.
+					NIP-29: moderated group chat functionality.
 				</p>
-				<div class="bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-					<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">how it works:</h2>
-					<ul class="list-disc list-inside space-y-1 text-sm">
-						<li>members can create groups</li>
-						<li>group policies are provided at creation time</li>
-						<li>as long as the group creator allows, non-members can join these groups freely</li>
-					</ul>
-				</div>
 			</div>
 			// groups table section
 			if State != nil {

@@ -14,17 +14,8 @@ templ graspPage(loggedUser nostr.PubKey) {
 			<h1 class="text-4xl font-bold mb-4">grasp</h1>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">
-					grasp is a decentralized git server that uses nostr for coordination. it allows you to host git repositories and collaborate using nostr events.
+					an instance of a grasp git server.
 				</p>
-				<div class="bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-					<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">how it works:</h2>
-					<ul class="list-disc list-inside space-y-1 text-sm">
-						<li>grasp integrates with the main relay</li>
-						<li>repositories are stored locally on the relay server</li>
-						<li>git operations are coordinated through nostr events</li>
-						<li>relay members can create and manage repositories</li>
-					</ul>
-				</div>
 			</div>
 			if global.Settings.Grasp.Enabled || pyramid.IsRoot(loggedUser) {
 				// repositories list

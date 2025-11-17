@@ -16,15 +16,6 @@ templ favoritesPage(loggedUser nostr.PubKey) {
 				<p class="text-lg leading-relaxed">
 					the favorites relay is a place for members of the relay to curate a feed of interesting notes from the outside.
 				</p>
-				<div class="bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-					<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">how it works:</h2>
-					<ul class="list-disc list-inside space-y-1 text-sm">
-						<li>a member is browsing through nostr</li>
-						<li>they see a note that they think will be interesting to the other members</li>
-						<li>they use the "republish to" (or equivalent) functionality to send the note to /favorites</li>
-						<li>other members (and anyone) can browse the /favorites feed</li>
-					</ul>
-				</div>
 				if global.Settings.Favorites.Enabled {
 					<a
 						class={

@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"errors"
+	"fmt"
 	"iter"
 	"net"
 	"net/http"
@@ -60,6 +61,7 @@ func main() {
 	// init main relay
 	relay = khatru.NewRelay()
 	relay.Info.Name = "main" // for debugging purposes
+	relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain
 	relay.Negentropy = true
 
 	// init sdk
@@ -241,8 +243,6 @@ func main() {
 	relay.OnConnect = onConnect
 	relay.PreventBroadcast = preventBroadcast
 
-	relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain
-	relay.Negentropy = true
 	relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 43)
 	if global.Settings.Groups.Enabled {
 		relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 29)
@@ -257,6 +257,15 @@ func main() {
 	relay.ManagementAPI.BlockIP = blockIPHandler
 	relay.ManagementAPI.UnblockIP = unblockIPHandler
 	relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
+		fmt.Println("NIP11 request:", r.Header.Get("User-Agent"), r.Header.Get("X-Forwarded-For"), r.Header.Get("Referer"))
+
+		if strings.Contains(r.Header.Get("User-Agent"), "aiohttp") {
+			if idx := slices.Index(info.SupportedNIPs, 29); idx != -1 {
+				info.SupportedNIPs[idx] = info.SupportedNIPs[len(info.SupportedNIPs)-1]
+				info.SupportedNIPs = info.SupportedNIPs[0 : len(info.SupportedNIPs)-1]
+			}
+		}
+
 		pk := global.Settings.RelayInternalSecretKey.Public()
 		info.Self = &pk
 		info.PubKey = &pk
