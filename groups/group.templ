@@ -40,6 +40,14 @@ templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Even
 						}
 					</div>
 					<div class="flex items-center gap-2">
+						<span class="text-sm text-stone-600 dark:text-stone-400">hidden:</span>
+						if group.Hidden {
+							☑
+						} else {
+							☐
+						}
+					</div>
+					<div class="flex items-center gap-2">
 						<span class="text-sm text-stone-600 dark:text-stone-400">private:</span>
 						if group.Private {
 							☑

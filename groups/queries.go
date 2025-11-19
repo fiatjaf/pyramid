@@ -18,15 +18,12 @@ func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[n
 		case false:
 			// no "d" tag specified, return metadata from all groups if requested
 			for _, group := range s.Groups.Range {
-				if group.Private {
+				if group.Hidden {
 					// don't reveal metadata about private groups in lists unless queried by a member
 					if !group.AnyOfTheseIsAMember(authed) {
 						// none of the authed pubkeys is a member
 						continue
 					}
-				} else if group.Closed {
-					// closed groups also shouldn't be listed since people can't freely join them
-					continue
 				}
 
 				for _, kind := range filter.Kinds {
@@ -73,7 +70,7 @@ func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[n
 
 						// now here in refE/refA/ids we have to check for each result if it is allowed
 						for evt := range results {
-							if group := s.GetGroupFromEvent(evt); !group.Private {
+							if group := s.GetGroupFromEvent(evt); !group.Hidden {
 								yield(evt)
 							} else if group.AnyOfTheseIsAMember(authed) {
 								yield(evt)

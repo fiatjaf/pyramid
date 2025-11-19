@@ -16,9 +16,9 @@ func (s *GroupsState) RequestAuthWhenNecessary(
 
 	for _, groupId := range groupIds {
 		if group, ok := s.Groups.Load(groupId); ok {
-			if group.Private {
+			if group.Hidden {
 				if len(authed) == 0 {
-					return true, "auth-required: you're trying to access a private group"
+					return true, "auth-required: you're trying to access a hidden group"
 				} else if !group.AnyOfTheseIsAMember(authed) {
 					return true, "restricted: you're trying to access a group of which you're not a member"
 				}

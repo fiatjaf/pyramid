@@ -60,7 +60,7 @@ func setupEnabled() {
 			http.NotFound(w, r)
 			return
 		}
-		if group.Private && !pyramid.IsRoot(loggedUser) && !group.AnyOfTheseIsAMember([]nostr.PubKey{loggedUser}) {
+		if group.Hidden && !pyramid.IsRoot(loggedUser) && !group.AnyOfTheseIsAMember([]nostr.PubKey{loggedUser}) {
 			http.NotFound(w, r) // fake 404
 			return
 		}

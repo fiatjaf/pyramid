@@ -60,8 +60,9 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 								["name", this.groupName],
 								...(this.description ? [["about", this.description]] : []),
 								...(this.imageUrl ? [["picture", this.imageUrl]] : []),
-								...(this.closed ? [["closed"]] : [["open"]]),
-								...(this.private ? [["private"]] : [["public"]])
+								...(this.closed ? [["closed"]] : []),
+								["restricted"],
+								...(this.private ? [["private"], ["hidden"]] : [])
 							],
 							content: ""
 						}))
@@ -171,13 +172,21 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">members</th>
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">moderators</th>
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">closed</th>
+										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">hidden</th>
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">private</th>
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider"></th>
 									</tr>
 								</thead>
 								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
 									for _, group := range State.Groups.Range {
-										if pyramid.IsRoot(loggedUser) || !group.Private {
+										{{ visible := !group.Hidden }}
+										if !visible && loggedUser != nostr.ZeroPK {
+											{{ _, visible = group.Members[loggedUser] }}
+											if !visible {
+												{{ visible = pyramid.IsRoot(loggedUser) }}
+											}
+										}
+										if  visible {
 											<tr>
 												<td class="px-4 py-3 text-sm text-center">
 													<a
@@ -216,6 +225,13 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 												</td>
 												<td class="px-4 py-3 text-sm text-center">
 													if group.Closed {
+														☑
+													} else {
+														☐
+													}
+												</td>
+												<td class="px-4 py-3 text-sm text-center">
+													if group.Hidden {
 														☑
 													} else {
 														☐
