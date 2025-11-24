@@ -26,8 +26,12 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		if event.CreatedAt > nostr.Now()+60 {
 			return true, "event too much in the future"
 		}
-		if event.CreatedAt < nostr.Now()-60 {
-			return true, "event too much in the past"
+
+		switch event.Kind {
+		case 1, 9, 11, 1111, 1222, 1244, 20, 21, 22:
+			if event.CreatedAt < nostr.Now()-60*5 {
+				return true, "event too much in the past"
+			}
 		}
 	}
 
