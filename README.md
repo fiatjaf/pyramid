@@ -2,6 +2,16 @@
 
 **pyramid** serves as a wondrous furnace of communityzenship for your Nostr experience, enabling users to build and nurture vibrant communities through a hierarchical relay system. With powerful subrelay features, extensive optional configurations, and easy theming options, **pyramid** makes it effortless to create and manage personalized Nostr environments tailored to your personal or community's needs.
 
+## easy install
+
+type this in a blank server you should rented:
+
+```
+curl -s https://raw.githubusercontent.com/fiatjaf/pyramid/refs/heads/master/easy.sh | bash
+```
+
+## features
+
 - **easy install**
   - a single-line install setup and no need to fiddle with configuration files
   - if you can buy VPS access you can setup one of these

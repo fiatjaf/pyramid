@@ -360,41 +360,78 @@ func run(ctx context.Context) error {
 
 	mux.Handle("/", relay)
 
+	g, ctx := errgroup.WithContext(ctx)
+
+	// copy here as we'll modify it
+	port := global.S.Port
+
+	if port == "443" {
+		// if we don't have a domain name we'll listen only on port 80 without doing the autocert dance yet
+		if global.Settings.Domain == "" {
+			log.Info().Msg("no domain setup yet, running only on port 80 for now")
+			port = "80"
+		}
+	}
+
 	server := &http.Server{
-		Addr:    global.S.Host + ":" + global.S.Port,
+		Addr:    global.S.Host + ":" + port,
 		Handler: ipBlockMiddleware(setupCheckMiddleware(mux)),
 		BaseContext: func(_ net.Listener) context.Context {
 			return ctx
 		},
 	}
 
-	var listenFunc func() error
-	if global.S.Port == "443" {
+	if port == "443" {
 		manager := &autocert.Manager{
 			Prompt:     func(_ string) bool { return true },
 			HostPolicy: autocert.HostWhitelist(global.Settings.Domain),
 			Cache:      autocert.DirCache("certs"),
 		}
-		server.TLSConfig = manager.TLSConfig()
-		listenFunc = func() error { return server.ListenAndServeTLS("", "") }
-		log.Info().Msg("running on https://" + global.S.Host + ":" + global.S.Port)
+
+		// HTTP server on 80 for ACME challenges and user access
+		httpServer := &http.Server{
+			Addr:    global.S.Host + ":80",
+			Handler: manager.HTTPHandler(mux),
+			BaseContext: func(_ net.Listener) context.Context {
+				return ctx
+			},
+		}
+		g.Go(func() error { return httpServer.ListenAndServe() })
+
+		// HTTPS server on 443
+		httpsServer := &http.Server{
+			Addr:    global.S.Host + ":443",
+			Handler: ipBlockMiddleware(mux),
+			BaseContext: func(_ net.Listener) context.Context {
+				return ctx
+			},
+		}
+		httpsServer.TLSConfig = manager.TLSConfig()
+
+		g.Go(func() error { return httpsServer.ListenAndServeTLS("", "") })
+		log.Info().Msg("running on https://" + global.S.Host + ":443 and http://" + global.S.Host + ":80")
+		g.Go(func() error {
+			<-ctx.Done()
+			httpsServer.Shutdown(context.Background())
+			httpServer.Shutdown(context.Background())
+			return nil
+		})
 	} else {
-		listenFunc = server.ListenAndServe
-		log.Info().Msg("running on http://" + global.S.Host + ":" + global.S.Port)
+		g.Go(server.ListenAndServe)
+		log.Info().Msg("running on http://" + global.S.Host + ":" + port)
+
+		g.Go(func() error {
+			<-ctx.Done()
+			if err := server.Shutdown(context.Background()); err != nil {
+				return err
+			}
+			if err := server.Close(); err != nil {
+				return err
+			}
+			return nil
+		})
 	}
 
-	g, ctx := errgroup.WithContext(ctx)
-	g.Go(listenFunc)
-	g.Go(func() error {
-		<-ctx.Done()
-		if err := server.Shutdown(context.Background()); err != nil {
-			return err
-		}
-		if err := server.Close(); err != nil {
-			return err
-		}
-		return nil
-	})
 	return g.Wait()
 }
 

@@ -107,6 +107,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				moderated.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Moderated.HTTPBasePath
 				popular.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Popular.HTTPBasePath
 				uppermost.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Uppermost.HTTPBasePath
+				go restartSoon()
 				//
 				// theme settings
 			case "background_color":
@@ -428,6 +429,7 @@ func domainSetupHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		go restartSoon()
 		http.Redirect(w, r, "/", 302)
 		return
 	}

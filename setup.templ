@@ -45,8 +45,18 @@ templ domainSetupPage() {
 							set domain
 						</button>
 					</form>
+					<div id="dns-message" class="mt-4 text-sm text-stone-500 dark:text-stone-400 hidden"></div>
 				</div>
 			</div>
+			<script>
+				const hostname = window.location.hostname;
+				const isIP = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname);
+				if (window.location.protocol === 'http:' && isIP && hostname !== '0.0.0.0' && hostname != '127.0.0.1') {
+					const messageDiv = document.getElementById('dns-message');
+					messageDiv.innerHTML = `in your domain name provider, set a DNS "<code>A</code>" record pointing to "<code>${hostname}</code>".`;
+					messageDiv.classList.remove('hidden');
+				}
+			</script>
 		</body>
 	</html>
 }
