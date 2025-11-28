@@ -4,7 +4,7 @@
 
 ## easy install
 
-type this in a blank server you should rented:
+type this in a blank server you just rented:
 
 ```
 curl -s https://raw.githubusercontent.com/fiatjaf/pyramid/refs/heads/master/easy.sh | bash

@@ -15,22 +15,20 @@ chmod +x pyramid-exe
 DIR=$(pwd)
 
 # create systemd service file
-SERVICE_FILE="/etc/systemd/system/pyramid.service"
-sudo tee "$SERVICE_FILE" > /dev/null <<EOF
-[Unit]
+echo "[Unit]
 Description=pyramid relay
 After=network.target
 
 [Service]
-Type=simple
 User=$USER
 ExecStart=$DIR/pyramid-exe
+WorkingDirectory=$DIR
 Restart=always
 Environment=HOST=0.0.0.0 PORT=443
 
 [Install]
 WantedBy=multi-user.target
-EOF
+" > /etc/systemd/system/pyramid.service
 
 # reload systemd, enable and start
 sudo systemctl daemon-reload
