@@ -16,7 +16,7 @@ templ uppermostPage(loggedUser nostr.PubKey) {
 			<h1 class="text-4xl font-bold mb-4">uppermost</h1>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">
-					auto-curated posts with the highest quality reactions from relay members. this is a read-only relay where events are automatically added based on member reactions.
+					this is like popular, but with higher thresholds for reactions and it doesn't consider replies.
 				</p>
 				if global.Settings.Uppermost.Enabled {
 					<a

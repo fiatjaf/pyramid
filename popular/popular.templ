@@ -16,7 +16,7 @@ templ popularPage(loggedUser nostr.PubKey) {
 			<h1 class="text-4xl font-bold mb-4">popular</h1>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">
-					auto-curated popular posts from relay members. this is a read-only relay where events are automatically added based on member reactions.
+					auto-curated popular posts from relay members. this is a read-only relay where events are automatically fetched from other relays and saved based reactions, replies, favorites and zaps created by members.
 				</p>
 				if global.Settings.Popular.Enabled {
 					<a
