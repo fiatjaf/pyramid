@@ -11,11 +11,14 @@ import (
 templ internalPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "internal") {
 		<div class="max-w-3xl mx-auto">
-			<h1 class="text-4xl font-bold mb-4">internal</h1>
+			<div class="flex items-center mb-4">
+				if !global.Settings.Internal.IsIconDefault() {
+					<img src={ global.Settings.Internal.GetIcon() } class="h-8 w-8 mr-2">
+				}
+				<h1 class="text-4xl font-bold">{ global.Settings.Internal.GetName() }</h1>
+			</div>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
-				<p class="text-lg leading-relaxed">
-					the internal relay is only readable and writable by members. it can be used for meta discussions or anything else.
-				</p>
+				<p class="text-lg leading-relaxed">{ global.Settings.Internal.GetDescription() }</p>
 				if global.Settings.Internal.Enabled {
 					<a
 						class={

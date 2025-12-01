@@ -51,18 +51,9 @@ func setupEnabled() {
 	Relay.ManagementAPI.ChangeRelayIcon = changeFavoritesRelayIconHandler
 
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
-		info.Name = global.Settings.Favorites.Name
-		if info.Name == "" {
-			info.Name = global.Settings.RelayName + " - favorites"
-		}
-		info.Description = global.Settings.Favorites.Description
-		if info.Description == "" {
-			info.Description = "posts manually curated by the members. to curate just republish any chosen event here."
-		}
-		info.Icon = global.Settings.Favorites.Icon
-		if info.Icon == "" {
-			info.Icon = global.Settings.RelayIcon
-		}
+		info.Name = global.Settings.Favorites.GetName()
+		info.Description = global.Settings.Favorites.GetDescription()
+		info.Icon = global.Settings.Favorites.GetIcon()
 		info.Contact = global.Settings.RelayContact
 		info.Software = "https://github.com/fiatjaf/pyramid"
 		return info

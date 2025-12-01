@@ -51,18 +51,9 @@ func setupEnabled() {
 	Relay.ManagementAPI.ChangeRelayIcon = changeInternalRelayIconHandler
 
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
-		info.Name = global.Settings.Internal.Name
-		if info.Name == "" {
-			info.Name = global.Settings.RelayName + " - internal"
-		}
-		info.Description = global.Settings.Internal.Description
-		if info.Description == "" {
-			info.Description = "internal discussions between relay members, unavailable to the external world"
-		}
-		info.Icon = global.Settings.Internal.Icon
-		if info.Icon == "" {
-			info.Icon = global.Settings.RelayIcon
-		}
+		info.Name = global.Settings.Internal.GetName()
+		info.Description = global.Settings.Internal.GetDescription()
+		info.Icon = global.Settings.Internal.GetIcon()
 		info.Contact = global.Settings.RelayContact
 		info.Software = "https://github.com/fiatjaf/pyramid"
 		return info

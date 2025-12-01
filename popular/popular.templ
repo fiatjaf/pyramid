@@ -13,11 +13,14 @@ import (
 templ popularPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "popular") {
 		<div class="max-w-3xl mx-auto">
-			<h1 class="text-4xl font-bold mb-4">popular</h1>
+			<div class="flex items-center mb-4">
+				if !global.Settings.Popular.IsIconDefault() {
+					<img src={ global.Settings.Popular.GetIcon() } class="h-8 w-8 mr-2">
+				}
+				<h1 class="text-4xl font-bold">{ global.Settings.Popular.GetName() }</h1>
+			</div>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
-				<p class="text-lg leading-relaxed">
-					auto-curated popular posts from relay members. this is a read-only relay where events are automatically fetched from other relays and saved based reactions, replies, favorites and zaps created by members.
-				</p>
+				<p class="text-lg leading-relaxed">{ global.Settings.Popular.GetDescription() }</p>
 				if global.Settings.Popular.Enabled {
 					<a
 						class={

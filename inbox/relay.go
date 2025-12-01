@@ -67,18 +67,9 @@ func setupEnabled() {
 	Relay.OnEvent = rejectEvent
 	Relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
-		info.Name = global.Settings.Inbox.Name
-		if info.Name == "" {
-			info.Name = global.Settings.RelayName + " - inbox"
-		}
-		info.Description = global.Settings.Inbox.Description
-		if info.Description == "" {
-			info.Description = "filtered notifications for relay members using a unified web of trust"
-		}
-		info.Icon = global.Settings.Inbox.Icon
-		if info.Icon == "" {
-			info.Icon = global.Settings.RelayIcon
-		}
+		info.Name = global.Settings.Inbox.GetName()
+		info.Description = global.Settings.Inbox.GetDescription()
+		info.Icon = global.Settings.Inbox.GetIcon()
 		info.Contact = global.Settings.RelayContact
 		info.Software = "https://github.com/fiatjaf/pyramid"
 

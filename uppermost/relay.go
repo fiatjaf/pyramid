@@ -51,18 +51,9 @@ func setupEnabled() {
 	Relay.ManagementAPI.ChangeRelayIcon = changeUppermostRelayIconHandler
 
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
-		info.Name = global.Settings.Uppermost.Name
-		if info.Name == "" {
-			info.Name = global.Settings.RelayName + " - uppermost"
-		}
-		info.Description = global.Settings.Uppermost.Description
-		if info.Description == "" {
-			info.Description = "posts that are highly appreciated by relay members."
-		}
-		info.Icon = global.Settings.Uppermost.Icon
-		if info.Icon == "" {
-			info.Icon = global.Settings.RelayIcon
-		}
+		info.Name = global.Settings.Uppermost.GetName()
+		info.Description = global.Settings.Uppermost.GetDescription()
+		info.Icon = global.Settings.Uppermost.GetIcon()
 		info.Contact = global.Settings.RelayContact
 		info.Software = "https://github.com/fiatjaf/pyramid"
 		return info

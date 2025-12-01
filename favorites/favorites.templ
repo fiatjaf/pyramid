@@ -11,11 +11,14 @@ import (
 templ favoritesPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "favorites") {
 		<div class="max-w-3xl mx-auto">
-			<h1 class="text-4xl font-bold mb-4">favorites</h1>
+			<div class="flex items-center mb-4">
+				if !global.Settings.Favorites.IsIconDefault() {
+					<img src={ global.Settings.Favorites.GetIcon() } class="h-8 w-8 mr-2">
+				}
+				<h1 class="text-4xl font-bold">{ global.Settings.Favorites.GetName() }</h1>
+			</div>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
-				<p class="text-lg leading-relaxed">
-					relay members can manually republish notes here and they'll be saved.
-				</p>
+				<p class="text-lg leading-relaxed">{ global.Settings.Favorites.GetDescription() }</p>
 				if global.Settings.Favorites.Enabled {
 					<a
 						class={

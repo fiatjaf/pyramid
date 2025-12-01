@@ -13,11 +13,14 @@ import (
 templ moderatedPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "moderated") {
 		<div class="max-w-3xl mx-auto">
-			<h1 class="text-4xl font-bold mb-4">moderated</h1>
+			<div class="flex items-center mb-4">
+				if !global.Settings.Moderated.IsIconDefault() {
+					<img src={ global.Settings.Moderated.GetIcon() } class="h-8 w-8 mr-2">
+				}
+				<h1 class="text-4xl font-bold">{ global.Settings.Moderated.GetName() }</h1>
+			</div>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
-				<p class="text-lg leading-relaxed">
-					the moderated relay is a public relay where events from non-members are reviewed by members before publication.
-				</p>
+				<p class="text-lg leading-relaxed">{ global.Settings.Moderated.GetDescription() }</p>
 				if global.Settings.Moderated.Enabled {
 					<a
 						class={

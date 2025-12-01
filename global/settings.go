@@ -42,27 +42,15 @@ type UserSettings struct {
 
 	// per-relay
 	Internal struct {
-		Enabled      bool   `json:"enabled"`
-		Name         string `json:"name"`
-		Description  string `json:"description"`
-		Icon         string `json:"icon"`
-		HTTPBasePath string `json:"path"`
+		RelayMetadata
 	} `json:"internal"`
 
 	Favorites struct {
-		Enabled      bool   `json:"enabled"`
-		Name         string `json:"name"`
-		Description  string `json:"description"`
-		Icon         string `json:"icon"`
-		HTTPBasePath string `json:"path"`
+		RelayMetadata
 	} `json:"favorites"`
 
 	Inbox struct {
-		Enabled             bool           `json:"enabled"`
-		Name                string         `json:"name"`
-		Description         string         `json:"description"`
-		Icon                string         `json:"icon"`
-		HTTPBasePath        string         `json:"path"`
+		RelayMetadata
 		SpecificallyBlocked []nostr.PubKey `json:"specifically_blocked"`
 		HellthreadLimit     int            `json:"hellthread_limit"`
 		MinDMPoW            int            `json:"min_dm_pow"`
@@ -77,31 +65,73 @@ type UserSettings struct {
 	} `json:"grasp"`
 
 	Popular struct {
-		Enabled          bool   `json:"enabled"`
-		Name             string `json:"name"`
-		Description      string `json:"description"`
-		Icon             string `json:"icon"`
-		HTTPBasePath     string `json:"path"`
-		PercentThreshold int    `json:"percent_threshold"`
+		RelayMetadata
+		PercentThreshold int `json:"percent_threshold"`
 	} `json:"popular"`
 
 	Uppermost struct {
-		Enabled          bool   `json:"enabled"`
-		Name             string `json:"name"`
-		Description      string `json:"description"`
-		Icon             string `json:"icon"`
-		HTTPBasePath     string `json:"path"`
-		PercentThreshold int    `json:"percent_threshold"`
+		RelayMetadata
+		PercentThreshold int `json:"percent_threshold"`
 	} `json:"uppermost"`
 
 	Moderated struct {
-		Enabled      bool   `json:"enabled"`
-		Name         string `json:"name"`
-		Description  string `json:"description"`
-		Icon         string `json:"icon"`
-		HTTPBasePath string `json:"path"`
-		MinPoW       uint   `json:"min_pow"`
+		RelayMetadata
+		MinPoW uint `json:"min_pow"`
 	} `json:"moderated"`
+}
+
+type RelayMetadata struct {
+	base string // identifies where this is
+
+	Enabled      bool   `json:"enabled"`
+	Name         string `json:"name"`
+	Description  string `json:"description"`
+	Icon         string `json:"icon"`
+	HTTPBasePath string `json:"path"`
+}
+
+func (rm RelayMetadata) GetName() string {
+	if rm.Name != "" {
+		return rm.Name
+	}
+	return rm.base
+}
+
+func (rm RelayMetadata) IsNameDefault() bool {
+	return rm.Name == ""
+}
+
+func (rm RelayMetadata) GetDescription() string {
+	if rm.Description != "" {
+		return rm.Description
+	}
+	switch rm.base {
+	case "internal":
+		return "the internal relay is only readable and writable by members. it can be used for meta discussions or anything else."
+	case "favorites":
+		return "relay members can manually republish notes here and they'll be saved."
+	case "inbox":
+		return "filtered notifications for relay members using unified web of trust filtering. only see mentions from people in the combined relay extended network."
+	case "popular":
+		return "auto-curated popular posts from relay members. this is a read-only relay where events are automatically fetched from other relays and saved based reactions, replies, favorites and zaps created by members."
+	case "uppermost":
+		return "this is like popular, but with higher thresholds for reactions and it doesn't consider replies."
+	case "moderated":
+		return "the moderated relay is a public relay where events from non-members are reviewed by members before publication."
+	default:
+		return ""
+	}
+}
+
+func (rm RelayMetadata) GetIcon() string {
+	if rm.Icon != "" {
+		return rm.Icon
+	}
+	return Settings.RelayIcon
+}
+
+func (rm RelayMetadata) IsIconDefault() bool {
+	return rm.Icon == ""
 }
 
 func (us UserSettings) HTTPScheme() string {
@@ -148,6 +178,13 @@ func loadUserSettings() error {
 	Settings.Popular.HTTPBasePath = "popular"
 	Settings.Uppermost.HTTPBasePath = "uppermost"
 	Settings.Moderated.HTTPBasePath = "moderated"
+
+	Settings.Inbox.base = "inbox"
+	Settings.Internal.base = "internal"
+	Settings.Favorites.base = "favorites"
+	Settings.Popular.base = "popular"
+	Settings.Uppermost.base = "uppermost"
+	Settings.Moderated.base = "moderated"
 
 	path := getUserSettingsPath()
 	os.MkdirAll(filepath.Dir(path), 0700)

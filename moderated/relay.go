@@ -56,18 +56,9 @@ func setupEnabled() {
 	Relay.ManagementAPI.BanEvent = banEventHandler
 
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
-		info.Name = global.Settings.Moderated.Name
-		if info.Name == "" {
-			info.Name = global.Settings.RelayName + " - moderated"
-		}
-		info.Description = global.Settings.Moderated.Description
-		if info.Description == "" {
-			info.Description = "moderated public relay. events are reviewed by members before publication."
-		}
-		info.Icon = global.Settings.Moderated.Icon
-		if info.Icon == "" {
-			info.Icon = global.Settings.RelayIcon
-		}
+		info.Name = global.Settings.Moderated.GetName()
+		info.Description = global.Settings.Moderated.GetDescription()
+		info.Icon = global.Settings.Moderated.GetIcon()
 		info.Contact = global.Settings.RelayContact
 		info.Software = "https://github.com/fiatjaf/pyramid"
 		return info
