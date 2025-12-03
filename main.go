@@ -177,7 +177,7 @@ func main() {
 			return rejectInviteRequestsNonAuthed(ctx, filter)
 		},
 	)
-	relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
+	relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 30)
 	relay.OnEvent = func(ctx context.Context, event nostr.Event) (reject bool, msg string) {
 		if len(event.Content) > 10_000 {
 			return true, "content is too big"
