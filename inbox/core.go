@@ -37,7 +37,7 @@ func rejectFilter(ctx context.Context, filter nostr.Filter) (bool, string) {
 
 	// from now on we know it's a secret kind query
 	// secret kinds require authentication
-	authedPublicKeys := khatru.GetConnection(ctx).AuthedPublicKeys
+	authedPublicKeys := khatru.GetAllAuthed(ctx)
 	if len(authedPublicKeys) == 0 {
 		return true, "auth-required: must authenticate to see private events"
 	}

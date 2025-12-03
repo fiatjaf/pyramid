@@ -11,7 +11,7 @@ import (
 
 func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 	return func(yield func(nostr.Event) bool) {
-		authed := khatru.GetConnection(ctx).AuthedPublicKeys
+		authed := khatru.GetAllAuthed(ctx)
 		groupIds, hasGroupIds := filter.Tags["d"]
 
 		switch hasGroupIds {

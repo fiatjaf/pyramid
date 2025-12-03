@@ -11,7 +11,7 @@ func (s *GroupsState) RequestAuthWhenNecessary(
 	ctx context.Context,
 	filter nostr.Filter,
 ) (reject bool, msg string) {
-	authed := khatru.GetConnection(ctx).AuthedPublicKeys
+	authed := khatru.GetAllAuthed(ctx)
 	groupIds, _ := filter.Tags["h"]
 
 	for _, groupId := range groupIds {

@@ -258,7 +258,7 @@ func queryMain(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 		// normal query
 		if global.Settings.Paywall.AmountSats > 0 && global.Settings.Paywall.PeriodDays > 0 {
 			// use this special query that filters content for paying visitors
-			authed := khatru.GetConnection(ctx).AuthedPublicKeys
+			authed := khatru.GetAllAuthed(ctx)
 
 			for evt := range global.IL.Main.QueryEvents(filter, 500) {
 				if nip70.IsProtected(evt) && (global.Settings.Paywall.Tag == "" || evt.Tags.FindWithValue("t", global.Settings.Paywall.Tag) != nil) {

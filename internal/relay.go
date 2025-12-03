@@ -70,7 +70,7 @@ func setupEnabled() {
 		policies.NoSearchQueries,
 		policies.MustAuth,
 		func(ctx context.Context, _ nostr.Filter) (bool, string) {
-			authedPublicKeys := khatru.GetConnection(ctx).AuthedPublicKeys
+			authedPublicKeys := khatru.GetAllAuthed(ctx)
 			if len(authedPublicKeys) == 0 {
 				return true, "auth-required: this is only viewable by relay members"
 			}

@@ -78,7 +78,7 @@ func setupEnabled() {
 		policies.PreventTooManyIndexableTags(1200, nil, []nostr.Kind{3}),
 		policies.RestrictToSpecifiedKinds(true, 1, 11, 1111, 1222, 1244, 30023, 30818, 9802, 20, 21, 22),
 		func(ctx context.Context, evt nostr.Event) (bool, string) {
-			authedPublicKeys := khatru.GetConnection(ctx).AuthedPublicKeys
+			authedPublicKeys := khatru.GetAllAuthed(ctx)
 			if len(authedPublicKeys) == 0 {
 				return true, "auth-required: must be a relay member"
 			}
