@@ -13,6 +13,10 @@ var canReadCache = xsync.NewMapOf[[16]byte, bool]()
 
 // returns a cached boolean or computes it and returns
 func CanReadPaywalled(author, reader nostr.PubKey) bool {
+	if author == reader {
+		return true
+	}
+
 	key := [16]byte{}
 	copy(key[0:8], author[0:8])
 	copy(key[8:16], reader[0:8])
