@@ -13,6 +13,9 @@ func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[n
 	return func(yield func(nostr.Event) bool) {
 		authed := khatru.GetAllAuthed(ctx)
 		groupIds, hasGroupIds := filter.Tags["d"]
+		if !hasGroupIds {
+			groupIds, hasGroupIds = filter.Tags["h"]
+		}
 
 		switch hasGroupIds {
 		case false:
@@ -31,7 +34,9 @@ func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[n
 					case nostr.KindSimpleGroupMetadata:
 						evt := group.ToMetadataEvent()
 						evt.Sign(s.secretKey)
-						yield(evt)
+						if !yield(evt) {
+							return
+						}
 					case nostr.KindSimpleGroupAdmins:
 						if pks, hasPTags := filter.Tags["p"]; hasPTags && !hasOneOfTheseAdmins(group.Group, pks) {
 							// filter queried p tags
@@ -39,7 +44,9 @@ func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[n
 						}
 						evt := group.ToAdminsEvent()
 						evt.Sign(s.secretKey)
-						yield(evt)
+						if !yield(evt) {
+							return
+						}
 					case nostr.KindSimpleGroupMembers:
 						if pks, hasPTags := filter.Tags["p"]; hasPTags && !hasOneOfTheseMembers(group.Group, pks) {
 							// filter queried p tags
@@ -47,11 +54,15 @@ func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[n
 						}
 						evt := group.ToMembersEvent()
 						evt.Sign(s.secretKey)
-						yield(evt)
+						if !yield(evt) {
+							return
+						}
 					case nostr.KindSimpleGroupRoles:
 						evt := group.ToRolesEvent()
 						evt.Sign(s.secretKey)
-						yield(evt)
+						if !yield(evt) {
+							return
+						}
 					default:
 						// to return all events from all groups would be insanity
 						// so we do a careful inspection of the filter here
@@ -71,9 +82,13 @@ func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[n
 						// now here in refE/refA/ids we have to check for each result if it is allowed
 						for evt := range results {
 							if group := s.GetGroupFromEvent(evt); !group.Hidden {
-								yield(evt)
+								if !yield(evt) {
+									return
+								}
 							} else if group.AnyOfTheseIsAMember(authed) {
-								yield(evt)
+								if !yield(evt) {
+									return
+								}
 							}
 						}
 					}
@@ -92,7 +107,9 @@ func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[n
 						case nostr.KindSimpleGroupMetadata:
 							evt := group.ToMetadataEvent()
 							evt.Sign(s.secretKey)
-							yield(evt)
+							if !yield(evt) {
+								return
+							}
 						case nostr.KindSimpleGroupAdmins:
 							if pks, hasPTags := filter.Tags["p"]; hasPTags && !hasOneOfTheseAdmins(group.Group, pks) {
 								// filter queried p tags
@@ -100,7 +117,9 @@ func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[n
 							}
 							evt := group.ToAdminsEvent()
 							evt.Sign(s.secretKey)
-							yield(evt)
+							if !yield(evt) {
+								return
+							}
 						case nostr.KindSimpleGroupMembers:
 							if group.Private {
 								// don't reveal lists of members of private groups ever, not even to members
@@ -121,7 +140,9 @@ func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[n
 							// if we are here that means that filter already includes at least an "h" tag
 							// and access control is already validated
 							for evt := range s.DB.QueryEvents(filter, 1500) {
-								yield(evt)
+								if !yield(evt) {
+									return
+								}
 							}
 
 							return
