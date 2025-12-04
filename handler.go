@@ -99,15 +99,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 
 			switch k {
 			case "domain":
-				global.Settings.Domain = v[0]
-				relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain
-				inbox.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Inbox.HTTPBasePath
-				favorites.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Favorites.HTTPBasePath
-				internal.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Internal.HTTPBasePath
-				moderated.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Moderated.HTTPBasePath
-				popular.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Popular.HTTPBasePath
-				uppermost.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Uppermost.HTTPBasePath
-				go restartSoon()
+				setupDomain(v[0])
 				//
 				// theme settings
 			case "background_color":
@@ -423,18 +415,37 @@ func domainSetupHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		global.Settings.Domain = domain
+		setupDomain(domain)
+
 		if err := global.SaveUserSettings(); err != nil {
 			http.Error(w, "failed to save domain: "+err.Error(), 500)
 			return
 		}
 
-		go restartSoon()
 		http.Redirect(w, r, "/", 302)
 		return
 	}
 
 	domainSetupPage().Render(r.Context(), w)
+}
+
+func setupDomain(domain string) {
+	global.Settings.Domain = domain
+	relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain
+
+	log.Info().
+		Str("domain", global.Settings.Domain).
+		Str("service-url", relay.ServiceURL).
+		Msg("main relay domain changed")
+
+	inbox.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Inbox.HTTPBasePath
+	favorites.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Favorites.HTTPBasePath
+	internal.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Internal.HTTPBasePath
+	moderated.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Moderated.HTTPBasePath
+	popular.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Popular.HTTPBasePath
+	uppermost.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Uppermost.HTTPBasePath
+
+	go restartSoon()
 }
 
 func rootUserSetupHandler(w http.ResponseWriter, r *http.Request) {
