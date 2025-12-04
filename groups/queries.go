@@ -131,9 +131,15 @@ func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[n
 							}
 							evt := group.ToMembersEvent()
 							evt.Sign(s.secretKey)
+							if !yield(evt) {
+								return
+							}
 						case nostr.KindSimpleGroupRoles:
 							evt := group.ToRolesEvent()
 							evt.Sign(s.secretKey)
+							if !yield(evt) {
+								return
+							}
 
 						// normal (non-metadata) events
 						default:
