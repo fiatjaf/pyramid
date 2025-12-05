@@ -46,7 +46,13 @@ templ graspPage(loggedUser nostr.PubKey) {
 											}
 										</td>
 										<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
-											<nostr-name pubkey={ repo.Event.PubKey.Hex() } class="text-stone-700 dark:text-stone-300">{ repo.Event.PubKey.Hex() }</nostr-name>
+											<a
+												href={ templ.URL("https://njump.to/p/" + repo.Event.PubKey.Hex()) }
+												target="_blank"
+												class="font-mono text-sm"
+											>
+												<nostr-name pubkey={ repo.Event.PubKey.Hex() } class="text-lg">{ repo.Event.PubKey.Hex() }</nostr-name>
+											</a>
 										</td>
 									</tr>
 								}
