@@ -13,9 +13,8 @@ import (
 var (
 	log       = global.Log.With().Str("relay", "groups").Logger()
 	hostRelay *khatru.Relay // hack to get the main relay object into here
-
-	State   *GroupsState
-	Handler http.Handler
+	Handler   = &MuxHandler{}
+	State     *GroupsState
 )
 
 func Init(relay *khatru.Relay) {
@@ -31,13 +30,12 @@ func Init(relay *khatru.Relay) {
 }
 
 func setupDisabled() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Handler.mux = http.NewServeMux()
+	Handler.mux.HandleFunc("POST /enable", enableHandler)
+	Handler.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
-		listGroupsPage(loggedUser).Render(r.Context(), w)
+		homeGroupsPage(loggedUser).Render(r.Context(), w)
 	})
-	mux.HandleFunc("POST /enable", enableHandler)
-	Handler = mux
 	State = nil
 }
 
@@ -49,9 +47,10 @@ func setupEnabled() {
 		Broadcast: hostRelay.BroadcastEvent,
 	})
 
-	mux := http.NewServeMux()
+	Handler.mux = http.NewServeMux()
 
-	mux.HandleFunc("/{groupId}", func(w http.ResponseWriter, r *http.Request) {
+	Handler.mux.HandleFunc("POST /disable", disableHandler)
+	Handler.mux.HandleFunc("/{groupId}", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		groupId := r.PathValue("groupId")
 
@@ -78,14 +77,10 @@ func setupEnabled() {
 		groupDetailPage(loggedUser, group, events).Render(r.Context(), w)
 	})
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Handler.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
-		listGroupsPage(loggedUser).Render(r.Context(), w)
+		homeGroupsPage(loggedUser).Render(r.Context(), w)
 	})
-
-	mux.HandleFunc("POST /disable", disableHandler)
-
-	Handler = mux
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {
@@ -124,4 +119,12 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 
 	setupDisabled()
 	http.Redirect(w, r, "/groups/", 302)
+}
+
+type MuxHandler struct {
+	mux *http.ServeMux
+}
+
+func (mh *MuxHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	mh.mux.ServeHTTP(w, r)
 }

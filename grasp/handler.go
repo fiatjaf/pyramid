@@ -15,7 +15,7 @@ import (
 var (
 	log       = global.Log.With().Str("relay", "grasp").Logger()
 	Relay     *khatru.Relay
-	Handler   http.Handler
+	Handler   = &MuxHandler{}
 	repoDir   string
 	hostRelay *khatru.Relay
 )
@@ -34,13 +34,12 @@ func Init(relay *khatru.Relay) {
 }
 
 func setupDisabled() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Handler.mux = http.NewServeMux()
+	Handler.mux.HandleFunc("POST /enable", enableHandler)
+	Handler.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		graspPage(loggedUser).Render(r.Context(), w)
 	})
-	mux.HandleFunc("POST /enable", enableHandler)
-	Handler = mux
 	Relay = nil
 }
 
@@ -54,14 +53,13 @@ func setupEnabled() {
 	// set up grasp server
 	grasp.New(hostRelay, repoDir)
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Handler.mux = http.NewServeMux()
+	Handler.mux.HandleFunc("POST /disable", disableHandler)
+	Handler.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		// fetch fresh repository list on each request
 		graspPage(loggedUser).Render(r.Context(), w)
 	})
-	mux.HandleFunc("POST /disable", disableHandler)
-	Handler = mux
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {
@@ -100,4 +98,12 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 
 	setupDisabled()
 	http.Redirect(w, r, "/grasp/", 302)
+}
+
+type MuxHandler struct {
+	mux *http.ServeMux
+}
+
+func (mh *MuxHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	mh.mux.ServeHTTP(w, r)
 }

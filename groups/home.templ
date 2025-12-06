@@ -5,11 +5,12 @@ import (
 
 	"fiatjaf.com/nostr"
 
+	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
-templ listGroupsPage(loggedUser nostr.PubKey) {
+templ homeGroupsPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "groups") {
 		<div
 			class="max-w-3xl mx-auto"
@@ -435,6 +436,33 @@ templ listGroupsPage(loggedUser nostr.PubKey) {
 						</form>
 					</div>
 				}
+			}
+			if pyramid.IsRoot(loggedUser) {
+				<div class="mt-24">
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">configuration</h3>
+					if !global.Settings.Groups.Enabled {
+						<form method="POST" action="/groups/enable">
+							<button
+								type="submit"
+								class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+							>
+								enable
+							</button>
+						</form>
+					} else {
+						<details>
+							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">disable groups</summary>
+							<form class="my-4" method="POST" action="/groups/disable">
+								<button
+									type="submit"
+									class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+								>
+									disable
+								</button>
+							</form>
+						</details>
+					}
+				</div>
 			}
 		</div>
 	}
