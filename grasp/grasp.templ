@@ -47,7 +47,7 @@ templ graspPage(loggedUser nostr.PubKey) {
 										</td>
 										<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
 											<a
-												href={ templ.URL("https://njump.to/p/" + repo.Event.PubKey.Hex()) }
+												href={ templ.URL(global.Settings.GetExternalLink(nostr.ProfilePointer{PublicKey: repo.Event.PubKey})) }
 												target="_blank"
 												class="font-mono text-sm"
 											>

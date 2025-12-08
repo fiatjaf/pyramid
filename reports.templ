@@ -4,7 +4,6 @@ import (
 	"iter"
 
 	"fiatjaf.com/nostr"
-	"fiatjaf.com/nostr/nip19"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
@@ -50,7 +49,9 @@ templ eventReportComponent(e nostr.Tag, target nostr.Event, report nostr.Event) 
 				{ report.CreatedAt.Time().Format("Jan 2, 2006 3:04 PM") }
 			</div>
 		</div>
-		<div class="text-sm text-gray-600 dark:text-gray-400">by <a class="hover:underline text-blue-600 dark:text-blue-400" title={ report.PubKey.Hex() } href={ templ.SafeURL("nostr:" + nip19.EncodeNpub(report.PubKey)) }><nostr-name pubkey={ report.PubKey.Hex() }></nostr-name></a></div>
+		<div class="text-sm text-gray-600 dark:text-gray-400">
+			by <a class="hover:underline text-blue-600 dark:text-blue-400" title={ report.PubKey.Hex() } href={ templ.URL(global.Settings.GetExternalLink(nostr.ProfilePointer{PublicKey: report.PubKey})) }><nostr-name pubkey={ report.PubKey.Hex() }></nostr-name></a>
+		</div>
 		if report.Content != "" {
 			<div class="mt-4 p-4 bg-gray-50/50 dark:bg-gray-900/50 rounded-xl text-gray-700 dark:text-gray-300">{ report.Content }</div>
 		}
@@ -79,7 +80,9 @@ templ profileReportComponent(p nostr.Tag, report nostr.Event) {
 				{ report.CreatedAt.Time().Format("Jan 2, 2006 3:04 PM") }
 			</div>
 		</div>
-		<div class="text-sm text-gray-600 dark:text-gray-400">by <a class="hover:underline text-blue-600 dark:text-blue-400" title={ report.PubKey.Hex() } href={ templ.SafeURL("nostr:" + nip19.EncodeNpub(report.PubKey)) }><nostr-name pubkey={ report.PubKey.Hex() }></nostr-name></a></div>
+		<div class="text-sm text-gray-600 dark:text-gray-400">
+			by <a class="hover:underline text-blue-600 dark:text-blue-400" title={ report.PubKey.Hex() } href={ templ.URL(global.Settings.GetExternalLink(nostr.ProfilePointer{PublicKey: report.PubKey})) }><nostr-name pubkey={ report.PubKey.Hex() }></nostr-name></a>
+		</div>
 		if report.Content != "" {
 			<div class="mt-4 p-4 bg-gray-50/50 dark:bg-gray-900/50 rounded-xl text-gray-700 dark:text-gray-300">{ report.Content }</div>
 		}
@@ -87,7 +90,11 @@ templ profileReportComponent(p nostr.Tag, report nostr.Event) {
 			<div class="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">profile reported:</div>
 			<div class="p-3 bg-gray-50/50 dark:bg-gray-900/50 rounded-xl">
 				{{ targetP, _ := nostr.PubKeyFromHex(p[1]) }}
-				<a href={ templ.URL("nostr:" + nip19.EncodeNpub(targetP)) } target="_blank" class="text-sm hover:underline text-blue-600 dark:text-blue-400">
+				<a
+					href={ templ.URL(global.Settings.GetExternalLink(nostr.ProfilePointer{PublicKey: targetP})) }
+					target="_blank"
+					class="text-sm hover:underline text-blue-600 dark:text-blue-400"
+				>
 					<nostr-name pubkey={ targetP.Hex() }></nostr-name>
 				</a>
 			</div>

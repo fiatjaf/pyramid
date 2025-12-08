@@ -114,6 +114,8 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.MaxInvitesPerPerson, _ = strconv.Atoi(v[0])
 			case "browse_uri":
 				global.Settings.BrowseURI = v[0]
+			case "link_url":
+				global.Settings.LinkURL = v[0]
 			case "require_current_timestamp":
 				global.Settings.RequireCurrentTimestamp = v[0] == "on"
 			case "paywall_tag":

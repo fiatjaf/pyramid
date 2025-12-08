@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/nip19"
 )
 
 type UserSettings struct {
@@ -27,6 +28,7 @@ type UserSettings struct {
 
 	// general
 	BrowseURI               string `json:"browse_uri"`
+	LinkURL                 string `json:"link_url"`
 	MaxInvitesPerPerson     int    `json:"max_invites_per_person"`
 	RequireCurrentTimestamp bool   `json:"require_current_timestamp"`
 
@@ -154,6 +156,10 @@ func (us UserSettings) HasThemeColors() bool {
 		us.Theme.TextColor == "#000000")
 }
 
+func (us UserSettings) GetExternalLink(pointer nostr.Pointer) string {
+	return strings.ReplaceAll(us.LinkURL, "{code}", nip19.EncodePointer(pointer))
+}
+
 func getUserSettingsPath() string {
 	return filepath.Join(S.DataPath, "settings.json")
 }
@@ -162,6 +168,7 @@ func loadUserSettings() error {
 	// start it with the defaults
 	Settings = UserSettings{
 		BrowseURI:               "https://fevela.me/?r=__URL__",
+		LinkURL:                 "nostr:{code}",
 		MaxInvitesPerPerson:     4,
 		RequireCurrentTimestamp: true,
 		BlockedIPs:              []string{},

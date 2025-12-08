@@ -152,6 +152,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					maxInvitesPerPerson: ` + fmt.Sprint(global.Settings.MaxInvitesPerPerson) + `,
 					requireCurrentTimestamp: ` + fmt.Sprint(global.Settings.RequireCurrentTimestamp) + `,
 					browseUri: '` + global.Settings.BrowseURI + `',
+					linkUrl: '` + global.Settings.LinkURL + `',
 					saved: false,
 					async saveSettings() {
 						const response = await fetch(this.$refs.form.action, {
@@ -193,7 +194,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">pattern for the "browse" link</label>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300">URL pattern for the relay "browse" links</label>
 						<div class="flex flex-wrap gap-2 items-center">
 							<input
 								type="text"
@@ -233,6 +234,42 @@ templ settingsPage(loggedUser nostr.PubKey) {
 								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 							>
 								coracle
+							</button>
+						</div>
+					</div>
+					<div>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300">URL pattern for external links</label>
+						<div class="flex flex-wrap gap-2 items-center">
+							<input
+								type="text"
+								name="link_url"
+								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-3"
+								x-model="linkUrl"
+								@blur="saveSettings()"
+							/>
+							<button
+								type="button"
+								@mousedown="linkUrl = 'nostr:{code}'"
+								@mouseup="saveSettings()"
+								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+							>
+								native
+							</button>
+							<button
+								type="button"
+								@mousedown="linkUrl = 'https://njump.me/{code}'"
+								@mouseup="saveSettings()"
+								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+							>
+								njump.me
+							</button>
+							<button
+								type="button"
+								@mousedown="linkUrl = 'https://njump.to/{code}'"
+								@mouseup="saveSettings()"
+								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+							>
+								njump.to
 							</button>
 						</div>
 					</div>
