@@ -100,7 +100,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								}
 							>groups</a>
 						}
-					if global.Settings.Grasp.Enabled || pyramid.IsRoot(loggedUser) {
+						if global.Settings.Grasp.Enabled || pyramid.IsRoot(loggedUser) {
 							<a
 								href="/grasp/"
 								class={
@@ -214,22 +214,38 @@ case "uppermost":
 								}
 							>settings</a>
 						}
-						<div x-data="authButton()">
-							<button
-								@click="handleAuth($event)"
-								class={
-									"px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg",
-									templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
-									templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
-								}
-							>
-								if loggedUser != nostr.ZeroPK {
-									logout
-								} else {
+						if loggedUser != nostr.ZeroPK {
+							<div class="flex items-center gap-3">
+								<div x-data="authButton()">
+									<button
+										@click="handleAuth($event)"
+										class={
+											"px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg",
+											templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
+											templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
+										}
+									>
+										logout
+									</button>
+								</div>
+								<nostr-name title={ loggedUser.Hex() } pubkey={ loggedUser.Hex() } class="text-stone-700 dark:text-stone-300 font-medium">
+									{ loggedUser.Hex() }
+								</nostr-name>
+							</div>
+						} else {
+							<div x-data="authButton()">
+								<button
+									@click="handleAuth($event)"
+									class={
+										"px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg",
+										templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
+										templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
+									}
+								>
 									login
-								}
-							</button>
-						</div>
+								</button>
+							</div>
+						}
 					</nav>
 				</div>
 			</header>
