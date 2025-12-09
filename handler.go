@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -99,7 +100,10 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 
 			switch k {
 			case "domain":
-				setupDomain(v[0])
+				if err := setupDomain(v[0]); err != nil {
+					http.Error(w, err.Error(), 400)
+					return
+				}
 				//
 				// theme settings
 			case "background_color":
@@ -404,6 +408,8 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var domainRegex = regexp.MustCompile(`^((xn--|_)?[a-z0-9-]{0,61}[a-z0-9]{1,1}\.)*(xn--)?([a-z0-9][a-z0-9\-]{0,60}|[a-z0-9-]{1,30}\.[a-z]{2,})(:\d{1,5})?$`)
+
 func domainSetupHandler(w http.ResponseWriter, r *http.Request) {
 	if global.Settings.Domain != "" {
 		http.Redirect(w, r, "/", 302)
@@ -417,7 +423,10 @@ func domainSetupHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		setupDomain(domain)
+		if err := setupDomain(domain); err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		}
 
 		if err := global.SaveUserSettings(); err != nil {
 			http.Error(w, "failed to save domain: "+err.Error(), 500)
@@ -431,7 +440,22 @@ func domainSetupHandler(w http.ResponseWriter, r *http.Request) {
 	domainSetupPage().Render(r.Context(), w)
 }
 
-func setupDomain(domain string) {
+func setupDomain(domain string) error {
+	// trim protocol prefixes
+	domain = strings.TrimPrefix(domain, "http://")
+	domain = strings.TrimPrefix(domain, "https://")
+	domain = strings.TrimPrefix(domain, "ws://")
+	domain = strings.TrimPrefix(domain, "wss://")
+
+	// trim trailing slashes and spaces again
+	domain = strings.TrimRight(domain, "/")
+	domain = strings.TrimSpace(domain)
+
+	// validate domain only contains letters, dots, and colons
+	if !domainRegex.MatchString(domain) {
+		return fmt.Errorf("invalid domain format: only letters, dots, and colons are allowed")
+	}
+
 	global.Settings.Domain = domain
 	relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain
 
@@ -448,6 +472,7 @@ func setupDomain(domain string) {
 	uppermost.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Uppermost.HTTPBasePath
 
 	go restartSoon()
+	return nil
 }
 
 func rootUserSetupHandler(w http.ResponseWriter, r *http.Request) {
