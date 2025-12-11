@@ -62,7 +62,6 @@ func main() {
 	relay = khatru.NewRelay()
 	relay.Info.Name = "main" // for debugging purposes
 	relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain
-	relay.Negentropy = true
 
 	// init sdk
 	global.Nostr = sdk.NewSystem()
