@@ -502,6 +502,28 @@ func rootUserSetupHandler(w http.ResponseWriter, r *http.Request) {
 	rootUserSetupPage().Render(r.Context(), w)
 }
 
+func updateHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		// if the update is successful the process will restart so this function will never return
+		if err := performUpdateInPlace(); err != nil {
+			log.Error().Err(err).Msg("update failed")
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		// if we reach here, the update failed to restart
+		http.Error(w, "unexpected: update done, but couldn't restart the server (or something else)", 500)
+		return
+	}
+}
+
 func forumHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `<!doctype html>
 <html>

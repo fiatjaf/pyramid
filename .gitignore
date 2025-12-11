@@ -1,6 +1,7 @@
 users.json
 pyramid-exe
 pyramid-bin
+pyramid-old-binary
 management.jsonl
 settings.json
 .env

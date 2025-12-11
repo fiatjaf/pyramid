@@ -365,6 +365,66 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					clear stuff from excluded users
 				</a>
 			</div>
+			<!-- update Section -->
+			<div
+				class="mt-8"
+				x-data={ `{
+					updating: false,
+					updateResult: '',
+					async performUpdate() {
+						this.updating = true;
+						this.updateResult = '';
+						try {
+							const response = await fetch('/update', {
+								method: 'POST',
+								headers: {
+									'Content-Type': 'application/x-www-form-urlencoded',
+								}
+							});
+							const result = await response.text();
+							this.updateResult = 'update failed: ' + result;
+						} catch (error) {
+							if (error.message === 'Failed to fetch') {
+								// this means we have probably succeeded
+								this.updateResult = 'update successful (probably). the page will refresh in 10 seconds.'
+								setTimeout(() => location.reload(), 10000)
+								return
+							}
+							this.updateResult = 'fetch call failed: ' + error.message;
+						} finally {
+							this.updating = false;
+						}
+					},
+					versionToNumber (versionName) {
+						if (versionName.startsWith('v')) versionName = versionName.slice(1)
+						return versionName.split('.').map((n, i) => parseInt(n) * 10**(10-i*3)).reduce((acc, n) => acc + n, 0)
+					}
+				}` }
+			>
+				<h3 class="text-lg font-semibold dark:text-stone-200 mb-3">update</h3>
+				<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
+					<div>current version: <span class="text-stone-600 dark:text-stone-400" x-ref="currentVersion">{ currentVersion }</span></div>
+					<div>latest version: <span class="text-stone-600 dark:text-stone-400" x-ref="latestVersion"><a href={ templ.SafeURL("https://github.com/fiatjaf/pyramid/releases/tag/" + latestVersion.name) } target="_blank">{ latestVersion.name }</a></span></div>
+				</p>
+				<div class="mt-2">
+					<button
+						type="button"
+						@click="confirm('this will download the new binary from github, replace the current one and restart the server, are you ok to continue?') ? performUpdate() : null"
+						:disabled="$refs.latestVersion.innerText === '' || versionToNumber($refs.latestVersion.innerText) <= versionToNumber($refs.currentVersion.innerText) || updating"
+						class="inline-block px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-400 text-white font-medium"
+					>
+						<span x-show="!updating">update pyramid</span>
+						<span x-show="updating">updating...</span>
+					</button>
+					<div
+						x-show="updateResult"
+						x-transition
+						class="mt-2 text-sm"
+						:class="updateResult.includes('failed') ? 'text-red-600 dark:text-red-400' : 'text-emerald-800 dark:text-emerald-300'"
+						x-text="updateResult"
+					></div>
+				</div>
+			</div>
 		</div>
 	}
 }

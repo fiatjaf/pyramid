@@ -51,6 +51,14 @@ func main() {
 	}
 	defer global.End()
 
+	// start periodic version checking
+	go func() {
+		for {
+			fetchLatestVersion()
+			time.Sleep(time.Hour * 3)
+		}
+	}()
+
 	pyramid.AbsoluteKey = global.Settings.RelayInternalSecretKey.Public()
 
 	if err := pyramid.LoadManagement(); err != nil {
@@ -80,6 +88,7 @@ func main() {
 	relay.Router().HandleFunc("/cleanup", cleanupStuffFromExcludedUsersHandler)
 	relay.Router().HandleFunc("/reports", reportsViewerHandler)
 	relay.Router().HandleFunc("/settings", settingsHandler)
+	relay.Router().HandleFunc("/update", updateHandler)
 	relay.Router().HandleFunc("/icon/{relayId}", iconHandler)
 	relay.Router().HandleFunc("/forum/", forumHandler)
 	relay.Router().Handle("/static/", http.FileServer(http.FS(static)))
@@ -284,19 +293,20 @@ func main() {
 }
 
 var (
-	restarting    = errors.New("restarting")
-	restartCancel func()
+	restarting         = errors.New("::restarting::")
+	updating           = errors.New("::updating::")
+	cancelStartContext context.CancelCauseFunc
 )
 
 func restartSoon() {
 	log.Info().Msg("restarting in 1 second")
 	time.Sleep(time.Second * 1)
-	restartCancel()
+	cancelStartContext(restarting)
 }
 
 func start() {
-	ctx, cancelWithCause := context.WithCancelCause(context.Background())
-	restartCancel = func() { cancelWithCause(restarting) }
+	var ctx context.Context
+	ctx, cancelStartContext = context.WithCancelCause(context.Background())
 
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
