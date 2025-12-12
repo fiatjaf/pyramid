@@ -265,7 +265,7 @@ func main() {
 	relay.ManagementAPI.BlockIP = blockIPHandler
 	relay.ManagementAPI.UnblockIP = unblockIPHandler
 	relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
-		if strings.Contains(r.Header.Get("User-Agent"), "aiohttp") {
+		if strings.Contains(r.Header.Get("User-Agent"), "aiohttp") || strings.Contains(r.Referer(), "flotilla") {
 			if idx := slices.Index(info.SupportedNIPs, 77); idx != -1 {
 				info.SupportedNIPs[idx] = info.SupportedNIPs[len(info.SupportedNIPs)-1]
 				info.SupportedNIPs = info.SupportedNIPs[0 : len(info.SupportedNIPs)-1]
