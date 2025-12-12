@@ -410,22 +410,27 @@ func publishMembershipChange(pubkey nostr.PubKey, added bool) {
 			c.relay.BroadcastEvent(evt)
 		}
 
-		// publish updated relay member list
-		members := []string{}
-		for pubkey := range pyramid.Members.Range {
-			members = append(members, pubkey.Hex())
-		}
-		evt := nostr.Event{
+		// publish updated relay member list and nip29 room creation permission list
+		relayMembersList := nostr.Event{
 			Kind:      13534,
 			CreatedAt: nostr.Now(),
 			Tags:      nostr.Tags{{"-"}},
 		}
-		for _, m := range members {
-			evt.Tags = append(evt.Tags, nostr.Tag{"member", m})
+		roomCreationPermissionList := nostr.Event{
+			Kind:      19004,
+			CreatedAt: nostr.Now(),
+			Tags:      nostr.Tags{{"-"}},
 		}
-		evt.Sign(global.Settings.RelayInternalSecretKey)
-		c.store.SaveEvent(evt)
-		c.relay.BroadcastEvent(evt)
+		for m := range pyramid.Members.Range {
+			relayMembersList.Tags = append(relayMembersList.Tags, nostr.Tag{"member", m.Hex()})
+			roomCreationPermissionList.Tags = append(roomCreationPermissionList.Tags, nostr.Tag{"p", m.Hex()})
+		}
+		relayMembersList.Sign(global.Settings.RelayInternalSecretKey)
+		roomCreationPermissionList.Sign(global.Settings.RelayInternalSecretKey)
+		c.store.SaveEvent(relayMembersList)
+		c.store.SaveEvent(roomCreationPermissionList)
+		c.relay.BroadcastEvent(relayMembersList)
+		c.relay.BroadcastEvent(roomCreationPermissionList)
 	}
 }
 
