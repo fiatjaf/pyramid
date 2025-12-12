@@ -19,10 +19,13 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
 
 ## features
 
+<img width="140" align="right" src="https://cdn.azzamo.net/bc8fdbccbd6914cf53edd87894addcf1acce3779dae37c90c93af98a2c1baf67.png" />
+
 - **easy install**
   - a single-line install setup and no need to fiddle with configuration files
+  - **easy update**: just click a button in the settings page to get the latest release.
   - if you can buy VPS access you can setup one of these
-  - lean resource usage, because this is not javascript, cheap servers will go very far
+  - lean resource usage: because this is not javascript it will work in the cheapest possible server you can get
 
 <img width="600" align="left" src="https://github.com/user-attachments/assets/9162cd0f-f442-45f6-a505-f1771e6b5ab4" />
 
