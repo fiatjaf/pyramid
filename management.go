@@ -20,6 +20,18 @@ func allowPubKeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string)
 	return pyramid.AddAction("invite", author, pubkey)
 }
 
+func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
+	author, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+	if !pyramid.IsRoot(author) {
+		return fmt.Errorf("must be a root user to ban an event")
+	}
+
+	return global.IL.Main.DeleteEvent(id)
+}
+
 func banPubKeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string) error {
 	author, ok := khatru.GetAuthed(ctx)
 	if !ok {

@@ -256,6 +256,7 @@ func main() {
 		relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 29)
 	}
 	relay.ManagementAPI.AllowPubKey = allowPubKeyHandler
+	relay.ManagementAPI.BanEvent = banEventHandler
 	relay.ManagementAPI.BanPubKey = banPubKeyHandler
 	relay.ManagementAPI.ListAllowedPubKeys = listAllowedPubKeysHandler
 	relay.ManagementAPI.ChangeRelayName = changeRelayNameHandler
