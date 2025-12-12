@@ -105,13 +105,15 @@ func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (rejec
 		return false, ""
 	}
 
-	// aside from that only members can write
-	group.mu.RLock()
-	if _, isMember := group.Members[event.PubKey]; !isMember {
+	// if the group is restricted or closed only members can write, otherwise all relay members can
+	if group.Restricted || group.Closed || !pyramid.IsMember(event.PubKey) {
+		group.mu.RLock()
+		if _, isMember := group.Members[event.PubKey]; !isMember {
+			group.mu.RUnlock()
+			return true, "blocked: unknown member"
+		}
 		group.mu.RUnlock()
-		return true, "blocked: unknown member"
 	}
-	group.mu.RUnlock()
 
 	// prevent republishing events that were just deleted
 	if slices.Contains(s.deletedCache[:], event.ID) {
