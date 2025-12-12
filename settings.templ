@@ -381,6 +381,12 @@ templ settingsPage(loggedUser nostr.PubKey) {
 									'Content-Type': 'application/x-www-form-urlencoded',
 								}
 							});
+							if (response.status === 502) {
+								// treat 502 as success (server restarting during update)
+								this.updateResult = 'update successful (probably, if you have a reverse-proxy). the page will refresh in 10 seconds.'
+								setTimeout(() => location.reload(), 10000)
+								return
+							}
 							const result = await response.text();
 							this.updateResult = 'update failed: ' + result;
 						} catch (error) {
