@@ -76,13 +76,6 @@ func cleanupStuffFromExcludedUsersHandler(w http.ResponseWriter, r *http.Request
 	fmt.Fprintf(w, "deleted %d events", count)
 }
 
-func reportsViewerHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser, _ := global.GetLoggedUser(r)
-
-	events := global.IL.Main.QueryEvents(nostr.Filter{Kinds: []nostr.Kind{1984}}, 52)
-	reportsPage(events, loggedUser).Render(r.Context(), w)
-}
-
 func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 

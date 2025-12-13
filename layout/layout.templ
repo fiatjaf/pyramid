@@ -192,17 +192,6 @@ case "uppermost":
 								}
 							</div>
 						</div>
-						if pyramid.IsMember(loggedUser) {
-							<a
-								href="/reports"
-								class={
-									"rounded-lg px-4 py-2 font-medium",
-									templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "reports"),
-								}
-							>reports</a>
-						}
 						if pyramid.IsRoot(loggedUser) {
 							<a
 								href="/settings"
