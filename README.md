@@ -31,7 +31,7 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
 
 - **hierarchical membership system**
   - members can invite other members, up to a configurable number of invites
-  - every member is responsible by all its children and descendants, and can decide to kick them out anytime
+  - every member is responsible for all its children and descendants, and can decide to kick them out anytime
   - a log of invites and drops is kept for rebuilding state and clarifying confusions
   - a member can be invited by more than one parent at the same time, safeguarding them from despotic future drops
   - a self-organizing system that can scale relay membership to thousands
@@ -76,7 +76,7 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
 - **extensive optional configurations**
   - almost everything is configurable from the UI
   - from relay metadata to numeric settings, for both the main relay and for all sub-relays
-  - event the path under which each sub-relay listens can be (dangerously) changed
+  - even the path under which each sub-relay listens can be (dangerously) changed
   - smart defaults allow you to get started easily and learn later
   - some settings can be configured using standard relay management tools
   - everything kept in a JSON file that can be edited manually
