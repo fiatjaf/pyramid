@@ -246,9 +246,17 @@ case "uppermost":
 										logout
 									</button>
 								</div>
-								<nostr-name title={ loggedUser.Hex() } pubkey={ loggedUser.Hex() } class="text-stone-700 dark:text-stone-300 font-medium">
-									{ loggedUser.Hex() }
-								</nostr-name>
+								if pyramid.IsMember(loggedUser) {
+									<a href="/member" class="light:text-stone-700 dark:text-stone-300 font-medium hover:underline">
+										<nostr-name title={ loggedUser.Hex() } pubkey={ loggedUser.Hex() }>
+											{ loggedUser.Hex() }
+										</nostr-name>
+									</a>
+								} else {
+									<nostr-name title={ loggedUser.Hex() } pubkey={ loggedUser.Hex() }>
+										{ loggedUser.Hex() }
+									</nostr-name>
+								}
 							</div>
 						} else {
 							<div x-data="authButton()">

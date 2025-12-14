@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"strings"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/nip05"
 
 	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
@@ -25,7 +27,14 @@ import (
 
 func inviteTreeHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
-	inviteTreePage(loggedUser).Render(r.Context(), w)
+	var nip05Names map[nostr.PubKey]string
+	if global.Settings.NIP05.Enabled {
+		nip05Names = make(map[nostr.PubKey]string, pyramid.Members.Size())
+		for name, pubkey := range global.Settings.NIP05.Names {
+			nip05Names[pubkey] = name
+		}
+	}
+	inviteTreePage(loggedUser, nip05Names).Render(r.Context(), w)
 }
 
 func actionHandler(w http.ResponseWriter, r *http.Request) {
@@ -137,6 +146,10 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				if days, err := strconv.ParseUint(v[0], 10, 64); err == nil {
 					global.Settings.Paywall.PeriodDays = uint(days)
 				}
+				//
+				// nip-05 settings
+			case "nip05_enabled":
+				global.Settings.NIP05.Enabled = v[0] == "on"
 				//
 				// basic metadata of all relays
 			case "main_name":
@@ -553,4 +566,77 @@ func forumHandler(w http.ResponseWriter, r *http.Request) {
   <script src="https://cdn.jsdelivr.net/npm/relay-forum@0.0.2/dist/index.js"></script>
 </html>
 `)
+}
+
+func memberPageHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsMember(loggedUser) {
+		http.Error(w, "unauthorized", 401)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		r.ParseForm()
+
+		if nip05Username := r.PostFormValue("nip05_username"); nip05Username != "" {
+			// basic validation for NIP-05 username (alphanumeric and underscores only)
+			nip05Username = strings.ToLower(nip05Username)
+			if !regexp.MustCompile(`^[a-z0-9_]+$`).MatchString(nip05Username) {
+				http.Error(w, "invalid username: only letters, numbers, and underscores are allowed", 400)
+				return
+			}
+
+			// check if this name is already being used
+			if _, inUse := global.Settings.NIP05.Names[nip05Username]; inUse {
+				http.Error(w, "username already taken", 400)
+				return
+			}
+
+			// clear the previous username for this user
+			for name, pubkey := range global.Settings.NIP05.Names {
+				if pubkey == loggedUser {
+					delete(global.Settings.NIP05.Names, name)
+				}
+			}
+
+			// add this new name
+			global.Settings.NIP05.Names[nip05Username] = loggedUser
+
+			// save
+			global.SaveUserSettings()
+		}
+
+		if strings.Contains(r.Header.Get("Accept"), "text/html") {
+			http.Redirect(w, r, r.Header.Get("Referer"), 302)
+		}
+		return
+	}
+
+	var nip05 string
+	for name, pubkey := range global.Settings.NIP05.Names {
+		if pubkey == loggedUser {
+			nip05 = name
+			break
+		}
+	}
+
+	memberPage(loggedUser, nip05).Render(r.Context(), w)
+}
+
+func nip05Handler(w http.ResponseWriter, r *http.Request) {
+	resp := nip05.WellKnownResponse{
+		Names: global.Settings.NIP05.Names,
+	}
+
+	specifiedNames := r.URL.Query()["name"]
+	if len(specifiedNames) > 0 {
+		resp.Relays = make(map[nostr.PubKey][]string, len(specifiedNames))
+	}
+	for _, name := range specifiedNames {
+		if pk, ok := global.Settings.NIP05.Names[name]; ok {
+			resp.Relays[pk] = []string{global.Settings.WSScheme() + global.Settings.Domain}
+		}
+	}
+	json.NewEncoder(w).Encode(resp)
 }

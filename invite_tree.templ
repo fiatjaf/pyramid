@@ -8,7 +8,7 @@ import (
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
-templ inviteTreePage(loggedUser nostr.PubKey) {
+templ inviteTreePage(loggedUser nostr.PubKey, nip05Names map[nostr.PubKey]string) {
 	@layout.Layout(loggedUser, "invite-tree") {
 		<div class="max-w-3xl mx-auto">
 			if pyramid.CanInviteMore(loggedUser) {
@@ -50,13 +50,18 @@ templ inviteTreePage(loggedUser nostr.PubKey) {
 					class="text-gray-700 dark:text-gray-300"
 				}
 			>
-				@inviteTreeComponent(pyramid.AbsoluteKey, loggedUser, false)
+				@inviteTreeComponent(pyramid.AbsoluteKey, loggedUser, false, nip05Names)
 			</div>
 		</div>
 	}
 }
 
-templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey, isAncestorOfLoggedUser bool) {
+templ inviteTreeComponent(
+	curr nostr.PubKey,
+	loggedUser nostr.PubKey,
+	isAncestorOfLoggedUser bool,
+	nip05Names map[nostr.PubKey]string,
+) {
 	<ul>
 		for child := range pyramid.GetChildren(curr) {
 			<li class="ml-6 py-1 group">
@@ -94,14 +99,19 @@ templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey, isAncestor
 							<button
 								type="submit"
 								onclick="return confirm('really drop this user and its descendants?')"
-								class="opacity-40 hover:opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-red-500/10 hover:text-red-500 text-gray-600 dark:text-gray-400"
+								class="cursor-pointer opacity-40 hover:opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-red-500/10 hover:text-red-500 text-gray-600 dark:text-gray-400"
 							>
 								drop
 							</button>
 						</form>
 					}
+					if name, exists := nip05Names[child]; exists {
+						<div class="inline-flex items-center border rounded-md px-1 text-xs opacity-70 hover:opacity-100">
+							{ name }{ "@" }{ global.Settings.Domain }
+						</div>
+					}
 				</div>
-				@inviteTreeComponent(child, loggedUser, isAncestorOfLoggedUser || (loggedUser != nostr.ZeroPK && loggedUser == curr))
+				@inviteTreeComponent(child, loggedUser, isAncestorOfLoggedUser || (loggedUser != nostr.ZeroPK && loggedUser == curr), nip05Names)
 			</li>
 		}
 	</ul>

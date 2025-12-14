@@ -87,9 +87,11 @@ func main() {
 	relay.Router().HandleFunc("/action", actionHandler)
 	relay.Router().HandleFunc("/cleanup", cleanupStuffFromExcludedUsersHandler)
 	relay.Router().HandleFunc("/settings", settingsHandler)
+	relay.Router().HandleFunc("/member", memberPageHandler)
 	relay.Router().HandleFunc("/update", updateHandler)
 	relay.Router().HandleFunc("/icon/{relayId}", iconHandler)
 	relay.Router().HandleFunc("/forum/", forumHandler)
+	relay.Router().HandleFunc("/.well-known/nostr.json", nip05Handler)
 	relay.Router().Handle("/static/", http.FileServer(http.FS(static)))
 	relay.Router().HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		if global.Settings.RelayIcon != "" {

@@ -292,6 +292,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 						<label for="require_current_timestamp" class="ml-2 text-sm font-medium dark:text-stone-300">
 							require event timestamps to be current (within ±60 seconds)
 						</label>
+						<input type="hidden" name="require_current_timestamp" value="off"/>
 					</div>
 					<div>
 						<label class="block text-sm font-medium mb-2 dark:text-stone-300">max invites per person</label>
@@ -452,6 +453,52 @@ templ settingsPage(loggedUser nostr.PubKey) {
 							x-model="paywallPeriod"
 							@blur="saveSettings()"
 						/>
+					</div>
+				</div>
+				<div
+					x-show="saved"
+					x-transition
+					class="text-sm text-green-600 dark:text-green-400 font-medium"
+				>
+					saved!
+				</div>
+			</form>
+			<!-- NIP-05 Settings Section -->
+			<form
+				method="POST"
+				action="/settings"
+				class="space-y-6 mt-8"
+				x-data={ `{
+					nip05Enabled: ` + fmt.Sprint(global.Settings.NIP05.Enabled) + `,
+					saved: false,
+					async saveSettings() {
+						const response = await fetch(this.$refs.form.action, {
+							method: 'POST',
+							body: new URLSearchParams(new FormData(this.$refs.form))
+						})
+						if (response.ok) {
+							this.saved = true;
+							setTimeout(() => this.saved = false, 2000)
+						}
+					}
+				}` }
+				x-ref="form"
+			>
+				<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">nip-05 addresses</h3>
+				<div class="space-y-4">
+					<div class="flex items-center">
+						<input
+							type="checkbox"
+							name="nip05_enabled"
+							id="nip05_enabled"
+							class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
+							x-model="nip05Enabled"
+							@change="saveSettings()"
+						/>
+						<label for="nip05_enabled" class="ml-2 text-sm font-medium dark:text-stone-300">
+							enable NIP-05 addresses for members
+						</label>
+						<input type="hidden" name="nip05_enabled" value="off"/>
 					</div>
 				</div>
 				<div

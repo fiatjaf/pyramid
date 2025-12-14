@@ -44,6 +44,11 @@ type UserSettings struct {
 		PeriodDays uint   `json:"period_days"`
 	} `json:"paywall"`
 
+	NIP05 struct {
+		Enabled bool                    `json:"enabled"`
+		Names   map[string]nostr.PubKey `json:"names"`
+	} `json:"nip05"`
+
 	RelayInternalSecretKey nostr.SecretKey `json:"relay_internal_secret_key"`
 
 	BlockedIPs []string `json:"blocked_ips"`
@@ -210,6 +215,9 @@ func loadUserSettings() error {
 	Settings.Popular.base = "popular"
 	Settings.Uppermost.base = "uppermost"
 	Settings.Moderated.base = "moderated"
+
+	// nip05
+	Settings.NIP05.Names = make(map[string]nostr.PubKey)
 
 	path := getUserSettingsPath()
 	os.MkdirAll(filepath.Dir(path), 0700)
