@@ -23,6 +23,13 @@ jobs:
         run: echo "TEMPL_VERSION=$(grep 'github.com/a-h/templ' go.mod | awk '{print $2}')" >> $GITHUB_ENV
       - name: Install templ
         run: go install github.com/a-h/templ/cmd/templ@${{ env.TEMPL_VERSION }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+          cache: 'npm'
+      - name: Install Nodejs dependencies (Tailwind)
+        run: npm install
       - uses: extractions/setup-just@v2
       - name: Build binary
         run: just build

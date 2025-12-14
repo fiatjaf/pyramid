@@ -8,3 +8,4 @@ settings.json
 db
 *_templ.go
 data
+node_modules

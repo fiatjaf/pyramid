@@ -50,7 +50,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 					}
 				}
 			}
-			<script src="https://cdn.tailwindcss.com"></script>
+			<link rel="stylesheet" href="/static/styles.css"/>
 			if !global.Settings.HasThemeColors() {
 				<script>tailwind.config = { darkMode: 'class' }</script>
 			}

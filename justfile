@@ -1,7 +1,7 @@
 dev:
-    fd 'go|templ' | entr -r bash -c 'just templ && go build -o ./pyramid-exe && godotenv ./pyramid-exe'
+    fd 'go|templ' | entr -r bash -c 'just templ && just tailwind && go build -o ./pyramid-exe && godotenv ./pyramid-exe'
 
-build: templ
+build: templ tailwind
     #!/bin/bash
 
     # set the global variable `currentVersion` to the latest git tag if we're in it, otherwise use the name of the latest tag + the first 8 characters of the current commit
@@ -12,6 +12,9 @@ build: templ
 
 templ:
     templ generate
+
+tailwind:
+    ./node_modules/.bin/tailwindcss -i base.css -o static/styles.css
 
 deploy target: build
     ssh root@{{target}} 'systemctl stop pyramid';
