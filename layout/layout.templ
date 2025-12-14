@@ -69,12 +69,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 					templ.KV("bg-white/60 dark:bg-stone-800/90", !global.Settings.HasThemeColors()),
 				}
 			>
-				<div
-					class={
-						"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
-						templ.KV("font-[family-name:var(--primary-font)]", global.Settings.HasThemeColors()),
-					}
-				>
+				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div class="flex items-center justify-between py-6">
 						if global.Settings.RelayIcon != "" {
 							<a href="/">
@@ -85,7 +80,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							<a href="/">
 								<h1
 									class={
-										"font-bold text-3xl",
+										"font-bold text-3xl font-[family-name:var(--primary-font)]",
 										templ.KV("text-[var(--accent-color)]", global.Settings.HasThemeColors()),
 										templ.KV("text-blue-600 dark:text-blue-400", !global.Settings.HasThemeColors()),
 									}
@@ -289,7 +284,7 @@ case "uppermost":
 						<a
 							target="_blank"
 							href="https://github.com/fiatjaf/pyramid"
-							class="font-bold"
+							class="font-bold font-[family-name:var(--primary-font)]"
 						>pyramid</a>
 					</p>
 				</div>
