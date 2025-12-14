@@ -21,9 +21,15 @@ type UserSettings struct {
 
 	// theme
 	Theme struct {
-		BackgroundColor string `json:"background_color"`
-		TextColor       string `json:"text_color"`
-		AccentColor     string `json:"accent_color"`
+		BackgroundColor          string `json:"background_color"`
+		TextColor                string `json:"text_color"`
+		AccentColor              string `json:"accent_color"`
+		SecondaryBackgroundColor string `json:"secondary_background_color"`
+		ExtraColor               string `json:"extra_color"`
+		BaseColor                string `json:"base_color"`
+		HeaderTransparency       string `json:"header_transparency"`
+		PrimaryFont              string `json:"primary_font"`
+		SecondaryFont            string `json:"secondary_font"`
 	} `json:"theme"`
 
 	// general
@@ -153,7 +159,10 @@ func (us UserSettings) HasThemeColors() bool {
 	/* #000000 is the default value when submitting a blank <input type="color"> */
 	us.Theme.BackgroundColor == "#000000" &&
 		us.Theme.AccentColor == "#000000" &&
-		us.Theme.TextColor == "#000000")
+		us.Theme.TextColor == "#000000" &&
+		us.Theme.SecondaryBackgroundColor == "#000000" &&
+		us.Theme.ExtraColor == "#000000" &&
+		us.Theme.BaseColor == "#000000")
 }
 
 func (us UserSettings) GetExternalLink(pointer nostr.Pointer) string {
@@ -185,6 +194,15 @@ func loadUserSettings() error {
 	Settings.Popular.HTTPBasePath = "popular"
 	Settings.Uppermost.HTTPBasePath = "uppermost"
 	Settings.Moderated.HTTPBasePath = "moderated"
+
+	// theme defaults
+	Settings.Theme.TextColor = "#ffffff"
+	Settings.Theme.SecondaryBackgroundColor = "#ffffff"
+	Settings.Theme.ExtraColor = "#059669"
+	Settings.Theme.BaseColor = "#000000"
+	Settings.Theme.HeaderTransparency = "100"
+	Settings.Theme.PrimaryFont = "Inter"
+	Settings.Theme.SecondaryFont = "system-ui"
 
 	Settings.Inbox.base = "inbox"
 	Settings.Internal.base = "internal"

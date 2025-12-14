@@ -18,11 +18,10 @@ templ inviteTreePage(loggedUser nostr.PubKey) {
 					class="flex items-center gap-3 mb-6"
 				>
 					<label
-						class="text-sm font-medium"
-						if global.Settings.HasThemeColors() {
-							class="text-[var(--text-color)]"
-						} else {
-							class="text-gray-700 dark:text-gray-300"
+						class={
+							"font-medium",
+							templ.KV("text-[var(--extra-color)]", global.Settings.HasThemeColors()),
+							templ.KV("text-gray-700 dark:text-gray-300", !global.Settings.HasThemeColors()),
 						}
 					>invite new member: </label>
 					<input
@@ -34,7 +33,11 @@ templ inviteTreePage(loggedUser nostr.PubKey) {
 					<input type="hidden" name="type" value="invite"/>
 					<button
 						type="submit"
-						class="rounded-lg px-4 py-1.5 text-sm font-semibold text-white shadow-lg transform hover:scale-105 bg-stone-600 hover:bg-stone-700 dark:bg-stone-500 dark:hover:bg-stone-600"
+						class={
+							"rounded-lg px-4 py-1.5 text-sm font-semibold text-white shadow-lg transform hover:scale-105",
+							templ.KV("bg-[var(--extra-color)] hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)]", global.Settings.HasThemeColors()),
+							templ.KV("bg-stone-600 hover:bg-stone-700 dark:bg-stone-500 dark:hover:bg-stone-600", !global.Settings.HasThemeColors()),
+						}
 					>
 						invite
 					</button>
@@ -60,7 +63,7 @@ templ inviteTreeComponent(curr nostr.PubKey, loggedUser nostr.PubKey, isAncestor
 				<div class="flex items-center gap-2">
 					<span
 						if global.Settings.HasThemeColors() {
-							class="text-gray-700 hover:text-gray-500"
+							class="text-[var(--base-color)] hover:text-[rgb(from_var(--base-color)_r_g_b_/_40%)]"
 						} else {
 							class="text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400"
 						}

@@ -105,6 +105,18 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Theme.TextColor = v[0]
 			case "accent_color":
 				global.Settings.Theme.AccentColor = v[0]
+			case "secondary_background_color":
+				global.Settings.Theme.SecondaryBackgroundColor = v[0]
+			case "extra_color":
+				global.Settings.Theme.ExtraColor = v[0]
+			case "base_color":
+				global.Settings.Theme.BaseColor = v[0]
+			case "header_transparency":
+				global.Settings.Theme.HeaderTransparency = v[0]
+			case "primary_font":
+				global.Settings.Theme.PrimaryFont = v[0]
+			case "secondary_font":
+				global.Settings.Theme.SecondaryFont = v[0]
 				//
 				// general settings
 			case "max_invites_per_person":
