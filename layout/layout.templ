@@ -22,10 +22,11 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 				"--header-transparency:" + global.Settings.Theme.HeaderTransparency + "%;" +
 				"--primary-font:" + global.Settings.Theme.PrimaryFont + ";" +
 				"--secondary-font:" + global.Settings.Theme.SecondaryFont + ";") }
+			class="themed"
 		} else {
 			x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }"
 			x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))"
-			:class="{ 'dark': darkMode }"
+			:class="{ 'unthemed': true, 'dark': darkMode, 'light': !darkMode }"
 		}
 	>
 		<head>
@@ -55,16 +56,10 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 			<script src="https://cdn.jsdelivr.net/npm/nostr-web-components@0.0.12/dist/nostr-name.js"></script>
 		</head>
 		<body
-			class={ "min-h-screen flex flex-col",
-			templ.KV("bg-[var(--bg-color)] text-[var(--base-color)] font-[family-name:var(--secondary-font)]", global.Settings.HasThemeColors()),
-			templ.KV("bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100", !global.Settings.HasThemeColors()) }
+			class="min-h-screen flex flex-col themed:bg-[var(--bg-color)] themed:text-[var(--base-color)] themed:font-[family-name:var(--secondary-font)] light:bg-stone-50 dark:bg-stone-900 light:text-stone-900 dark:text-stone-100"
 		>
 			<header
-				class={
-					"backdrop-blur-sm sticky top-0 z-50 shadow-sm border-b border-stone-300",
-					templ.KV("bg-[rgb(from_var(--secondary-bg-color)_r_g_b_/_var(--header-transparency))]", global.Settings.HasThemeColors()),
-					templ.KV("bg-white/60 dark:bg-stone-800/90", !global.Settings.HasThemeColors()),
-				}
+				class="backdrop-blur-sm sticky top-0 z-50 shadow-sm border-b border-stone-300 themed:bg-[rgb(from_var(--secondary-bg-color)_r_g_b_/_var(--header-transparency))] light:bg-white/60 dark:bg-stone-800/90"
 			>
 				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div class="flex items-center justify-between py-6">
@@ -76,11 +71,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 						<div class="flex-1 mr-auto">
 							<a href="/">
 								<h1
-									class={
-										"font-bold text-3xl font-[family-name:var(--primary-font)]",
-										templ.KV("text-[var(--accent-color)]", global.Settings.HasThemeColors()),
-										templ.KV("text-blue-600 dark:text-blue-400", !global.Settings.HasThemeColors()),
-									}
+									class="font-bold text-3xl font-[family-name:var(--primary-font)] themed:text-[var(--accent-color)] light:text-blue-600 dark:text-blue-400"
 								>{ global.Settings.RelayName }</h1>
 							</a>
 							if global.Settings.RelayDescription != "" {
@@ -92,53 +83,30 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							}
 						</div>
 						if !global.Settings.HasThemeColors() {
-							<button @click="darkMode = !darkMode" class="ml-auto p-2.5 rounded-lg bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600" aria-label="Toggle dark mode">
+							<button @click="darkMode = !darkMode" class="cursor-pointer ml-auto p-2.5 rounded-lg bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600" aria-label="toggle dark mode">
 								<svg x-show="darkMode" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
 								<svg x-show="!darkMode" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
 							</button>
 						}
 					</div>
 					<nav class="flex flex-wrap gap-2 items-center justify-center pb-4">
-						<a
-							href="/"
-							class={
-								"rounded-lg px-4 py-2 font-medium",
-								templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-								templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "invite-tree"),
-							}
-						>invite tree</a>
-						<a
-							class={
-								"rounded-lg px-4 py-2 font-medium",
-								templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-								templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-							}
-							target="_blank"
-							href={ global.Settings.BrowseURI }
-							x-init="$el.href = $el.href.replace('__URL__', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 3).join('/')))"
-						>browse</a>
+						@NavLink("/", currentPage == "invite-tree") {
+							invite tree
+						}
+						@NavLink(global.Settings.BrowseURI, false) {
+							<span x-init="$el.parentNode.setAttribute('href', $el.parentNode.href.replace('__URL__', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 3).join('/')))); $el.parentNode.setAttribute('target', '_blank')">
+								browse
+							</span>
+						}
 						if global.Settings.Groups.Enabled || pyramid.IsRoot(loggedUser) {
-							<a
-								href="/groups/"
-								class={
-									"rounded-lg px-4 py-2 font-medium",
-									templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "groups"),
-								}
-							>groups</a>
+							@NavLink("/groups/", currentPage == "groups") {
+								groups
+							}
 						}
 						if global.Settings.Grasp.Enabled || pyramid.IsRoot(loggedUser) {
-							<a
-								href="/grasp/"
-								class={
-									"rounded-lg px-4 py-2 font-medium",
-									templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "grasp"),
-								}
-							>grasp</a>
+							@NavLink("/grasp/", currentPage == "grasp") {
+								grasp
+							}
 						}
 						<div
 							x-data="{ open: false }"
@@ -147,11 +115,9 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 						>
 							<button
 								@click="open = !open"
-								class={ "rounded-lg px-4 py-2 font-medium flex items-center gap-1",
-									templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-							templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "moderated"),
-							templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !(global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)) && !global.Settings.Moderated.Enabled) }
+								class={ "cursor-pointer rounded-lg px-4 py-2 font-medium flex items-center gap-1 themed:text-[var(--text-color)] themed:hover:bg-[rgb(from_var(--text-color)_r_g_b_/10%)] light:hover:bg-stone-100 dark:hover:bg-stone-700",
+                                    templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "moderated"),
+                                    templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !(global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)) && !global.Settings.Moderated.Enabled) }
 							>
 								switch currentPage {
 									case "favorites":
@@ -203,45 +169,27 @@ case "uppermost":
 }
 									}}
 									if enabled || pyramid.IsRoot(loggedUser) {
-										<a
-											href={ templ.SafeURL("/" + path + "/") }
-											class={
-												"block px-4 py-2 text-sm",
-												templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-												templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-												templ.KV("bg-stone-100 dark:bg-stone-700", currentPage == page),
-											}
-										>
+										@NavLink("/"+path+"/", currentPage == page) {
 											{ path }
 											if path != page {
 												<span class="text-sm opacity-70">&nbsp;({ page })</span>
 											}
-										</a>
+										}
 									}
 								}
 							</div>
 						</div>
 						if pyramid.IsRoot(loggedUser) {
-							<a
-								href="/settings"
-								class={
-									"rounded-lg px-4 py-2 font-medium",
-									templ.KV("text-[var(--text-color)]", global.Settings.HasThemeColors()),
-									templ.KV("hover:bg-stone-100 dark:hover:bg-stone-700", !global.Settings.HasThemeColors()),
-									templ.KV("bg-stone-200 dark:bg-stone-700", currentPage == "settings"),
-								}
-							>settings</a>
+							@NavLink("/settings", currentPage == "settings") {
+								settings
+							}
 						}
 						if loggedUser != nostr.ZeroPK {
 							<div class="flex items-center gap-3">
 								<div x-data="authButton()">
 									<button
 										@click="handleAuth($event)"
-										class={
-											"px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg",
-											templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
-											templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
-										}
+										class="px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg themed:bg-[var(--accent-color)] light:bg-blue-500 hover:bg-blue-600"
 									>
 										logout
 									</button>
@@ -262,11 +210,7 @@ case "uppermost":
 							<div x-data="authButton()">
 								<button
 									@click="handleAuth($event)"
-									class={
-										"px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg",
-										templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
-										templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
-									}
+									class="px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg themed:bg-[var(--accent-color)] light:bg-blue-500 hover:bg-blue-600"
 								>
 									login
 								</button>
@@ -279,9 +223,7 @@ case "uppermost":
 				{ children... }
 			</main>
 			<footer
-				class={ "mt-auto backdrop-blur-sm",
-					templ.KV("bg-[rgb(from_var(--secondary-bg-color)_r_g_b_/_var(--header-transparency))]", global.Settings.HasThemeColors()),
-					templ.KV("bg-white/50 dark:bg-stone-800/50", !global.Settings.HasThemeColors()) }
+				class="mt-auto backdrop-blur-sm themed:bg-[rgb(from_var(--secondary-bg-color)_r_g_b_/_var(--header-transparency))] light:bg-white/50 dark:bg-stone-800/50"
 			>
 				<div class="max-w-7xl mx-auto px-4 py-6 text-center">
 					<p class="text-sm">

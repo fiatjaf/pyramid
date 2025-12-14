@@ -1,0 +1,17 @@
+package layout
+
+templ SubSectionTitle(title string) {
+	<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">{ title }</h3>
+}
+
+templ NavLink(href string, selected bool) {
+	<a
+		href={ templ.SafeURL(href) }
+		class={
+			"block rounded-lg px-4 py-2 font-medium themed:text-[var(--text-color)] themed:hover:bg-[rgb(from_var(--text-color)_r_g_b_/10%)] light:hover:bg-stone-100 dark:hover:bg-stone-700",
+			templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", selected),
+		}
+	>
+		{ children... }
+	</a>
+}

@@ -139,7 +139,7 @@ templ RelayMetadata(relayId string, name, description, icon string) {
 						<button
 							type="button"
 							@click="$refs.iconFile.click()"
-							class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+							class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
 						>upload</button>
 					</div>
 					<div x-show="uploadError" x-transition class="text-sm text-red-600 dark:text-red-400 font-medium mt-2" x-text="uploadError"></div>

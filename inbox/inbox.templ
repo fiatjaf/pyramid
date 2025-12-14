@@ -40,11 +40,7 @@ templ inboxPage(loggedUser nostr.PubKey) {
 				</div>
 				if global.Settings.Inbox.Enabled {
 					<a
-						class={
-							"mb-4 inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105",
-							templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
-							templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
-						}
+						class="mb-4 inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 themed:bg-[var(--accent-color)] unthemed:bg-blue-500 unthemed:bg-blue-600"
 						target="_blank"
 						href={ global.Settings.BrowseURI }
 						x-init="$el.href = $el.href.replace('__URL__', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"

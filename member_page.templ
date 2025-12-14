@@ -1,0 +1,94 @@
+package main
+
+import (
+	"fiatjaf.com/nostr"
+
+	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
+	"github.com/fiatjaf/pyramid/pyramid"
+)
+
+templ memberPage(loggedUser nostr.PubKey, nip05 string) {
+	@layout.Layout(loggedUser, "member settings") {
+		<div class="max-w-4xl mx-auto">
+			<div class="mb-6">
+				<h1 class="text-2xl font-bold dark:text-stone-200 font-[family-name:var(--primary-font)]">member settings</h1>
+			</div>
+			<!-- NIP-05 Address Section -->
+			<form
+				method="POST"
+				action="/member"
+				class="space-y-6"
+				x-data={ `{
+					nip05Username: '` + nip05 + `',
+					saved: false,
+					async saveSettings() {
+						const response = await fetch(this.$refs.form.action, {
+							method: 'POST',
+							body: new URLSearchParams(new FormData(this.$refs.form))
+						})
+						if (response.ok) {
+							this.saved = true;
+							setTimeout(() => this.saved = false, 2000)
+						}
+					}
+				}` }
+				x-ref="form"
+			>
+				<div class="space-y-4">
+					<div>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300">nip05 username</label>
+						<div class="flex items-center gap-1">
+							<input
+								type="text"
+								name="nip05_username"
+								if global.Settings.NIP05.Enabled {
+									placeholder="username"
+								} else {
+									placeholder="disabled by the relay admin"
+								}
+								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 disabled:bg-stone-100 disabled:dark:bg-stone-800 disabled:text-stone-500"
+								x-model="nip05Username"
+								@blur="saveSettings()"
+								if !global.Settings.NIP05.Enabled {
+									disabled
+								}
+							/>
+							<div>
+								{ "@" }{ global.Settings.Domain }
+							</div>
+						</div>
+					</div>
+				</div>
+				<div
+					x-show="saved"
+					x-transition
+					class="text-sm text-green-600 dark:text-green-400 font-medium"
+				>
+					saved!
+				</div>
+			</form>
+			<!-- Account Info Section -->
+			<div class="mt-8">
+				@layout.SubSectionTitle("account information")
+				<div class="space-y-3">
+					<div>
+						<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">public key:</span>
+						<code class="ml-2 light:bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded text-sm">{ loggedUser.Hex() }</code>
+					</div>
+					if pyramid.IsRoot(loggedUser) {
+						<div>
+							<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">status:</span>
+							<span class="ml-2 text-sm font-semibold themed:text-[var(--extra-color)] light:text-emerald-600 dark:text-emerald-400">root member</span>
+						</div>
+					} else if pyramid.IsMember(loggedUser) {
+						<div>
+							<span class="text-sm font-medium text-stone-600 dark:text-stone-400">status:</span>
+							<span class="ml-2 text-sm text-green-600 dark:text-green-400">member</span>
+						</div>
+					}
+				</div>
+			</div>
+		</div>
+	}
+}

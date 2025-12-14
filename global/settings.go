@@ -206,9 +206,10 @@ func loadUserSettings() error {
 	Settings.Theme.ExtraColor = "#059669"
 	Settings.Theme.BaseColor = "#000000"
 	Settings.Theme.HeaderTransparency = "100"
-	Settings.Theme.PrimaryFont = "Inter"
-	Settings.Theme.SecondaryFont = "system-ui"
+	Settings.Theme.PrimaryFont = "Open Sans"
+	Settings.Theme.SecondaryFont = ""
 
+	// http base paths
 	Settings.Inbox.base = "inbox"
 	Settings.Internal.base = "internal"
 	Settings.Favorites.base = "favorites"

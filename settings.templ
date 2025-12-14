@@ -18,11 +18,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					href={ templ.SafeURL("https://landlubber.coracle.social/relays/" + global.Settings.Domain) }
 					target="_blank"
 					rel="noopener noreferrer"
-					class={
-						"inline-block px-4 py-2 rounded text-sm text-white font-medium",
-						templ.KV("bg-[var(--extra-color)] hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)]", global.Settings.HasThemeColors()),
-						templ.KV("bg-blue-600 hover:bg-blue-700", !global.Settings.HasThemeColors()),
-					}
+					class="inline-block px-4 py-2 rounded text-sm text-white font-medium themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] unthemed:bg-blue-600 unthemed:hover:bg-blue-700"
 				>
 					manage on landlubber
 				</a>
@@ -110,22 +106,17 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				x-init="updateTheme()"
 				x-ref="form"
 			>
-				<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">theme colors</h3>
-				<div class={ "mb-4", templ.KV("hidden", global.Settings.HasThemeColors()) }>
+				@layout.SubSectionTitle("theme colors")
+				<div class="mb-4 themed:hidden">
 					<button
 						type="button"
 						@click.prevent="enableCustomTheme()"
-						class="px-6 py-2 rounded-lg font-semibold bg-stone-700 hover:bg-stone-800 dark:bg-stone-600 dark:hover:bg-stone-500 text-white shadow-md hover:shadow-lg"
+						class="cursor-pointer px-6 py-2 rounded-lg font-semibold bg-stone-700 hover:bg-stone-800 dark:bg-stone-600 dark:hover:bg-stone-500 text-white shadow-md hover:shadow-lg"
 					>
 						enable custom theme
 					</button>
 				</div>
-				<div
-					class={
-						"grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4",
-						templ.KV("hidden", !global.Settings.HasThemeColors()),
-					}
-				>
+				<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 unthemed:hidden">
 					<div>
 						<label class="block text-sm font-medium mb-2 dark:text-stone-300">primary color</label>
 						<input
@@ -232,16 +223,11 @@ templ settingsPage(loggedUser nostr.PubKey) {
 						</select>
 					</div>
 				</div>
-				<div
-					class={
-						"flex justify-between items-center mt-4",
-						templ.KV("hidden", !global.Settings.HasThemeColors()),
-					}
-				>
+				<div class="flex justify-between items-center mt-4 unthemed:hidden">
 					<button
 						type="button"
 						@click="resetTheme()"
-						class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+						class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
 					>
 						reset
 					</button>
@@ -278,7 +264,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				}` }
 				x-ref="form"
 			>
-				<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">general</h3>
+				@layout.SubSectionTitle("general")
 				<div class="space-y-4">
 					<div class="flex items-center">
 						<input
@@ -418,7 +404,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				}` }
 				x-ref="form"
 			>
-				<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">paywall</h3>
+				@layout.SubSectionTitle("paywall")
 				<div class="space-x-4 flex space-between">
 					<div>
 						<label class="block text-sm font-medium mb-2 dark:text-stone-300">hashtag</label>
@@ -484,7 +470,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				}` }
 				x-ref="form"
 			>
-				<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">nip-05 addresses</h3>
+				@layout.SubSectionTitle("nip05 addresses")
 				<div class="space-y-4">
 					<div class="flex items-center">
 						<input
@@ -511,13 +497,13 @@ templ settingsPage(loggedUser nostr.PubKey) {
 			</form>
 			<!-- cleanup Section -->
 			<div class="mt-8">
-				<h3 class="text-lg font-semibold dark:text-stone-200 mb-3">cleanup</h3>
+				@layout.SubSectionTitle("cleanup")
 				<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
 					permanently delete all events from users not in the pyramid.
 				</p>
 				<a
 					href="/cleanup"
-					class="inline-block px-4 py-2 rounded bg-stone-700 hover:bg-stone-800 dark:bg-stone-600 dark:hover:bg-stone-500 text-white font-medium"
+					class="inline-block px-4 py-2 rounded text-white font-medium themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] unthemed:bg-blue-600 unthemed:hover:bg-blue-700"
 					onclick="return confirm('are you sure you want to delete all events from non-members? this cannot be undone.')"
 				>
 					clear stuff from excluded users
@@ -565,7 +551,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					}
 				}` }
 			>
-				<h3 class="text-lg font-semibold dark:text-stone-200 mb-3">update</h3>
+				@layout.SubSectionTitle("update")
 				<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
 					<div>current version: <span class="text-stone-600 dark:text-stone-400" x-ref="currentVersion">{ currentVersion }</span></div>
 					<div>latest version: <span class="text-stone-600 dark:text-stone-400" x-ref="latestVersion"><a href={ templ.SafeURL("https://github.com/fiatjaf/pyramid/releases/tag/" + latestVersion.name) } target="_blank">{ latestVersion.name }</a></span></div>
@@ -575,7 +561,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 						type="button"
 						@click="confirm('this will download the new binary from github, replace the current one and restart the server, are you ok to continue?') ? performUpdate() : null"
 						:disabled="$refs.latestVersion.innerText === '' || versionToNumber($refs.latestVersion.innerText) <= versionToNumber($refs.currentVersion.innerText) || updating"
-						class="inline-block px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-400 text-white font-medium"
+						class="cursor-pointer inline-block px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-400 text-white font-medium"
 					>
 						<span x-show="!updating">update pyramid</span>
 						<span x-show="updating">updating...</span>

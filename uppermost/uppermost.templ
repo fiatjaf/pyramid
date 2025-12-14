@@ -15,7 +15,7 @@ templ uppermostPage(loggedUser nostr.PubKey) {
 		<div class="max-w-3xl mx-auto">
 			<div class="flex items-center mb-4">
 				if !global.Settings.Uppermost.IsIconDefault() {
-					<img src={ global.Settings.Uppermost.GetIcon() } class="h-8 w-8 mr-2">
+					<img src={ global.Settings.Uppermost.GetIcon() } class="h-8 w-8 mr-2"/>
 				}
 				<h1 class="text-4xl font-bold">{ global.Settings.Uppermost.GetName() }</h1>
 			</div>
@@ -23,11 +23,7 @@ templ uppermostPage(loggedUser nostr.PubKey) {
 				<p class="text-lg leading-relaxed">{ global.Settings.Uppermost.GetDescription() }</p>
 				if global.Settings.Uppermost.Enabled {
 					<a
-						class={
-							"mb-4 inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105",
-							templ.KV("bg-[var(--accent-color)]", global.Settings.HasThemeColors()),
-							templ.KV("bg-blue-500 hover:bg-blue-600", !global.Settings.HasThemeColors()),
-						}
+						class="mb-4 inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 themed:bg-[var(--accent-color)] unthemed:bg-blue-500 unthemed:hover:bg-blue-600"
 						target="_blank"
 						href={ global.Settings.BrowseURI }
 						x-init="$el.href = $el.href.replace('__URL__', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"

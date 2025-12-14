@@ -18,11 +18,7 @@ templ inviteTreePage(loggedUser nostr.PubKey, nip05Names map[nostr.PubKey]string
 					class="flex items-center gap-3 mb-6"
 				>
 					<label
-						class={
-							"font-medium",
-							templ.KV("text-[var(--extra-color)]", global.Settings.HasThemeColors()),
-							templ.KV("text-gray-700 dark:text-gray-300", !global.Settings.HasThemeColors()),
-						}
+						class="font-medium themed:text-[var(--extra-color)] light:text-gray-700 dark:text-gray-300"
 					>invite new member: </label>
 					<input
 						type="text"
@@ -33,11 +29,7 @@ templ inviteTreePage(loggedUser nostr.PubKey, nip05Names map[nostr.PubKey]string
 					<input type="hidden" name="type" value="invite"/>
 					<button
 						type="submit"
-						class={
-							"rounded-lg px-4 py-1.5 text-sm font-semibold text-white shadow-lg transform hover:scale-105",
-							templ.KV("bg-[var(--extra-color)] hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)]", global.Settings.HasThemeColors()),
-							templ.KV("bg-stone-600 hover:bg-stone-700 dark:bg-stone-500 dark:hover:bg-stone-600", !global.Settings.HasThemeColors()),
-						}
+						class="rounded-lg px-4 py-1.5 text-sm font-semibold text-white shadow-lg transform hover:scale-105 themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] light:bg-stone-600 light:hover:bg-stone-700 dark:bg-stone-500 dark:hover:bg-stone-600"
 					>
 						invite
 					</button>
@@ -82,11 +74,7 @@ templ inviteTreeComponent(
 						</a>
 						if pyramid.IsRoot(child) {
 							<span
-								class={
-									"cursor-default ml-2 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium",
-									templ.KV("bg-[var(--accent-color)] text-white", global.Settings.HasThemeColors()),
-									templ.KV("bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-900/20 dark:text-blue-400 dark:ring-blue-500/20", !global.Settings.HasThemeColors()),
-								}
+								class="cursor-default ml-2 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium themed:bg-[var(--accent-color)] themed:text-white light:bg-blue-50 light:text-blue-700 light:ring-1 light:ring-inset light:ring-blue-600/20 dark:bg-blue-900/20 dark:text-blue-400 dark:ring-blue-500/20"
 							>
 								root
 							</span>
