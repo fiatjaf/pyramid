@@ -34,6 +34,15 @@ func (wxf WotXorFilter) Contains(pubkey nostr.PubKey) bool {
 func computeAggregatedWoT(ctx context.Context) (WotXorFilter, error) {
 	res := make(chan nostr.PubKey)
 
+	var (
+		result WotXorFilter
+		done   = make(chan struct{})
+	)
+	go func() {
+		result = makeWoTFilter(res)
+		close(done)
+	}()
+
 	members := make([]nostr.PubKey, 0, pyramid.Members.Size())
 	for k := range pyramid.Members.Range {
 		members = append(members, k)
@@ -72,7 +81,8 @@ func computeAggregatedWoT(ctx context.Context) (WotXorFilter, error) {
 		if err := sem.Acquire(ctx, 1); err != nil {
 			return WotXorFilter{}, fmt.Errorf("failed to acquire: %w", err)
 		}
-		go func() {
+
+		wg.Go(func() {
 			ctx, cancel := context.WithTimeout(ctx, time.Second*7)
 			defer cancel()
 			defer sem.Release(1)
@@ -84,10 +94,14 @@ func computeAggregatedWoT(ctx context.Context) (WotXorFilter, error) {
 
 				res <- f.Pubkey
 			}
-		}()
+		})
 	}
 
-	return makeWoTFilter(res), nil
+	wg.Wait()
+	close(res)
+
+	<-done
+	return result, nil
 }
 
 func makeWoTFilter(m chan nostr.PubKey) WotXorFilter {
