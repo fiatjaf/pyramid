@@ -2,10 +2,10 @@ package groups
 
 import (
 	"fmt"
-	"net/url"
 
 	"fiatjaf.com/nostr"
 
+	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
 )
 
@@ -95,14 +95,14 @@ templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Even
 					<h2 class="text-lg font-semibold mb-3 dark:text-stone-200">view on other clients</h2>
 					<div class="flex gap-3">
 						<a
-							href={ "https://chachi.chat/" + url.PathEscape(group.Address.Relay) + "/" + group.Address.ID }
+							href={ "https://chachi.chat/" + global.Settings.Domain + "/" + group.Address.ID }
 							target="_blank"
 							class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
 						>
 							chachi.chat
 						</a>
 						<a
-							href={ "https://app.flotilla.social/spaces/" + url.PathEscape(group.Address.Relay) + "/" + group.Address.ID }
+							href={ "https://app.flotilla.social/spaces/" + global.Settings.Domain + "/" + group.Address.ID }
 							target="_blank"
 							class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
 						>
