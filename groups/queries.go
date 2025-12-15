@@ -12,6 +12,7 @@ import (
 func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 	return func(yield func(nostr.Event) bool) {
 		authed := khatru.GetAllAuthed(ctx)
+
 		groupIds, hasGroupIds := filter.Tags["d"]
 		if !hasGroupIds {
 			groupIds, hasGroupIds = filter.Tags["h"]
@@ -64,24 +65,10 @@ func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[n
 							return
 						}
 					default:
-						// to return all events from all groups would be insanity
-						// so we do a careful inspection of the filter here
-						//
-						// to begin with, we only accept queries that want one specific event, by either id or addr
-						var results iter.Seq[nostr.Event]
-						if refE, ok := filter.Tags["e"]; ok && len(refE) > 0 {
-							results = s.DB.QueryEvents(filter, 50)
-						} else if refA, ok := filter.Tags["a"]; ok && len(refA) > 0 {
-							results = s.DB.QueryEvents(filter, 50)
-						} else if len(filter.IDs) > 0 {
-							results = s.DB.QueryEvents(filter, len(filter.IDs))
-						} else {
-							results = func(yield func(nostr.Event) bool) {} // nothing
-						}
-
-						// now here in refE/refA/ids we have to check for each result if it is allowed
-						for evt := range results {
-							if group := s.GetGroupFromEvent(evt); !group.Hidden {
+						// query few events here, as we expect to be dealing with
+						// either id queries or ref queries ("#e", "#a" etc)
+						for evt := range s.DB.QueryEvents(filter, 50) {
+							if group := s.GetGroupFromEvent(evt); !group.Hidden && !group.Private {
 								if !yield(evt) {
 									return
 								}
@@ -144,7 +131,7 @@ func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[n
 						// normal (non-metadata) events
 						default:
 							// if we are here that means that filter already includes at least an "h" tag
-							// and access control is already validated
+							// and access control is already validated by RequestAuthWhenNecessary()
 							for evt := range s.DB.QueryEvents(filter, 1500) {
 								if !yield(evt) {
 									return

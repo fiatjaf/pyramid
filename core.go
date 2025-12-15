@@ -448,9 +448,17 @@ func virtualInviteValidationEvent(inviter nostr.PubKey) nostr.Event {
 
 // splits the query between the main relay and the groups relay
 func queryStored(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
-	if len(filter.Kinds) == 0 {
+	if filter.IDs != nil {
+		// query both normal and groups
+		return eventstore.SortedMerge(
+			queryNormal(ctx, filter),
+			groups.State.Query(ctx, filter),
+		)
+	}
+
+	if filter.Kinds == nil {
 		// only normal kinds or no kinds specified
-		return queryMain(ctx, filter)
+		return queryNormal(ctx, filter)
 	}
 
 	if len(filter.Tags["h"]) > 0 {
@@ -459,27 +467,50 @@ func queryStored(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event]
 
 	groupsFilter := filter
 	groupsFilter.Kinds = nil
-	mainFilter := filter
-	mainFilter.Kinds = nil
+	normalFilter := filter
+	normalFilter.Kinds = nil
 	for _, kind := range filter.Kinds {
 		if slices.Contains(nip29.MetadataEventKinds, kind) {
 			groupsFilter.Kinds = append(groupsFilter.Kinds, kind)
 		} else {
-			mainFilter.Kinds = append(mainFilter.Kinds, kind)
+			normalFilter.Kinds = append(normalFilter.Kinds, kind)
 		}
 	}
 
-	if len(groupsFilter.Kinds) > 0 && len(mainFilter.Kinds) > 0 {
+	if groupsFilter.Kinds != nil && normalFilter.Kinds != nil {
 		// mixed kinds - need to split the filter and query both
 		return eventstore.SortedMerge(
-			queryMain(ctx, mainFilter),
+			queryNormal(ctx, normalFilter),
 			groups.State.Query(ctx, groupsFilter),
 		)
-	} else if len(groupsFilter.Kinds) > 0 && len(mainFilter.Kinds) == 0 {
+	} else if groupsFilter.Kinds != nil && normalFilter.Kinds == nil {
 		// only groups kinds requested
 		return groups.State.Query(ctx, filter)
 	} else {
 		// only normal kinds requested
-		return queryMain(ctx, filter)
+		return queryNormal(ctx, filter)
 	}
+}
+
+func queryNormal(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
+	// if the query includes ids or common references we'll pass it to the groups db too
+	checkGroupsDB := false
+	if filter.IDs != nil {
+		checkGroupsDB = true
+	} else {
+		for _, tagName := range []string{"e", "E", "a", "A"} {
+			if _, ok := filter.Tags[tagName]; ok {
+				checkGroupsDB = true
+			}
+		}
+	}
+	if checkGroupsDB {
+		return eventstore.SortedMerge(
+			groups.State.Query(ctx, filter),
+			queryMain(ctx, filter),
+		)
+	}
+
+	// otherwise only query the main db
+	return queryMain(ctx, filter)
 }
