@@ -6,6 +6,7 @@ import (
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/eventstore"
+	"github.com/fiatjaf/pyramid/global"
 	"github.com/puzpuzpuz/xsync/v3"
 )
 
@@ -60,4 +61,30 @@ func NewGroupsState(opts Options) *GroupsState {
 	}
 
 	return state
+}
+
+func (s *GroupsState) WipeGroup(groupId string) error {
+	_, exists := s.Groups.Load(groupId)
+	if !exists {
+		return fmt.Errorf("group not found")
+	}
+
+	// delete all events associated with this group
+	count := 0
+	for evt := range s.DB.QueryEvents(nostr.Filter{
+		Tags: nostr.TagMap{"h": []string{groupId}},
+	}, 10000) {
+		if err := s.DB.DeleteEvent(evt.ID); err != nil {
+			log.Warn().Err(err).Stringer("event", evt.ID).Msg("failed to delete event during group wipe")
+		} else {
+			count++
+		}
+	}
+
+	global.Log.Info().Str("groupId", groupId).Int("deletedEvents", count).Msg("wiped group")
+
+	// remove group from memory
+	s.Groups.Delete(groupId)
+
+	return nil
 }

@@ -50,6 +50,7 @@ func setupEnabled() {
 	Handler.mux = http.NewServeMux()
 
 	Handler.mux.HandleFunc("POST /disable", disableHandler)
+	Handler.mux.HandleFunc("POST /wipe/{groupId}", wipeGroupHandler)
 	Handler.mux.HandleFunc("/{groupId}", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		groupId := r.PathValue("groupId")
@@ -118,6 +119,28 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setupDisabled()
+	http.Redirect(w, r, "/groups/", 302)
+}
+
+func wipeGroupHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	groupId := r.PathValue("groupId")
+	if groupId == "" {
+		http.Error(w, "group id required", 400)
+		return
+	}
+
+	if err := State.WipeGroup(groupId); err != nil {
+		http.Error(w, "failed to wipe group: "+err.Error(), 500)
+		return
+	}
+
 	http.Redirect(w, r, "/groups/", 302)
 }
 

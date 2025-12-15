@@ -77,24 +77,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 						this.creating = false
 					}
 				},
-				async deleteGroup(groupId, groupName) {
-					if (!confirm("are you sure you want to delete group \"" + groupName + "\"?")) return;
-					try {
-						await this.publishEvent(await window.nostr.signEvent({
-							kind: 9008,
-							created_at: Math.floor(Date.now() / 1000),
-							tags: [
-								["h", groupId]
-							],
-							content: ""
-						}));
-						alert("group deleted successfully!");
-						window.location.reload();
-					} catch (error) {
-						console.error("Error deleting group:", error);
-						alert("failed to delete group: " + error.message);
-					}
-				},
+
 				async publishEvent(event) {
 					return new Promise((resolve, reject) => {
 						const ws = new WebSocket(this.groupsRelayURL)
@@ -175,7 +158,6 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">closed</th>
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">hidden</th>
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">private</th>
-										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider"></th>
 									</tr>
 								</thead>
 								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
@@ -245,16 +227,6 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 														☐
 													}
 												</td>
-												<td class="px-4 py-3 text-sm text-center">
-													if group.IsPrimaryRole(loggedUser) || pyramid.IsRoot(loggedUser) {
-														<button
-															@click={ "deleteGroup('" + group.Address.ID + "', '" + group.Name + "')" }
-															class="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded"
-														>
-															delete
-														</button>
-													}
-												</td>
 											</tr>
 										}
 									}
@@ -277,7 +249,6 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">moderators</th>
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">closed</th>
 										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">private</th>
-										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider"></th>
 									</tr>
 								</thead>
 								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
@@ -331,16 +302,6 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 														☑
 													} else {
 														☐
-													}
-												</td>
-												<td class="px-4 py-3 text-sm text-center">
-													if group.IsPrimaryRole(loggedUser) || pyramid.IsRoot(loggedUser) {
-														<button
-															@click={ "deleteGroup('" + group.Address.ID + "', '" + group.Name + "')" }
-															class="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded"
-														>
-															delete
-														</button>
 													}
 												</td>
 											</tr>
