@@ -32,17 +32,6 @@ func (wxf WotXorFilter) Contains(pubkey nostr.PubKey) bool {
 }
 
 func computeAggregatedWoT(ctx context.Context) (WotXorFilter, error) {
-	res := make(chan nostr.PubKey)
-
-	var (
-		result WotXorFilter
-		done   = make(chan struct{})
-	)
-	go func() {
-		result = makeWoTFilter(res)
-		close(done)
-	}()
-
 	members := make([]nostr.PubKey, 0, pyramid.Members.Size())
 	for k := range pyramid.Members.Range {
 		members = append(members, k)
@@ -68,7 +57,6 @@ func computeAggregatedWoT(ctx context.Context) (WotXorFilter, error) {
 					continue
 				}
 
-				res <- f.Pubkey
 				queue[f.Pubkey] = struct{}{}
 			}
 		})
@@ -76,17 +64,20 @@ func computeAggregatedWoT(ctx context.Context) (WotXorFilter, error) {
 
 	wg.Wait()
 
+	res := make(chan nostr.PubKey)
+
 	log.Info().Int("n", len(queue)).Msg("fetching secondary follow lists for follows")
 	for user := range queue {
 		if err := sem.Acquire(ctx, 1); err != nil {
 			return WotXorFilter{}, fmt.Errorf("failed to acquire: %w", err)
 		}
 
-		wg.Go(func() {
+		go func() {
 			ctx, cancel := context.WithTimeout(ctx, time.Second*7)
 			defer cancel()
 			defer sem.Release(1)
 
+			res <- user
 			for _, f := range global.Nostr.FetchFollowList(ctx, user).Items {
 				if slices.Contains(global.Settings.Inbox.SpecificallyBlocked, f.Pubkey) {
 					continue
@@ -94,14 +85,10 @@ func computeAggregatedWoT(ctx context.Context) (WotXorFilter, error) {
 
 				res <- f.Pubkey
 			}
-		})
+		}()
 	}
 
-	wg.Wait()
-	close(res)
-
-	<-done
-	return result, nil
+	return makeWoTFilter(res), nil
 }
 
 func makeWoTFilter(m chan nostr.PubKey) WotXorFilter {
