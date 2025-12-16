@@ -12,6 +12,7 @@ import (
 	"github.com/FastFilter/xorfilter"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
+	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -37,7 +38,7 @@ func computeAggregatedWoT(ctx context.Context) (WotXorFilter, error) {
 		members = append(members, k)
 	}
 
-	queue := make(map[nostr.PubKey]struct{}, len(members)*100)
+	queue := xsync.NewMapOf[nostr.PubKey, struct{}](xsync.WithPresize(len(members) * 200))
 	wg := sync.WaitGroup{}
 	sem := semaphore.NewWeighted(15)
 
@@ -57,7 +58,7 @@ func computeAggregatedWoT(ctx context.Context) (WotXorFilter, error) {
 					continue
 				}
 
-				queue[f.Pubkey] = struct{}{}
+				queue.Store(f.Pubkey, struct{}{})
 			}
 		})
 	}
@@ -66,8 +67,8 @@ func computeAggregatedWoT(ctx context.Context) (WotXorFilter, error) {
 
 	res := make(chan nostr.PubKey)
 
-	log.Info().Int("n", len(queue)).Msg("fetching secondary follow lists for follows")
-	for user := range queue {
+	log.Info().Int("n", queue.Size()).Msg("fetching secondary follow lists for follows")
+	for user := range queue.Range {
 		if err := sem.Acquire(ctx, 1); err != nil {
 			return WotXorFilter{}, fmt.Errorf("failed to acquire: %w", err)
 		}
