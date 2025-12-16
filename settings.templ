@@ -495,20 +495,6 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					saved!
 				</div>
 			</form>
-			<!-- cleanup Section -->
-			<div class="mt-8">
-				@layout.SubSectionTitle("cleanup")
-				<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
-					permanently delete all events from users not in the pyramid.
-				</p>
-				<a
-					href="/cleanup"
-					class="inline-block px-4 py-2 rounded text-white font-medium themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] unthemed:bg-blue-600 unthemed:hover:bg-blue-700"
-					onclick="return confirm('are you sure you want to delete all events from non-members? this cannot be undone.')"
-				>
-					clear stuff from excluded users
-				</a>
-			</div>
 			<!-- update Section -->
 			<div
 				class="mt-8"

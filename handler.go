@@ -59,32 +59,6 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", 302)
 }
 
-// this deletes all events from users not in the relay anymore
-func cleanupStuffFromExcludedUsersHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser, _ := global.GetLoggedUser(r)
-
-	if !pyramid.IsRoot(loggedUser) {
-		http.Error(w, "unauthorized, only the relay owner can do this", 403)
-		return
-	}
-
-	count := 0
-	for evt := range global.IL.Main.QueryEvents(nostr.Filter{}, 99999999) {
-		if pyramid.IsMember(evt.PubKey) {
-			continue
-		}
-
-		if err := global.IL.Main.DeleteEvent(evt.ID); err != nil {
-			http.Error(w, fmt.Sprintf(
-				"failed to delete %s: %s -- stopping, %d events were deleted before this error", evt, err, count), 500)
-			return
-		}
-		count++
-	}
-
-	fmt.Fprintf(w, "deleted %d events", count)
-}
-
 func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 
