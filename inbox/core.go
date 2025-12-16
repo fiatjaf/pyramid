@@ -19,6 +19,7 @@ var (
 	moneyKinds    = []nostr.Kind{9735, 9321}
 	secretKinds   = []nostr.Kind{1059}
 	aggregatedWoT WotXorFilter
+	wotComputed   = false
 )
 
 func rejectFilter(ctx context.Context, filter nostr.Filter) (bool, string) {
@@ -130,7 +131,6 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 
 		// if we only have one tag and we know it tags at least one pyramid member that means this is it
 		receiver, _ := nostr.PubKeyFromHex(evt.Tags.Find("p")[1])
-
 		switch evt.Kind {
 		case 9735:
 			// check zap validity

@@ -4,8 +4,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/nip19"
 )
 
 func GetLoggedUser(r *http.Request) (nostr.PubKey, bool) {
@@ -22,4 +24,19 @@ func GetLoggedUser(r *http.Request) (nostr.PubKey, bool) {
 		}
 	}
 	return nostr.ZeroPK, false
+}
+
+func PubKeyFromInput(input string) nostr.PubKey {
+	input = strings.TrimSpace(input)
+
+	var pubkey nostr.PubKey
+	if pfx, value, err := nip19.Decode(input); err == nil && pfx == "npub" {
+		pubkey = value.(nostr.PubKey)
+	} else if pfx == "nprofile" {
+		pubkey = value.(nostr.ProfilePointer).PublicKey
+	} else if pk, err := nostr.PubKeyFromHex(input); err == nil {
+		pubkey = pk
+	}
+
+	return pubkey
 }

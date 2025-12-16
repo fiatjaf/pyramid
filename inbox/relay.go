@@ -82,6 +82,7 @@ func setupEnabled() {
 	})
 
 	Relay.Router().HandleFunc("POST /disable", disableHandler)
+	Relay.Router().HandleFunc("POST /check-wot", checkWoTHandler)
 
 	// compute aggregated WoT in background every 48h
 	go func() {
@@ -93,6 +94,7 @@ func setupEnabled() {
 				nostr.InfoLogger.Println("failed to compute aggregated WoT:", err)
 			}
 			aggregatedWoT = wot
+			wotComputed = true
 			nostr.InfoLogger.Printf("computed aggregated WoT with %d entries", wot.Items)
 			time.Sleep(48 * time.Hour)
 		}
@@ -239,4 +241,28 @@ func allowPubkeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string)
 	}
 	global.Settings.Inbox.SpecificallyBlocked = newList
 	return global.SaveUserSettings()
+}
+
+func checkWoTHandler(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "failed to parse form", 400)
+		return
+	}
+
+	pubkeyInput := r.FormValue("pubkey")
+	if pubkeyInput == "" {
+		http.Error(w, "pubkey parameter required", 400)
+		return
+	}
+
+	pk := global.PubKeyFromInput(pubkeyInput)
+	if pk == nostr.ZeroPK {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(400)
+		fmt.Fprintf(w, `{"error": "%s"}`, "invalid pubkey")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, fmt.Sprint(aggregatedWoT.Contains(pk)))
 }

@@ -124,7 +124,7 @@ func (rm RelayMetadata) GetDescription() string {
 	case "favorites":
 		return "relay members can manually republish notes here and they'll be saved."
 	case "inbox":
-		return "filtered notifications for relay members using unified web of trust filtering. only see mentions from people in the combined relay extended network."
+		return "filtered notifications for relay members using unified web-of-trust filtering. only see mentions from people in the combined relay extended network."
 	case "popular":
 		return "auto-curated popular posts from relay members. this is a read-only relay where events are automatically fetched from other relays and saved based reactions, replies, favorites and zaps created by members."
 	case "uppermost":

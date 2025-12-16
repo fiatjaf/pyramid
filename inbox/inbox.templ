@@ -47,6 +47,85 @@ templ inboxPage(loggedUser nostr.PubKey) {
 					>
 						browse inbox →
 					</a>
+					<div class="mt-6 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+						if !wotComputed {
+							<span>calculating aggregated web-of-trust...</span>
+						} else {
+							<div class="flex items-center gap-4">
+								<h3 class="font-semibold text-gray-800 dark:text-gray-200">check who is allowed to post</h3>
+								<div class="text-sm text-gray-600 dark:text-gray-400">
+									{ fmt.Sprintf("(total: %d pubkeys)", aggregatedWoT.Items) }
+								</div>
+							</div>
+							<form
+								x-data="{
+								pubkey: '',
+								loading: false,
+								result: null,
+								error: null,
+								async checkWot() {
+									if (!this.pubkey.trim()) {
+										this.error = 'Please enter a hex pubkey or npub';
+										return;
+									}
+
+									this.loading = true;
+									this.result = null;
+									this.error = null;
+
+									try {
+										const response = await fetch('./check-wot', {
+											method: 'POST',
+											headers: {
+												'Content-Type': 'application/x-www-form-urlencoded',
+											},
+											body: 'pubkey=' + encodeURIComponent(this.pubkey.trim())
+										});
+										const data = await response.json();
+
+										if (response.ok && !data.error) {
+											this.result = data;
+										} else {
+											this.error = data.error || 'failed to check pubkey';
+										}
+									} catch (err) {
+										this.error = 'network error: ' + err.message;
+									} finally {
+										this.loading = false;
+									}
+								}
+							}"
+								@submit.prevent="checkWot()"
+							>
+								<div class="flex items-center gap-2 mb-3">
+									<input
+										type="text"
+										name="pubkey"
+										placeholder="hex pubkey or npub..."
+										class="flex-1 px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+										x-model="pubkey"
+										@input="result = null"
+									/>
+									<div x-show="error" x-transition class="text-red-600 dark:text-red-400 text-sm">
+										<span x-text="error"></span>
+									</div>
+									<div x-show="typeof result == 'boolean'" x-transition class="text-sm">
+										<div x-show="result" class="text-green-600 dark:text-green-400">
+											✓
+										</div>
+										<div x-show="!result" class="text-orange-600 dark:text-orange-400">
+											✗
+										</div>
+									</div>
+									<button
+										type="submit"
+										:disabled="loading"
+										class="cursor-pointer rounded-lg px-4 py-1.5 text-sm font-semibold text-white shadow-lg transform hover:scale-105 themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] light:bg-stone-600 light:hover:bg-stone-700 dark:bg-stone-500 dark:hover:bg-stone-600"
+									>check</button>
+								</div>
+							</form>
+						}
+					</div>
 				}
 				{{
 					blocked := make([]string, len(global.Settings.Inbox.SpecificallyBlocked))

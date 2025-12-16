@@ -48,7 +48,7 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 		type_ = pyramid.ActionLeave
 	}
 	author, _ := global.GetLoggedUser(r)
-	target := pubkeyFromInput(r.PostFormValue("target"))
+	target := global.PubKeyFromInput(r.PostFormValue("target"))
 
 	if err := pyramid.AddAction(type_, author, target); err != nil {
 		http.Error(w, err.Error(), 403)
@@ -240,7 +240,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 					if s == "" {
 						continue
 					}
-					pk := pubkeyFromInput(s)
+					pk := global.PubKeyFromInput(s)
 					if pk != nostr.ZeroPK && !slices.Contains(blocked, pk) {
 						blocked = append(blocked, pk)
 					}
@@ -475,7 +475,7 @@ func rootUserSetupHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodPost {
 		pubkeyStr := r.PostFormValue("pubkey")
-		target := pubkeyFromInput(pubkeyStr)
+		target := global.PubKeyFromInput(pubkeyStr)
 
 		if target == nostr.ZeroPK {
 			http.Error(w, "invalid public key", 400)
