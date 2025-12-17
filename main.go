@@ -87,6 +87,7 @@ func main() {
 	relay.Router().HandleFunc("/action", actionHandler)
 	relay.Router().HandleFunc("/settings", settingsHandler)
 	relay.Router().HandleFunc("/member", memberPageHandler)
+	relay.Router().HandleFunc("/stats", statsHandler)
 	relay.Router().HandleFunc("/update", updateHandler)
 	relay.Router().HandleFunc("/icon/{relayId}", iconHandler)
 	relay.Router().HandleFunc("/forum/", forumHandler)

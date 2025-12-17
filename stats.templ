@@ -1,0 +1,213 @@
+package main
+
+import (
+	"context"
+	"encoding/base64"
+	"fmt"
+	"io"
+
+	"cmp"
+	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/eventstore/mmm"
+	"github.com/fiatjaf/pyramid/layout"
+	"github.com/go-analyze/charts"
+	"slices"
+)
+
+type KindInfo struct {
+	Kind  nostr.Kind
+	Count uint
+}
+
+type AuthorInfo struct {
+	AuthorInfoPrefix string
+	Count            uint
+}
+
+func getTopKinds(perKind map[nostr.Kind]mmm.KindStats, infosLimit, kindsLimit int) ([]KindInfo, []nostr.Kind) {
+	var kinds = make([]nostr.Kind, 0, kindsLimit)
+	var kindinfos = make([]KindInfo, 0, infosLimit)
+	for kind, stats := range perKind {
+		kinds = append(kinds, kind)
+		kindinfos = append(kindinfos, KindInfo{Kind: kind, Count: stats.Total})
+	}
+
+	slices.SortFunc(kindinfos, func(a, b KindInfo) int { return cmp.Compare(b.Count, a.Count) })
+	if len(kindinfos) > infosLimit {
+		kindinfos = kindinfos[:infosLimit]
+	}
+	if len(kinds) > kindsLimit {
+		kinds = kinds[:kindsLimit]
+	}
+
+	return kindinfos, kinds
+}
+
+func getTopAuthors(perPrefix map[string]mmm.PubKeyStats, limit int) []AuthorInfo {
+	var authors []AuthorInfo
+	for prefix, stats := range perPrefix {
+		authors = append(authors, AuthorInfo{AuthorInfoPrefix: prefix, Count: stats.Total})
+	}
+
+	slices.SortFunc(authors, func(a, b AuthorInfo) int { return cmp.Compare(b.Count, a.Count) })
+	if len(authors) > limit {
+		authors = authors[:limit]
+	}
+
+	return authors
+}
+
+func getLastWeeks(perWeek []uint, limit int) []uint {
+	if len(perWeek) == 0 {
+		return []uint{}
+	}
+
+	start := len(perWeek) - limit
+	if start < 0 {
+		start = 0
+	}
+
+	return perWeek[start:]
+}
+
+func generateWeeklyChart(stats *mmm.EventStats, top5Kinds []nostr.Kind, name string) templ.Component {
+	if len(stats.PerWeek) == 0 {
+		return templ.ComponentFunc(func(ctx context.Context, w io.Writer) (err error) { return nil })
+	}
+
+	values := [][]float64{}
+	mainValues := []float64{}
+	kindsValues := make(map[nostr.Kind][]float64)
+	labels := []string{}
+	for i := 0; i < len(stats.PerWeek); i++ {
+		mainValues = append(mainValues, float64(stats.PerWeek[i]))
+		for _, kindNum := range top5Kinds {
+			val := float64(0)
+			if kindStats, ok := stats.PerKind[kindNum]; ok && len(kindStats.PerWeek) > i {
+				val = float64(kindStats.PerWeek[i])
+			}
+			kindsValues[kindNum] = append(kindsValues[kindNum], val)
+		}
+		label := ""
+		if i == len(stats.PerWeek)-1 {
+			label = "this week"
+		} else if i%4 == 0 {
+			label = fmt.Sprintf("%d weeks ago", i)
+		}
+		labels = append(labels, label)
+	}
+
+	values = append(values, mainValues)
+	seriesNames := []string{"all"}
+
+	for kindNum, kindValues := range kindsValues {
+		values = append(values, kindValues)
+		seriesNames = append(seriesNames, fmt.Sprintf("kind:%d", kindNum))
+	}
+
+	// generate the chart
+	opt := charts.NewLineChartOptionWithData(values)
+	opt.XAxis.Labels = labels
+	opt.Legend = charts.LegendOption{
+		SeriesNames: seriesNames,
+	}
+	p := charts.NewPainter(charts.PainterOptions{
+		Width:  800,
+		Height: 400,
+	})
+	err := p.LineChart(opt)
+	if err != nil {
+		return templ.ComponentFunc(func(ctx context.Context, w io.Writer) (err error) { return nil })
+	}
+
+	buf, err := p.Bytes()
+	if err != nil {
+		return templ.ComponentFunc(func(ctx context.Context, w io.Writer) (err error) { return nil })
+	}
+
+	// return the image as a base64 data URL
+	dataURL := fmt.Sprintf("data:image/png;base64,%s", base64.StdEncoding.EncodeToString(buf))
+
+	return templ.ComponentFunc(func(ctx context.Context, w io.Writer) (err error) {
+		_, err = fmt.Fprintf(w, `<img src="%s" alt="%s weekly activity chart" class="w-full max-w-4xl mx-auto rounded-lg shadow-md">`, dataURL, name)
+		return err
+	})
+}
+
+templ StatsPage(
+	loggedUser nostr.PubKey,
+	mainStats,
+	systemStats,
+	groupsStats,
+	favoritesStats,
+	internalStats,
+	moderatedStats,
+	popularStats,
+	uppermostStats,
+	inboxStats *mmm.EventStats,
+) {
+	@layout.Layout(loggedUser, "stats") {
+		<div class="space-y-8">
+			<div>
+				<h2 class="text-2xl font-bold mb-6">Relay Statistics</h2>
+				@StatsTable("main", mainStats)
+				@StatsTable("inbox", inboxStats)
+				@StatsTable("groups", groupsStats)
+				@StatsTable("popular", popularStats)
+				@StatsTable("uppermost", uppermostStats)
+				@StatsTable("favorites", favoritesStats)
+				@StatsTable("moderated", moderatedStats)
+				@StatsTable("internal", internalStats)
+				@StatsTable("system", systemStats)
+			</div>
+		</div>
+	}
+}
+
+templ StatsTable(name string, stats *mmm.EventStats) {
+	if stats != nil {
+		<div class="mb-4 bg-white dark:bg-stone-800 rounded-lg shadow-md p-6 border border-stone-200 dark:border-stone-700">
+			<h3 class="text-xl font-semibold mb-4">{ name }</h3>
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+				<h4 class="font-medium mb-2 col-span-2">total events: { fmt.Sprintf("%d", stats.Total) }</h4>
+				{{ topKinds, top5Kinds := getTopKinds(stats.PerKind, 30, 5) }}
+				if len(topKinds) > 0 {
+					<div>
+						<h4 class="font-medium">by kind:</h4>
+						<table class="w-full text-sm">
+							<tbody>
+								for _, kindInfo := range topKinds {
+									<tr class="border-b border-stone-100 dark:border-stone-800">
+										<td class="py-1">{ fmt.Sprintf("%d", kindInfo.Kind) }</td>
+										<td class="text-right py-1">{ fmt.Sprintf("%d", kindInfo.Count) }</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+				}
+				{{ topAuthors := getTopAuthors(stats.PerPubKeyPrefix, 30) }}
+				if len(topAuthors) > 0 {
+					<div>
+						<h4 class="font-medium">by author:</h4>
+						<table class="w-full text-sm">
+							<tbody>
+								for _, authorInfo := range topAuthors {
+									<tr class="border-b border-stone-100 dark:border-stone-800">
+										<td class="py-1 font-mono text-xs">{ authorInfo.AuthorInfoPrefix }</td>
+										<td class="text-right py-1">{ fmt.Sprintf("%d", authorInfo.Count) }</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+				}
+			</div>
+			if len(stats.PerWeek) > 0 {
+				<div class="mt-6">
+					@generateWeeklyChart(stats, top5Kinds, name)
+				</div>
+			}
+		</div>
+	}
+}

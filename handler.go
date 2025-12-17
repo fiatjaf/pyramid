@@ -598,6 +598,28 @@ func memberPageHandler(w http.ResponseWriter, r *http.Request) {
 	memberPage(loggedUser, nip05).Render(r.Context(), w)
 }
 
+func statsHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsMember(loggedUser) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// compute stats for all IndexingLayer instances
+	mainStats, _ := global.IL.Main.ComputeStats()
+	systemStats, _ := global.IL.System.ComputeStats()
+	groupsStats, _ := global.IL.Groups.ComputeStats()
+	favoritesStats, _ := global.IL.Favorites.ComputeStats()
+	internalStats, _ := global.IL.Internal.ComputeStats()
+	moderatedStats, _ := global.IL.Moderated.ComputeStats()
+	popularStats, _ := global.IL.Popular.ComputeStats()
+	uppermostStats, _ := global.IL.Uppermost.ComputeStats()
+	inboxStats, _ := global.IL.Inbox.ComputeStats()
+
+	StatsPage(loggedUser, mainStats, systemStats, groupsStats, favoritesStats, internalStats, moderatedStats, popularStats, uppermostStats, inboxStats).Render(r.Context(), w)
+}
+
 func nip05Handler(w http.ResponseWriter, r *http.Request) {
 	resp := nip05.WellKnownResponse{
 		Names: global.Settings.NIP05.Names,

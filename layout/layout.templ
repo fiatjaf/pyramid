@@ -179,7 +179,10 @@ case "uppermost":
 								}
 							</div>
 						</div>
-						if pyramid.IsRoot(loggedUser) {
+						if pyramid.IsMember(loggedUser) {
+							@NavLink("/stats", currentPage == "stats") {
+								stats
+							}
 							@NavLink("/settings", currentPage == "settings") {
 								settings
 							}
