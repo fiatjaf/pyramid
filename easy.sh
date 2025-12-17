@@ -6,12 +6,25 @@ ufw allow https
 
 # download binary into ./pyramid directory
 VERSION=$(curl -s "https://api.github.com/repos/fiatjaf/pyramid/releases/latest" | grep '"tag_name":' | cut -d '"' -f 4)
+case $(uname -m) in
+  x86_64)
+    ARCH="amd64"
+    ;;
+  aarch64)
+    ARCH="arm64"
+    ;;
+  *)
+    echo "unsupported architecture: $(uname -m)"
+    exit 1
+    ;;
+esac
 mkdir -p pyramid
 cd pyramid
-rm pyramid-exe-old
-mv pyramid-exe pyramid-exe-old
-wget "https://github.com/fiatjaf/pyramid/releases/download/$VERSION/pyramid-exe"
-chmod +x pyramid-exe
+rm pyramid-old
+mv pyramid pyramid-old 2>/dev/null || true
+wget "https://github.com/fiatjaf/pyramid/releases/download/$VERSION/pyramid-$ARCH"
+mv "pyramid-$ARCH" pyramid
+chmod +x pyramid
 DIR=$(pwd)
 
 # create systemd service file
@@ -21,9 +34,10 @@ After=network.target
 
 [Service]
 User=$USER
-ExecStart=$DIR/pyramid-exe
+ExecStart=$DIR/pyramid
 WorkingDirectory=$DIR
 Restart=always
+RestartSec=60
 Environment=HOST=0.0.0.0 PORT=443
 
 [Install]

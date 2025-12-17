@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
-    name: Build and release binary
+  build:
+    name: Build binaries and create release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,6 +19,8 @@ jobs:
           go-version: '1.25'
       - name: Install musl and musl-gcc
         run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: Install ARM cross-compiler
+        run: sudo apt-get install -y gcc-aarch64-linux-gnu
       - name: Get templ version
         run: echo "TEMPL_VERSION=$(grep 'github.com/a-h/templ' go.mod | awk '{print $2}')" >> $GITHUB_ENV
       - name: Install templ
@@ -30,9 +32,15 @@ jobs:
       - name: Install Nodejs dependencies (Tailwind)
         run: npm install
       - uses: extractions/setup-just@v2
-      - name: Build binary
-        run: just build
+      - name: Build amd64 binary
+        run: |
+          just build
+          mv pyramid-exe pyramid-amd64
+      - name: Build arm64 binary
+        run: |
+          just build aarch64-linux-gnu-gcc arm64
+          mv pyramid-exe pyramid-arm64
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          files: pyramid-exe
+          files: pyramid-*

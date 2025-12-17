@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -56,16 +57,27 @@ func fetchLatestVersion() {
 		return
 	}
 
-	// find the pyramid-exe asset
+	// determine architecture and find the corresponding binary asset
 	var binaryURL string
+	var expectedBinaryName string
+	switch runtime.GOARCH {
+	case "amd64":
+		expectedBinaryName = "pyramid-amd64"
+	case "arm64":
+		expectedBinaryName = "pyramid-arm64"
+	default:
+		log.Error().Str("arch", runtime.GOARCH).Msg("unsupported architecture")
+		return
+	}
+
 	for _, asset := range release.Assets {
-		if asset.Name == "pyramid-exe" {
+		if asset.Name == expectedBinaryName {
 			binaryURL = asset.URL
 			break
 		}
 	}
 	if binaryURL == "" {
-		log.Error().Msg("pyramid-exe asset not found in latest release")
+		log.Error().Str("binary", expectedBinaryName).Msg("binary asset not found in latest release")
 		return
 	}
 
