@@ -26,7 +26,7 @@ templ uppermostPage(loggedUser nostr.PubKey) {
 						class="mb-4 inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 themed:bg-[var(--accent-color)] unthemed:bg-blue-500 unthemed:hover:bg-blue-600"
 						target="_blank"
 						href={ global.Settings.BrowseURI }
-						x-init="$el.href = $el.href.replace('__URL__', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
+						x-init="$el.href = $el.href.replace('{url}', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
 					>
 						browse uppermost →
 					</a>

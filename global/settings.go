@@ -181,12 +181,13 @@ func getUserSettingsPath() string {
 func loadUserSettings() error {
 	// start it with the defaults
 	Settings = UserSettings{
-		BrowseURI:               "https://fevela.me/?r=__URL__",
+		BrowseURI:               "https://fevela.me/?r={url}",
 		LinkURL:                 "nostr:{code}",
 		MaxInvitesPerPerson:     4,
 		RequireCurrentTimestamp: true,
 		BlockedIPs:              []string{},
 	}
+
 	Settings.Inbox.Enabled = true
 	Settings.Internal.Enabled = true
 	Settings.Favorites.Enabled = true
@@ -245,6 +246,9 @@ func loadUserSettings() error {
 	if err := json.Unmarshal(data, &Settings); err != nil {
 		return err
 	}
+
+	// temporary: replace {url} in settings
+	Settings.BrowseURI = strings.ReplaceAll(Settings.BrowseURI, "__URL__", "{url}")
 
 	return nil
 }
