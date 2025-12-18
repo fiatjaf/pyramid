@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/nip05"
 
 	"github.com/fiatjaf/pyramid/favorites"
@@ -607,15 +608,15 @@ func statsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// compute stats for all IndexingLayer instances
-	mainStats, _ := global.IL.Main.ComputeStats()
-	systemStats, _ := global.IL.System.ComputeStats()
-	groupsStats, _ := global.IL.Groups.ComputeStats()
-	favoritesStats, _ := global.IL.Favorites.ComputeStats()
-	internalStats, _ := global.IL.Internal.ComputeStats()
-	moderatedStats, _ := global.IL.Moderated.ComputeStats()
-	popularStats, _ := global.IL.Popular.ComputeStats()
-	uppermostStats, _ := global.IL.Uppermost.ComputeStats()
-	inboxStats, _ := global.IL.Inbox.ComputeStats()
+	mainStats, _ := global.IL.Main.ComputeStats(mmm.StatsOptions{})
+	systemStats, _ := global.IL.System.ComputeStats(mmm.StatsOptions{})
+	groupsStats, _ := global.IL.Groups.ComputeStats(mmm.StatsOptions{})
+	favoritesStats, _ := global.IL.Favorites.ComputeStats(mmm.StatsOptions{})
+	internalStats, _ := global.IL.Internal.ComputeStats(mmm.StatsOptions{})
+	moderatedStats, _ := global.IL.Moderated.ComputeStats(mmm.StatsOptions{})
+	popularStats, _ := global.IL.Popular.ComputeStats(mmm.StatsOptions{})
+	uppermostStats, _ := global.IL.Uppermost.ComputeStats(mmm.StatsOptions{})
+	inboxStats, _ := global.IL.Inbox.ComputeStats(mmm.StatsOptions{})
 
 	StatsPage(loggedUser, mainStats, systemStats, groupsStats, favoritesStats, internalStats, moderatedStats, popularStats, uppermostStats, inboxStats).Render(r.Context(), w)
 }

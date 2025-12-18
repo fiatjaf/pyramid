@@ -20,8 +20,8 @@ type KindInfo struct {
 }
 
 type AuthorInfo struct {
-	AuthorInfoPrefix string
-	Count            uint
+	Author nostr.PubKey
+	Count  uint
 }
 
 func getTopKinds(perKind map[nostr.Kind]mmm.KindStats, infosLimit, kindsLimit int) ([]KindInfo, []nostr.Kind) {
@@ -43,10 +43,10 @@ func getTopKinds(perKind map[nostr.Kind]mmm.KindStats, infosLimit, kindsLimit in
 	return kindinfos, kinds
 }
 
-func getTopAuthors(perPrefix map[string]mmm.PubKeyStats, limit int) []AuthorInfo {
+func getTopAuthors(perPrefix map[nostr.PubKey]mmm.PubKeyStats, limit int) []AuthorInfo {
 	var authors []AuthorInfo
-	for prefix, stats := range perPrefix {
-		authors = append(authors, AuthorInfo{AuthorInfoPrefix: prefix, Count: stats.Total})
+	for pubkey, stats := range perPrefix {
+		authors = append(authors, AuthorInfo{Author: pubkey, Count: stats.Total})
 	}
 
 	slices.SortFunc(authors, func(a, b AuthorInfo) int { return cmp.Compare(b.Count, a.Count) })
@@ -70,7 +70,7 @@ func getLastWeeks(perWeek []uint, limit int) []uint {
 	return perWeek[start:]
 }
 
-func generateWeeklyChart(stats *mmm.EventStats, top5Kinds []nostr.Kind, name string) templ.Component {
+func generateWeeklyChart(stats mmm.EventStats, top5Kinds []nostr.Kind, name string) templ.Component {
 	if len(stats.PerWeek) == 0 {
 		return templ.ComponentFunc(func(ctx context.Context, w io.Writer) (err error) { return nil })
 	}
@@ -144,7 +144,7 @@ templ StatsPage(
 	moderatedStats,
 	popularStats,
 	uppermostStats,
-	inboxStats *mmm.EventStats,
+	inboxStats mmm.EventStats,
 ) {
 	@layout.Layout(loggedUser, "stats") {
 		<div class="space-y-8">
@@ -164,50 +164,50 @@ templ StatsPage(
 	}
 }
 
-templ StatsTable(name string, stats *mmm.EventStats) {
-	if stats != nil {
-		<div class="mb-4 bg-white dark:bg-stone-800 rounded-lg shadow-md p-6 border border-stone-200 dark:border-stone-700">
-			<h3 class="text-xl font-semibold mb-4">{ name }</h3>
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-				<h4 class="font-medium mb-2 col-span-2">total events: { fmt.Sprintf("%d", stats.Total) }</h4>
-				{{ topKinds, top5Kinds := getTopKinds(stats.PerKind, 30, 5) }}
-				if len(topKinds) > 0 {
-					<div>
-						<h4 class="font-medium">by kind:</h4>
-						<table class="w-full text-sm">
-							<tbody>
-								for _, kindInfo := range topKinds {
-									<tr class="border-b border-stone-100 dark:border-stone-800">
-										<td class="py-1">{ fmt.Sprintf("%d", kindInfo.Kind) }</td>
-										<td class="text-right py-1">{ fmt.Sprintf("%d", kindInfo.Count) }</td>
-									</tr>
-								}
-							</tbody>
-						</table>
-					</div>
-				}
-				{{ topAuthors := getTopAuthors(stats.PerPubKeyPrefix, 30) }}
-				if len(topAuthors) > 0 {
-					<div>
-						<h4 class="font-medium">by author:</h4>
-						<table class="w-full text-sm">
-							<tbody>
-								for _, authorInfo := range topAuthors {
-									<tr class="border-b border-stone-100 dark:border-stone-800">
-										<td class="py-1 font-mono text-xs">{ authorInfo.AuthorInfoPrefix }</td>
-										<td class="text-right py-1">{ fmt.Sprintf("%d", authorInfo.Count) }</td>
-									</tr>
-								}
-							</tbody>
-						</table>
-					</div>
-				}
-			</div>
-			if len(stats.PerWeek) > 0 {
-				<div class="mt-6">
-					@generateWeeklyChart(stats, top5Kinds, name)
+templ StatsTable(name string, stats mmm.EventStats) {
+	<div class="mb-4 bg-white dark:bg-stone-800 rounded-lg shadow-md p-6 border border-stone-200 dark:border-stone-700">
+		<h3 class="text-xl font-semibold mb-4">{ name }</h3>
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+			<h4 class="font-medium mb-2 col-span-2">total events: { fmt.Sprintf("%d", stats.Total) }</h4>
+			{{ topKinds, top5Kinds := getTopKinds(stats.PerKind, 30, 5) }}
+			if len(topKinds) > 0 {
+				<div>
+					<h4 class="font-medium">by kind:</h4>
+					<table class="w-full text-sm">
+						<tbody>
+							for _, kindInfo := range topKinds {
+								<tr class="border-b border-stone-100 dark:border-stone-800">
+									<td class="py-1">{ fmt.Sprintf("%d", kindInfo.Kind) }</td>
+									<td class="text-right py-1">{ fmt.Sprintf("%d", kindInfo.Count) }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+			{{ topAuthors := getTopAuthors(stats.PerPubKey, 30) }}
+			if len(topAuthors) > 0 {
+				<div>
+					<h4 class="font-medium">by author:</h4>
+					<table class="w-full text-sm">
+						<tbody>
+							for _, authorInfo := range topAuthors {
+								<tr class="border-b border-stone-100 dark:border-stone-800">
+									<td class="py-1 font-mono text-xs">
+										@layout.ProfileLink(authorInfo.Author)
+									</td>
+									<td class="text-right py-1">{ fmt.Sprintf("%d", authorInfo.Count) }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
 				</div>
 			}
 		</div>
-	}
+		if len(stats.PerWeek) > 0 {
+			<div class="mt-6">
+				@generateWeeklyChart(stats, top5Kinds, name)
+			</div>
+		}
+	</div>
 }
