@@ -97,3 +97,7 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
   - notes published by members with the `"-"` tag and the special hashtag are marked as "paid"
   - these notes will only be shown to viewers who have zapped the specific member at least the specified amount in the past specified days
   - normal zaps and nutzaps supported, sourced from the _inbox_ relay
+
+## community
+
+join the group of users at `pyramid.fiatjaf.com'Tnq7x2ZTgrPZWFrC` ([chachi](https://chachi.chat/pyramid.fiatjaf.com/Tnq7x2ZTgrPZWFrC)) to talk about your experience or complain about things.
