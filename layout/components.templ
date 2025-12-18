@@ -1,7 +1,22 @@
 package layout
 
+import (
+	"fiatjaf.com/nostr"
+	"github.com/fiatjaf/pyramid/global"
+)
+
 templ SubSectionTitle(title string) {
 	<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">{ title }</h3>
+}
+
+templ ProfileLink(pubkey nostr.PubKey) {
+	<a
+		href={ templ.URL(global.Settings.GetExternalLink(nostr.ProfilePointer{PublicKey: pubkey})) }
+		target="_blank"
+		class="text-sm font-medium light:text-stone-600 dark:text-stone-400 hover:underline underline-offset-4"
+	>
+		<nostr-name pubkey={ pubkey.Hex() }>{ pubkey.Hex() }</nostr-name>
+	</a>
 }
 
 templ NavLink(href string, selected bool) {

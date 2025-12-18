@@ -190,7 +190,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 														for pubkey, roles := range group.Members {
 															if len(roles) > 0 {
 																<div class="flex items-center gap-2">
-																	<nostr-name pubkey={ pubkey.Hex() } class="text-stone-700 dark:text-stone-300">{ pubkey.Hex() }</nostr-name>
+																	@layout.ProfileLink(pubkey)
 																	<span class="text-xs text-stone-500 dark:text-stone-500">
 																		(
 																		for i, role := range roles {
@@ -274,7 +274,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 														for pubkey, roles := range group.Members {
 															if len(roles) > 0 {
 																<div class="flex items-center gap-2">
-																	<nostr-name pubkey={ pubkey.Hex() } class="text-stone-700 dark:text-stone-300">{ pubkey.Hex() }</nostr-name>
+																	@layout.ProfileLink(pubkey)
 																	<span class="text-xs text-stone-500 dark:text-stone-500">
 																		(
 																		for i, role := range roles {

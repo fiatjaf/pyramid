@@ -102,6 +102,11 @@ func IsAncestorOf(ancestor nostr.PubKey, target nostr.PubKey) bool {
 	return false
 }
 
+func GetInviters(pubkey nostr.PubKey) []nostr.PubKey {
+	parents, _ := Members.Load(pubkey)
+	return parents
+}
+
 func hasSingleRootAncestor(ancestor nostr.PubKey, target nostr.PubKey) bool {
 	if target == ancestor {
 		return true

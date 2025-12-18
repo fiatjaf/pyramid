@@ -45,14 +45,8 @@ templ graspPage(loggedUser nostr.PubKey) {
 												☐
 											}
 										</td>
-										<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
-											<a
-												href={ templ.URL(global.Settings.GetExternalLink(nostr.ProfilePointer{PublicKey: repo.Event.PubKey})) }
-												target="_blank"
-												class="text-sm font-medium hover:underline underline-offset-4"
-											>
-												<nostr-name pubkey={ repo.Event.PubKey.Hex() }>{ repo.Event.PubKey.Hex() }</nostr-name>
-											</a>
+										<td class="px-4 py-3 text-sm">
+											@layout.ProfileLink(repo.Event.PubKey)
 										</td>
 									</tr>
 								}

@@ -86,6 +86,16 @@ templ memberPage(loggedUser nostr.PubKey, nip05 string) {
 							<span class="text-sm font-medium text-stone-600 dark:text-stone-400">status:</span>
 							<span class="ml-2 text-sm text-green-600 dark:text-green-400">member</span>
 						</div>
+						<div>
+							<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">invited by:</span>
+							<div class="ml-2 space-y-1">
+								for _, inviter := range pyramid.GetInviters(loggedUser) {
+									<div class="text-sm">
+										<code class="light:bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded">{ inviter.Hex() }</code>
+									</div>
+								}
+							</div>
+						</div>
 					}
 				</div>
 			</div>
