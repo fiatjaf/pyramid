@@ -86,7 +86,7 @@ func main() {
 	// init basic http routes
 	relay.Router().HandleFunc("/action", actionHandler)
 	relay.Router().HandleFunc("/settings", settingsHandler)
-	relay.Router().HandleFunc("/member", memberPageHandler)
+	relay.Router().HandleFunc("/me", memberPageHandler)
 	relay.Router().HandleFunc("/stats", statsHandler)
 	relay.Router().HandleFunc("/update", updateHandler)
 	relay.Router().HandleFunc("/icon/{relayId}", iconHandler)
