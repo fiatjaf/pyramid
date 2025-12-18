@@ -82,6 +82,4 @@ func (_ *dualLayerStore) QueryEvents(filter nostr.Filter, limit int) iter.Seq[no
 		// only normal kinds requested
 		return global.IL.Inbox.QueryEvents(filter, limit)
 	}
-
-	panic("this never happens")
 }
