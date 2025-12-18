@@ -3,10 +3,13 @@ package inbox
 import (
 	"context"
 	"fmt"
+	"iter"
 	"net/http"
+	"slices"
 	"time"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/eventstore"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
 	"fiatjaf.com/nostr/nip11"
@@ -52,7 +55,65 @@ func setupEnabled() {
 	Relay.ManagementAPI.AllowPubKey = allowPubkeyHandler
 
 	// use dual layer store
-	Relay.UseEventstore(&dualLayerStore{}, 500)
+	Relay.QueryStored = func(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
+		if len(filter.Kinds) == 0 {
+			// only normal kinds or no kinds specified
+			return global.IL.Inbox.QueryEvents(filter, 500)
+		}
+
+		secretFilter := filter
+		secretFilter.Kinds = nil
+		normalFilter := filter
+		normalFilter.Kinds = nil
+		for _, kind := range filter.Kinds {
+			if slices.Contains(secretKinds, kind) {
+				secretFilter.Kinds = append(secretFilter.Kinds, kind)
+			} else {
+				normalFilter.Kinds = append(normalFilter.Kinds, kind)
+			}
+		}
+
+		if len(secretFilter.Kinds) > 0 && len(normalFilter.Kinds) > 0 {
+			// mixed kinds - need to split the filter and query both
+			return eventstore.SortedMerge(
+				global.IL.Inbox.QueryEvents(normalFilter, 500),
+				global.IL.Secret.QueryEvents(secretFilter, 500),
+			)
+		} else if len(secretFilter.Kinds) > 0 && len(normalFilter.Kinds) == 0 {
+			// only secret kinds requested
+			return global.IL.Secret.QueryEvents(filter, 500)
+		} else {
+			// only normal kinds requested
+			return global.IL.Inbox.QueryEvents(filter, 500)
+		}
+	}
+	Relay.Count = func(ctx context.Context, filter nostr.Filter) (uint32, error) {
+		return global.IL.Inbox.CountEvents(filter)
+	}
+	Relay.StoreEvent = func(ctx context.Context, event nostr.Event) error {
+		if slices.Contains(secretKinds, event.Kind) {
+			return global.IL.Secret.SaveEvent(event)
+		} else {
+			return global.IL.Inbox.SaveEvent(event)
+		}
+	}
+	Relay.ReplaceEvent = func(ctx context.Context, event nostr.Event) error {
+		if slices.Contains(secretKinds, event.Kind) {
+			return global.IL.Secret.ReplaceEvent(event)
+		} else {
+			return global.IL.Inbox.ReplaceEvent(event)
+		}
+	}
+	Relay.DeleteEvent = func(ctx context.Context, id nostr.ID) error {
+		if err := global.IL.Inbox.DeleteEvent(id); err != nil {
+			return err
+		}
+		if err := global.IL.Secret.DeleteEvent(id); err != nil {
+			return err
+		}
+		return nil
+	}
+	Relay.StartExpirationManager(Relay.QueryStored, Relay.DeleteEvent)
 
 	pk := global.Settings.RelayInternalSecretKey.Public()
 	Relay.Info.Self = &pk
