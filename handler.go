@@ -62,7 +62,6 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 
 func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
-
 	if !pyramid.IsRoot(loggedUser) {
 		http.Error(w, "unauthorized", 403)
 		return
@@ -619,6 +618,20 @@ func statsHandler(w http.ResponseWriter, r *http.Request) {
 	inboxStats, _ := global.IL.Inbox.ComputeStats(mmm.StatsOptions{})
 
 	StatsPage(loggedUser, mainStats, systemStats, groupsStats, favoritesStats, internalStats, moderatedStats, popularStats, uppermostStats, inboxStats).Render(r.Context(), w)
+}
+
+func syncHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+	if !pyramid.IsMember(loggedUser) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	remoteUrl := r.FormValue("remote")
+	download := r.FormValue("download") == "on"
+	upload := r.FormValue("upload") == "on"
+
+	streamingSync(r.Context(), loggedUser, remoteUrl, download, upload, w)
 }
 
 func nip05Handler(w http.ResponseWriter, r *http.Request) {

@@ -149,7 +149,7 @@ templ StatsPage(
 	@layout.Layout(loggedUser, "stats") {
 		<div class="space-y-8">
 			<div>
-				<h2 class="text-2xl font-bold mb-6">Relay Statistics</h2>
+				@layout.SubSectionTitle("event statistics")
 				@StatsTable("main", mainStats)
 				@StatsTable("inbox", inboxStats)
 				@StatsTable("groups", groupsStats)

@@ -11,14 +11,48 @@ import (
 templ memberPage(loggedUser nostr.PubKey, nip05 string) {
 	@layout.Layout(loggedUser, "member settings") {
 		<div class="max-w-4xl mx-auto">
-			<div class="mb-6">
-				<h1 class="text-2xl font-bold dark:text-stone-200 font-[family-name:var(--primary-font)]">member settings</h1>
+			<!-- Account Info Section -->
+			<div>
+				@layout.SubSectionTitle("account information")
+				<div class="space-y-1">
+					<div>
+						<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">public key:</span>
+						<code class="ml-2 light:bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded text-sm">{ loggedUser.Hex() }</code>
+					</div>
+					<div>
+						<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">name:</span>
+						<code class="ml-2 light:bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded text-sm">
+							@layout.ProfileLink(loggedUser)
+						</code>
+					</div>
+					if pyramid.IsRoot(loggedUser) {
+						<div>
+							<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">status:</span>
+							<span class="ml-2 text-sm font-semibold themed:text-[var(--extra-color)] light:text-emerald-600 dark:text-emerald-400">root member</span>
+						</div>
+					} else if pyramid.IsMember(loggedUser) {
+						<div>
+							<span class="text-sm font-medium text-stone-600 dark:text-stone-400">status:</span>
+							<span class="ml-2 text-sm text-green-600 dark:text-green-400">member</span>
+						</div>
+						<div>
+							<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">invited by:</span>
+							<div class="ml-2 space-y-1">
+								for _, inviter := range pyramid.GetInviters(loggedUser) {
+									<div class="text-sm">
+										<code class="light:bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded">{ inviter.Hex() }</code>
+									</div>
+								}
+							</div>
+						</div>
+					}
+				</div>
 			</div>
 			<!-- NIP-05 Address Section -->
 			<form
 				method="POST"
 				action="/me"
-				class="space-y-6"
+				class="space-y-6 mt-8"
 				x-data={ `{
 					nip05Username: '` + nip05 + `',
 					saved: false,
@@ -37,7 +71,7 @@ templ memberPage(loggedUser nostr.PubKey, nip05 string) {
 			>
 				<div class="space-y-4">
 					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">nip05 username</label>
+						@layout.SubSectionTitle("nip05 username")
 						<div class="flex items-center gap-1">
 							<input
 								type="text"
@@ -68,37 +102,51 @@ templ memberPage(loggedUser nostr.PubKey, nip05 string) {
 					saved!
 				</div>
 			</form>
-			<!-- Account Info Section -->
-			<div class="mt-8">
-				@layout.SubSectionTitle("account information")
-				<div class="space-y-3">
+			<!-- Relay Settings Section -->
+			<form
+				method="POST"
+				action="/me/sync"
+				class="space-y-6 mt-8"
+				x-ref="form"
+			>
+				<div class="space-y-4">
 					<div>
-						<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">public key:</span>
-						<code class="ml-2 light:bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded text-sm">{ loggedUser.Hex() }</code>
-					</div>
-					if pyramid.IsRoot(loggedUser) {
-						<div>
-							<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">status:</span>
-							<span class="ml-2 text-sm font-semibold themed:text-[var(--extra-color)] light:text-emerald-600 dark:text-emerald-400">root member</span>
-						</div>
-					} else if pyramid.IsMember(loggedUser) {
-						<div>
-							<span class="text-sm font-medium text-stone-600 dark:text-stone-400">status:</span>
-							<span class="ml-2 text-sm text-green-600 dark:text-green-400">member</span>
-						</div>
-						<div>
-							<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">invited by:</span>
-							<div class="ml-2 space-y-1">
-								for _, inviter := range pyramid.GetInviters(loggedUser) {
-									<div class="text-sm">
-										<code class="light:bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded">{ inviter.Hex() }</code>
-									</div>
-								}
+						@layout.SubSectionTitle("negentropy sync")
+						<div class="space-y-4">
+							<div class="flex items-center gap-6">
+								<label class="flex items-center space-x-2">
+									<input
+										type="checkbox"
+										name="download"
+										class="rounded border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-blue-600 focus:ring-blue-500"
+									/>
+									<span class="text-sm light:text-stone-700 dark:text-stone-300">fetch missing events from</span>
+								</label>
+								<label class="flex items-center space-x-2">
+									<input
+										type="checkbox"
+										name="upload"
+										class="rounded border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-blue-600 focus:ring-blue-500"
+									/>
+									<span class="text-sm light:text-stone-700 dark:text-stone-300">publish missing events to</span>
+								</label>
+							</div>
+							<div class="flex justify-between items-center gap-2">
+								<label class="block text-sm font-medium light:text-stone-600 dark:text-stone-400 mb-1">remote relay:</label>
+								<input
+									name="remote"
+									placeholder="relay.example.com"
+									class="px-4 py-2 flex-1 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+								/>
+								<button
+									type="submit"
+									class="cursor-pointer rounded-lg px-4 py-1.5 text-sm font-semibold text-white shadow-lg transform hover:scale-105 themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] light:bg-stone-600 light:hover:bg-stone-700 dark:bg-stone-500 dark:hover:bg-stone-600"
+								>start sync</button>
 							</div>
 						</div>
-					}
+					</div>
 				</div>
-			</div>
+			</form>
 		</div>
 	}
 }
