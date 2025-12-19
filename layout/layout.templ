@@ -54,6 +54,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 			<link rel="stylesheet" href="/static/styles.css"/>
 			<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 			<script src="https://cdn.jsdelivr.net/npm/nostr-web-components@0.0.12/dist/nostr-name.js"></script>
+			<script src="https://cdn.jsdelivr.net/npm/nostr-web-components@0.0.12/dist/nostr-picture.js"></script>
 		</head>
 		<body
 			class="min-h-screen flex flex-col themed:bg-[var(--bg-color)] themed:text-[var(--base-color)] themed:font-[family-name:var(--secondary-font)] light:bg-stone-50 dark:bg-stone-900 light:text-stone-900 dark:text-stone-100"
@@ -198,7 +199,7 @@ case "uppermost":
 									</button>
 								</div>
 								if pyramid.IsMember(loggedUser) {
-									<a href="/me" class="light:text-stone-700 dark:text-stone-300 font-medium hover:underline">
+									<a href="/u" class="light:text-stone-700 dark:text-stone-300 font-medium hover:underline">
 										<nostr-name title={ loggedUser.Hex() } pubkey={ loggedUser.Hex() }>
 											{ loggedUser.Hex() }
 										</nostr-name>

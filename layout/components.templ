@@ -2,7 +2,7 @@ package layout
 
 import (
 	"fiatjaf.com/nostr"
-	"github.com/fiatjaf/pyramid/global"
+	"fiatjaf.com/nostr/nip19"
 )
 
 templ SubSectionTitle(title string) {
@@ -11,8 +11,7 @@ templ SubSectionTitle(title string) {
 
 templ ProfileLink(pubkey nostr.PubKey) {
 	<a
-		href={ templ.URL(global.Settings.GetExternalLink(nostr.ProfilePointer{PublicKey: pubkey})) }
-		target="_blank"
+		href={ "/u/" + nip19.EncodeNpub(pubkey) }
 		class="text-sm font-medium light:text-stone-600 dark:text-stone-400 hover:underline underline-offset-4"
 	>
 		<nostr-name pubkey={ pubkey.Hex() }>{ pubkey.Hex() }</nostr-name>

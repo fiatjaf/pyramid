@@ -65,13 +65,7 @@ templ inviteTreeComponent(
 							class="text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400"
 						}
 					>
-						<a
-							href={ templ.URL(global.Settings.GetExternalLink(nostr.ProfilePointer{PublicKey: child})) }
-							target="_blank"
-							class="font-mono text-sm"
-						>
-							<nostr-name pubkey={ child.Hex() } class="text-lg">{ child.Hex() }</nostr-name>
-						</a>
+						@layout.ProfileLink(child)
 						if pyramid.IsRoot(child) {
 							<span
 								class="cursor-default ml-2 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium themed:bg-[var(--accent-color)] themed:text-white light:bg-blue-50 light:text-blue-700 light:ring-1 light:ring-inset light:ring-blue-600/20 dark:bg-blue-900/20 dark:text-blue-400 dark:ring-blue-500/20"

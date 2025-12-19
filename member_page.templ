@@ -2,58 +2,101 @@ package main
 
 import (
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/eventstore/mmm"
+	"fmt"
 
+	"fiatjaf.com/nostr/nip19"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
-templ memberPage(loggedUser nostr.PubKey, nip05 string) {
-	@layout.Layout(loggedUser, "member settings") {
+templ memberPage(loggedUser nostr.PubKey, user nostr.PubKey, nip05 string, mainStats mmm.EventStats) {
+	@layout.Layout(loggedUser, "member page") {
 		<div class="max-w-4xl mx-auto">
 			<!-- Account Info Section -->
-			<div>
+			<div @click="console.log('clicked')">
 				@layout.SubSectionTitle("account information")
 				<div class="space-y-1">
-					<div>
-						<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">public key:</span>
-						<code class="ml-2 light:bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded text-sm">{ loggedUser.Hex() }</code>
+					<div class="flex items-end gap-x-2">
+						<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">picture:</span>
+						<nostr-picture
+							class="part-[img]:w-16 part-[img]:h-16 rounded"
+							pubkey={ user.Hex() }
+						></nostr-picture>
 					</div>
-					<div>
+					<div class="flex items-center gap-x-2">
 						<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">name:</span>
-						<code class="ml-2 light:bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded text-sm">
-							@layout.ProfileLink(loggedUser)
+						<code class="ml-2 light:bg-stone-100 dark:bg-stone-800 rounded text-sm">
+							<a
+								href={ templ.SafeURL(global.Settings.GetExternalLink(nostr.ProfilePointer{PublicKey: user, Relays: []string{global.Settings.WSScheme() + global.Settings.Domain}})) }
+								target="_blank"
+								class="text-sm font-medium light:text-stone-600 dark:text-stone-400 hover:underline underline-offset-4"
+							>
+								<nostr-name pubkey={ user.Hex() }>{ user.Hex() }</nostr-name>
+							</a>
 						</code>
 					</div>
-					if pyramid.IsRoot(loggedUser) {
-						<div>
-							<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">status:</span>
+					<div class="flex items-center gap-x-2" x-data="{visible: 'hex'}">
+						<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400" @click="visible = visible === 'npub' ? 'hex' : 'npub'">public key:</span>
+						<code class="ml-2 light:bg-stone-100 dark:bg-stone-800 rounded text-sm" :class="visible === 'npub' ? 'hidden' : ''">{ user.Hex() }</code>
+						<code class="ml-2 light:bg-stone-100 dark:bg-stone-800 rounded text-sm" :class="visible === 'hex' ? 'hidden' : ''">{ nip19.EncodeNpub(user) }</code>
+					</div>
+					<div class="flex items-center gap-x-2 flex-wrap">
+						<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">status:</span>
+						if pyramid.IsRoot(user) {
 							<span class="ml-2 text-sm font-semibold themed:text-[var(--extra-color)] light:text-emerald-600 dark:text-emerald-400">root member</span>
-						</div>
-					} else if pyramid.IsMember(loggedUser) {
-						<div>
-							<span class="text-sm font-medium text-stone-600 dark:text-stone-400">status:</span>
+						} else if pyramid.IsMember(user) {
 							<span class="ml-2 text-sm text-green-600 dark:text-green-400">member</span>
-						</div>
-						<div>
-							<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">invited by:</span>
-							<div class="ml-2 space-y-1">
-								for _, inviter := range pyramid.GetInviters(loggedUser) {
-									<div class="text-sm">
-										<code class="light:bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded">{ inviter.Hex() }</code>
-									</div>
-								}
+							<div class="w-full">
+								<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">invited by:</span>
+								<div class="ml-2 space-y-1">
+									for _, inviter := range pyramid.GetInviters(user) {
+										<div class="text-sm">
+											<code class="light:bg-stone-100 dark:bg-stone-800 px-2 rounded">{ inviter.Hex() }</code>
+										</div>
+									}
+								</div>
 							</div>
-						</div>
-					}
+						} else {
+							<span class="ml-2 text-sm font-semibold themed:text-[var(--extra-color)] light:text-emerald-600 dark:text-emerald-400">not a member</span>
+						}
+					</div>
 				</div>
 			</div>
+			//
+			<!-- User Stats Section -->
+			if pyramid.IsMember(loggedUser) {
+				<div class="mt-8">
+					@layout.SubSectionTitle("events published")
+					<div class="bg-white dark:bg-stone-800 rounded-lg shadow p-4 mt-4">
+						<h4 class="font-semibold mb-3 text-stone-900 dark:text-stone-100">activity chart</h4>
+						<h4 class="font-medium mb-2">total events: { fmt.Sprintf("%d", mainStats.Total) }</h4>
+						{{ topKinds, top5Kinds := getTopKinds(mainStats.PerKind, 30, 5) }}
+						if len(mainStats.PerWeek) > 0 {
+							@generateWeeklyChart(mainStats, top5Kinds, "member-main")
+						}
+						<div class="mt-6 columns-2 sm:columns-3 md:columns-4">
+							if len(topKinds) > 0 {
+								for _, kindInfo := range topKinds {
+									<div class="flex items-center gap-2 my-2 mx-1 px-2 py-1 border border-stone-200 dark:border-stone-700 break-inside-avoid">
+										<div class="border my-0.5 px-1 py-1.5 border-stone-200 dark:border-stone-700 font-medium font-mono min-w-[63%] text-sm">{ fmt.Sprintf("kind:%d", kindInfo.Kind) }</div>
+										<div class="border my-0.5 px-2 py-1 border-stone-200 dark:border-stone-700 flex-1 text-right">{ fmt.Sprintf("%d", kindInfo.Count) }</div>
+									</div>
+								}
+							}
+						</div>
+					</div>
+				</div>
+			}
+			//
 			<!-- NIP-05 Address Section -->
-			<form
-				method="POST"
-				action="/me"
-				class="space-y-6 mt-8"
-				x-data={ `{
+			if pyramid.IsMember(user) && user == loggedUser {
+				<form
+					method="POST"
+					action="/u"
+					class="space-y-6 mt-8"
+					x-data={ `{
 					nip05Username: '` + nip05 + `',
 					saved: false,
 					async saveSettings() {
@@ -67,86 +110,89 @@ templ memberPage(loggedUser nostr.PubKey, nip05 string) {
 						}
 					}
 				}` }
-				x-ref="form"
-			>
-				<div class="space-y-4">
-					<div>
-						@layout.SubSectionTitle("nip05 username")
-						<div class="flex items-center gap-1">
-							<input
-								type="text"
-								name="nip05_username"
-								if global.Settings.NIP05.Enabled {
-									placeholder="username"
-								} else {
-									placeholder="disabled by the relay admin"
-								}
-								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 disabled:bg-stone-100 disabled:dark:bg-stone-800 disabled:text-stone-500"
-								x-model="nip05Username"
-								@blur="saveSettings()"
-								if !global.Settings.NIP05.Enabled {
-									disabled
-								}
-							/>
-							<div>
-								{ "@" }{ global.Settings.Domain }
-							</div>
-						</div>
-					</div>
-				</div>
-				<div
-					x-show="saved"
-					x-transition
-					class="text-sm text-green-600 dark:text-green-400 font-medium"
+					x-ref="form"
 				>
-					saved!
-				</div>
-			</form>
-			<!-- Relay Settings Section -->
-			<form
-				method="POST"
-				action="/me/sync"
-				class="space-y-6 mt-8"
-				x-ref="form"
-			>
-				<div class="space-y-4">
-					<div>
-						@layout.SubSectionTitle("negentropy sync")
-						<div class="space-y-4">
-							<div class="flex items-center gap-6">
-								<label class="flex items-center space-x-2">
-									<input
-										type="checkbox"
-										name="download"
-										class="rounded border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-blue-600 focus:ring-blue-500"
-									/>
-									<span class="text-sm light:text-stone-700 dark:text-stone-300">fetch missing events from</span>
-								</label>
-								<label class="flex items-center space-x-2">
-									<input
-										type="checkbox"
-										name="upload"
-										class="rounded border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-blue-600 focus:ring-blue-500"
-									/>
-									<span class="text-sm light:text-stone-700 dark:text-stone-300">publish missing events to</span>
-								</label>
-							</div>
-							<div class="flex justify-between items-center gap-2">
-								<label class="block text-sm font-medium light:text-stone-600 dark:text-stone-400 mb-1">remote relay:</label>
+					<div class="space-y-4">
+						<div>
+							@layout.SubSectionTitle("nip05 username")
+							<div class="flex items-center gap-1">
 								<input
-									name="remote"
-									placeholder="relay.example.com"
-									class="px-4 py-2 flex-1 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+									type="text"
+									name="nip05_username"
+									if global.Settings.NIP05.Enabled {
+										placeholder="username"
+									} else {
+										placeholder="disabled by the relay admin"
+									}
+									class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 disabled:bg-stone-100 disabled:dark:bg-stone-800 disabled:text-stone-500"
+									x-model="nip05Username"
+									@blur="saveSettings()"
+									if !global.Settings.NIP05.Enabled {
+										disabled
+									}
 								/>
-								<button
-									type="submit"
-									class="cursor-pointer rounded-lg px-4 py-1.5 text-sm font-semibold text-white shadow-lg transform hover:scale-105 themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] light:bg-stone-600 light:hover:bg-stone-700 dark:bg-stone-500 dark:hover:bg-stone-600"
-								>start sync</button>
+								<div>
+									{ "@" }{ global.Settings.Domain }
+								</div>
 							</div>
 						</div>
 					</div>
-				</div>
-			</form>
+					<div
+						x-show="saved"
+						x-transition
+						class="text-sm text-green-600 dark:text-green-400 font-medium"
+					>
+						saved!
+					</div>
+				</form>
+			}
+			//
+			<!-- Negentropy Sync Section -->
+			if pyramid.IsMember(user) && (user == loggedUser || pyramid.IsRoot(loggedUser) ) {
+				<form
+					method="POST"
+					action="/u/sync"
+					class="space-y-6 mt-8"
+				>
+					<div class="space-y-4">
+						<div>
+							@layout.SubSectionTitle("negentropy sync")
+							<div class="space-y-4">
+								<div class="flex items-center gap-6">
+									<label class="flex items-center space-x-2">
+										<input
+											type="checkbox"
+											name="download"
+											class="rounded border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-blue-600 focus:ring-blue-500"
+										/>
+										<span class="text-sm light:text-stone-700 dark:text-stone-300">fetch missing events from</span>
+									</label>
+									<label class="flex items-center space-x-2">
+										<input
+											type="checkbox"
+											name="upload"
+											class="rounded border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-blue-600 focus:ring-blue-500"
+										/>
+										<span class="text-sm light:text-stone-700 dark:text-stone-300">publish missing events to</span>
+									</label>
+								</div>
+								<div class="flex justify-between items-center gap-2">
+									<label class="block text-sm font-medium light:text-stone-600 dark:text-stone-400 mb-1">remote relay:</label>
+									<input
+										name="remote"
+										placeholder="relay.example.com"
+										class="px-4 py-2 flex-1 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+									/>
+									<button
+										type="submit"
+										class="cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-lg transform hover:scale-105 themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] light:bg-stone-600 light:hover:bg-stone-700 dark:bg-stone-500 dark:hover:bg-stone-600"
+									>start sync</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</form>
+			}
 		</div>
 	}
 }

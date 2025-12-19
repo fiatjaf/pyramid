@@ -15,6 +15,7 @@ import (
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/nip05"
+	"fiatjaf.com/nostr/nip19"
 
 	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
@@ -543,16 +544,25 @@ func forumHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func memberPageHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser, _ := global.GetLoggedUser(r)
+	loggedUser, isLogged := global.GetLoggedUser(r)
+	var user nostr.PubKey
 
-	if !pyramid.IsMember(loggedUser) {
-		http.Error(w, "unauthorized", 401)
+	pubkeyHex := r.PathValue("pubkey")
+	if pubkeyHex == "" && isLogged {
+		http.Redirect(w, r, "/u/"+nip19.EncodeNpub(loggedUser), 302)
+		return
+	} else if pubkeyHex != "" {
+		user = global.PubKeyFromInput(pubkeyHex)
+		if user == nostr.ZeroPK {
+			http.Error(w, "invalid pubkey", 400)
+			return
+		}
+	} else {
+		http.Redirect(w, r, "/", 302)
 		return
 	}
 
 	if r.Method == http.MethodPost {
-		r.ParseForm()
-
 		if nip05Username := r.PostFormValue("nip05_username"); nip05Username != "" {
 			// basic validation for NIP-05 username (alphanumeric and underscores only)
 			nip05Username = strings.ToLower(nip05Username)
@@ -595,7 +605,13 @@ func memberPageHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	memberPage(loggedUser, nip05).Render(r.Context(), w)
+	// compute user-specific stats
+	var mainStats mmm.EventStats
+	if pyramid.IsMember(loggedUser) {
+		mainStats, _ = global.IL.Main.ComputeStats(mmm.StatsOptions{OnlyPubKey: user})
+	}
+
+	memberPage(loggedUser, user, nip05, mainStats).Render(r.Context(), w)
 }
 
 func statsHandler(w http.ResponseWriter, r *http.Request) {

@@ -306,11 +306,6 @@ func allowPubkeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string)
 }
 
 func checkWoTHandler(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "failed to parse form", 400)
-		return
-	}
-
 	pubkeyInput := r.FormValue("pubkey")
 	if pubkeyInput == "" {
 		http.Error(w, "pubkey parameter required", 400)
