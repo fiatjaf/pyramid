@@ -78,6 +78,7 @@ func setupEnabled() {
 			return eventstore.SortedMerge(
 				global.IL.Inbox.QueryEvents(normalFilter, 500),
 				global.IL.Secret.QueryEvents(secretFilter, 500),
+				filter.GetTheoreticalLimit(),
 			)
 		} else if len(secretFilter.Kinds) > 0 && len(normalFilter.Kinds) == 0 {
 			// only secret kinds requested

@@ -453,6 +453,7 @@ func queryStored(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event]
 		return eventstore.SortedMerge(
 			queryNormal(ctx, filter),
 			groups.State.Query(ctx, filter),
+			filter.GetTheoreticalLimit(),
 		)
 	}
 
@@ -482,6 +483,7 @@ func queryStored(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event]
 		return eventstore.SortedMerge(
 			queryNormal(ctx, normalFilter),
 			groups.State.Query(ctx, groupsFilter),
+			filter.GetTheoreticalLimit(),
 		)
 	} else if groupsFilter.Kinds != nil && normalFilter.Kinds == nil {
 		// only groups kinds requested
@@ -508,6 +510,7 @@ func queryNormal(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event]
 		return eventstore.SortedMerge(
 			groups.State.Query(ctx, filter),
 			queryMain(ctx, filter),
+			filter.GetTheoreticalLimit(),
 		)
 	}
 
