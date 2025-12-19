@@ -323,8 +323,10 @@ func preventBroadcast(ws *khatru.WebSocket, filter nostr.Filter, event nostr.Eve
 			if group := groups.State.GetGroupFromEvent(event); group == nil {
 				log.Warn().Stringer("event", event).Msg("unexpected group not found")
 				return true
+			} else if group.Private {
+				return !group.AnyOfTheseIsAMember(ws.AuthedPublicKeys)
 			} else {
-				return group.Private || !group.AnyOfTheseIsAMember(ws.AuthedPublicKeys)
+				return false
 			}
 		}
 	}
