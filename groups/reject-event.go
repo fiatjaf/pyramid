@@ -110,6 +110,7 @@ func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (rejec
 		group.mu.RLock()
 		if _, isMember := group.Members[event.PubKey]; !isMember {
 			group.mu.RUnlock()
+			fmt.Println("??", group.Restricted, group.Closed, pyramid.IsMember(event.PubKey))
 			return true, "blocked: unknown member"
 		}
 		group.mu.RUnlock()

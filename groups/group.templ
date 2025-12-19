@@ -33,6 +33,14 @@ templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Even
 				// status flags
 				<div class="flex gap-4">
 					<div class="flex items-center gap-2">
+						<span class="text-sm text-stone-600 dark:text-stone-400">restricted:</span>
+						if group.Restricted {
+							☑
+						} else {
+							☐
+						}
+					</div>
+					<div class="flex items-center gap-2">
 						<span class="text-sm text-stone-600 dark:text-stone-400">closed:</span>
 						if group.Closed {
 							☑

@@ -19,6 +19,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 				description: "",
 				imageUrl: "",
 				closed: false,
+				unrestricted: true,
 				private: false,
 				creating: false,
 				groupsRelayURL: window.location.href
@@ -62,7 +63,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 								...(this.description ? [["about", this.description]] : []),
 								...(this.imageUrl ? [["picture", this.imageUrl]] : []),
 								...(this.closed ? [["closed"]] : []),
-								["restricted"],
+								...(this.unrestricted ? [] : [["restricted"]]),
 								...(this.private ? [["private"], ["hidden"]] : [])
 							],
 							content: ""
@@ -151,13 +152,14 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 							<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
 								<thead class="bg-stone-50 dark:bg-stone-800">
 									<tr>
-										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">group id</th>
-										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">group</th>
-										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">members</th>
-										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">moderators</th>
-										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">closed</th>
-										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">hidden</th>
-										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">private</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">group id</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">group</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">members</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">moderators</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">restricted</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">closed</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">hidden</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">private</th>
 									</tr>
 								</thead>
 								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
@@ -207,6 +209,13 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 													</div>
 												</td>
 												<td class="px-4 py-3 text-sm text-center">
+													if group.Restricted {
+														☑
+													} else {
+														☐
+													}
+												</td>
+												<td class="px-4 py-3 text-sm text-center">
 													if group.Closed {
 														☑
 													} else {
@@ -243,12 +252,14 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 							<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
 								<thead class="bg-stone-50 dark:bg-stone-800">
 									<tr>
-										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">group id</th>
-										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">group</th>
-										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">members</th>
-										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">moderators</th>
-										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">closed</th>
-										<th class="px-4 py-3 text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">private</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">group id</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">group</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">members</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">moderators</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">restricted</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">closed</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">hidden</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">private</th>
 									</tr>
 								</thead>
 								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
@@ -291,7 +302,21 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 													</div>
 												</td>
 												<td class="px-4 py-3 text-sm text-center">
+													if group.Restricted {
+														☑
+													} else {
+														☐
+													}
+												</td>
+												<td class="px-4 py-3 text-sm text-center">
 													if group.Closed {
+														☑
+													} else {
+														☐
+													}
+												</td>
+												<td class="px-4 py-3 text-sm text-center">
+													if group.Hidden {
 														☑
 													} else {
 														☐
@@ -363,6 +388,18 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 								<div class="flex items-center">
 									<input
 										type="checkbox"
+										id="group_restricted"
+										name="unrestricted"
+										x-model="unrestricted"
+										class="h-4 w-4 rounded border-stone-300 text-stone-600 focus:ring-stone-500"
+									/>
+									<label for="group_restricted" class="ml-2 text-sm text-stone-700 dark:text-stone-300">
+										unrestricted (relay members can publish without explicitly joining)
+									</label>
+								</div>
+								<div class="flex items-center">
+									<input
+										type="checkbox"
 										id="group_closed"
 										name="closed"
 										x-model="closed"
@@ -389,7 +426,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 							</div>
 							<button
 								type="submit"
-								class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+								class="cursor-pointer px-4 py-2 rounded themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] themed:text-white light:bg-stone-200 light:hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
 								:disabled="creating"
 							>
 								create group
