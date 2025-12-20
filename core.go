@@ -28,7 +28,7 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		}
 
 		switch event.Kind {
-		case 1, 9, 11, 1111, 1222, 1244, 20, 21, 22:
+		case 1, 9, 11, 1111, 1222, 1244, 20, 21, 22, 24:
 			if event.CreatedAt < nostr.Now()-60*5 {
 				return true, "event too much in the past"
 			}
@@ -145,6 +145,7 @@ var supportedKinds = []nostr.Kind{
 	20,
 	21,
 	22,
+	24,
 	818,
 	1040,
 	1063,

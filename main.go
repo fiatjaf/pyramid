@@ -58,6 +58,16 @@ func main() {
 		}
 	}()
 
+	// start periodic checking of opentimestamps proofs
+	go func() {
+		if err := initOTS(); err == nil {
+			for {
+				checkOTS(context.Background())
+				time.Sleep(time.Hour * 2)
+			}
+		}
+	}()
+
 	pyramid.AbsoluteKey = global.Settings.RelayInternalSecretKey.Public()
 
 	if err := pyramid.LoadManagement(); err != nil {
@@ -239,6 +249,14 @@ func main() {
 			processReactions(ctx, event)
 		case 0, 3, 10019:
 			global.IL.System.SaveEvent(event)
+		}
+
+		// trigger opentimestamping of selected event kinds
+		switch event.Kind {
+		case 1, 11, 1111, 20, 21, 22, 24, 9802:
+			if err := triggerOTS(ctx, event.ID, event.Kind); err != nil {
+				log.Error().Err(err).Stringer("event", event).Msg("failed to trigger OTS proof")
+			}
 		}
 	}
 
