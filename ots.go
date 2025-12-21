@@ -34,7 +34,17 @@ func initOTS() error {
 	return nil
 }
 
-func triggerOTS(ctx context.Context, id nostr.ID, kind nostr.Kind) error {
+func getOTSFilePath(event nostr.Event) string {
+	return filepath.Join(
+		otsPendingDir,
+		event.ID.Hex()+
+			hex.EncodeToString(binary.BigEndian.AppendUint16(nil, uint16(event.Kind)))+
+			hex.EncodeToString(binary.BigEndian.AppendUint32(nil, uint32(event.CreatedAt)))+
+			".ots",
+	)
+}
+
+func triggerOTS(ctx context.Context, event nostr.Event) error {
 	if !global.Settings.EnableOTS {
 		return nil
 	}
@@ -44,20 +54,24 @@ func triggerOTS(ctx context.Context, id nostr.ID, kind nostr.Kind) error {
 		otsSerial++
 	}()
 
-	log.Info().Str("id", id.Hex()).Uint16("kind", uint16(kind)).Str("server", calendarServer).Msg("creating OTS proof")
-	if _, err := os.Stat(filepath.Join(otsPendingDir, id.Hex()+".ots")); err == nil {
-		log.Warn().Str("id", id.Hex()).Msg("OTS file already exists")
+	log.Info().
+		Str("id", event.ID.Hex()).
+		Uint16("kind", uint16(event.Kind)).
+		Str("server", calendarServer).
+		Msg("creating OTS proof")
+	if _, err := os.Stat(getOTSFilePath(event)); err == nil {
+		log.Warn().Str("id", event.ID.Hex()).Msg("OTS file already exists")
 		return nil
 	}
 
-	seq, err := opentimestamps.Stamp(context.Background(), calendarServer, id)
+	seq, err := opentimestamps.Stamp(context.Background(), calendarServer, event.ID)
 	if err != nil {
 		return err
 	}
 
 	return os.WriteFile(
-		filepath.Join(otsPendingDir, id.Hex()+hex.EncodeToString(binary.BigEndian.AppendUint16(nil, uint16(kind)))+".ots"),
-		opentimestamps.File{Digest: id[:], Sequences: []opentimestamps.Sequence{seq}}.SerializeToFile(),
+		getOTSFilePath(event),
+		opentimestamps.File{Digest: event.ID[:], Sequences: []opentimestamps.Sequence{seq}}.SerializeToFile(),
 		0644,
 	)
 }
@@ -88,9 +102,17 @@ func checkOTS(ctx context.Context) {
 			log.Warn().Str("name", entry.Name()).Msg("invalid pending ots file")
 			continue
 		}
-		kindStr := strconv.Itoa(int(binary.BigEndian.Uint16(kindBytes)))
+		kind := binary.BigEndian.Uint16(kindBytes)
 
-		log.Info().Str("id", idHex).Str("kind", kindStr).Msg("checking OTS proof")
+		// finally, the timestamp is the next 4 bytes
+		createdAtBytes, err := hex.DecodeString(entry.Name()[64+2*2 : 64+2*2+4*2])
+		if err != nil {
+			log.Warn().Str("name", entry.Name()).Msg("invalid pending ots file")
+			continue
+		}
+		createdAt := binary.BigEndian.Uint32(createdAtBytes)
+
+		log.Info().Str("id", idHex).Uint16("kind", kind).Msg("checking OTS proof")
 
 		// the contents of the file are the weird ots binary format
 		b, err := os.ReadFile(filepath.Join(otsPendingDir, entry.Name()))
@@ -120,19 +142,18 @@ func checkOTS(ctx context.Context) {
 			Kind: 1040,
 			Tags: nostr.Tags{
 				{"e", idHex, global.Settings.WSScheme() + global.Settings.Domain},
-				{"k", kindStr},
+				{"k", strconv.Itoa(int(kind))},
 			},
 			Content:   base64.StdEncoding.EncodeToString(otsb),
-			CreatedAt: nostr.Now(),
+			CreatedAt: nostr.Timestamp(createdAt),
 		}
 		if err := evt.Sign(global.Settings.RelayInternalSecretKey); err != nil {
 			log.Error().Err(err).Str("id", idHex).Msg("failed to sign OTS event")
 			continue
 		}
 
-		log.Info().Stringer("event", evt).Msg("publishing OTS event")
-
 		// save to main database and broadcast
+		log.Info().Stringer("event", evt).Msg("publishing OTS event")
 		if err := global.IL.Main.SaveEvent(evt); err != nil {
 			log.Error().Err(err).Str("id", idHex).Msg("failed to save OTS event")
 			continue
@@ -140,7 +161,7 @@ func checkOTS(ctx context.Context) {
 		relay.BroadcastEvent(evt)
 
 		// remove pending file
-		if err := os.Remove(filepath.Join(otsPendingDir, idHex+".ots")); err != nil {
+		if err := os.Remove(filepath.Join(otsPendingDir, entry.Name())); err != nil {
 			log.Error().Err(err).Str("id", idHex).Msg("failed to remove pending OTS file")
 		}
 	}
