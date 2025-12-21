@@ -60,6 +60,7 @@ func main() {
 
 	// start periodic checking of opentimestamps proofs
 	go func() {
+		time.Sleep(time.Minute * 3)
 		if err := initOTS(); err == nil {
 			for {
 				checkOTS(context.Background())

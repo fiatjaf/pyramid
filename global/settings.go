@@ -37,6 +37,7 @@ type UserSettings struct {
 	LinkURL                 string `json:"link_url"`
 	MaxInvitesPerPerson     int    `json:"max_invites_per_person"`
 	RequireCurrentTimestamp bool   `json:"require_current_timestamp"`
+	EnableOTS               bool   `json:"enable_ots"`
 
 	Paywall struct {
 		Tag        string `json:"tag"`
@@ -185,6 +186,7 @@ func loadUserSettings() error {
 		LinkURL:                 "nostr:{code}",
 		MaxInvitesPerPerson:     4,
 		RequireCurrentTimestamp: true,
+		EnableOTS:               true,
 		BlockedIPs:              []string{},
 	}
 

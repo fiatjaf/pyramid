@@ -35,6 +35,10 @@ func initOTS() error {
 }
 
 func triggerOTS(ctx context.Context, id nostr.ID, kind nostr.Kind) error {
+	if !global.Settings.EnableOTS {
+		return nil
+	}
+
 	calendarServer := calendarServers[otsSerial%len(calendarServers)]
 	defer func() {
 		otsSerial++
@@ -59,6 +63,11 @@ func triggerOTS(ctx context.Context, id nostr.ID, kind nostr.Kind) error {
 }
 
 func checkOTS(ctx context.Context) {
+	if !global.Settings.EnableOTS {
+		return
+	}
+
+	log.Info().Msg("checking pending OTS proofs")
 	entries, err := os.ReadDir(otsPendingDir)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to read ots pending directory")

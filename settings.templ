@@ -248,6 +248,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				x-data={ `{
 					maxInvitesPerPerson: ` + fmt.Sprint(global.Settings.MaxInvitesPerPerson) + `,
 					requireCurrentTimestamp: ` + fmt.Sprint(global.Settings.RequireCurrentTimestamp) + `,
+					enableOTS: ` + fmt.Sprint(global.Settings.EnableOTS) + `,
 					browseUri: '` + global.Settings.BrowseURI + `',
 					linkUrl: '` + global.Settings.LinkURL + `',
 					saved: false,
@@ -275,7 +276,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 							x-model="requireCurrentTimestamp"
 							@change="saveSettings()"
 						/>
-						<label for="require_current_timestamp" class="ml-2 text-sm font-medium dark:text-stone-300">
+						<label for="require_current_timestamp" class="ml-2 text-sm dark:text-stone-300">
 							require event timestamps to be current (within ±60 seconds)
 						</label>
 						<input type="hidden" name="require_current_timestamp" value="off"/>
@@ -290,6 +291,20 @@ templ settingsPage(loggedUser nostr.PubKey) {
 							x-model="maxInvitesPerPerson"
 							@blur="saveSettings()"
 						/>
+					</div>
+					<div class="flex items-center">
+						<input
+							type="checkbox"
+							name="enable_ots"
+							id="enable_ots"
+							class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
+							x-model="enableOTS"
+							@change="saveSettings()"
+						/>
+						<label for="enable_ots" class="ml-2 text-sm dark:text-stone-300">
+							automatically NIP-03 <a class="underline underline-offset-4 hover:font-medium" href="https://opentimestamps.org/" target="_blank">OpenTimestamp</a> every event published here (only certain kinds eligible)
+						</label>
+						<input type="hidden" name="enable_ots" value="off"/>
 					</div>
 					<div>
 						<label class="block text-sm font-medium mb-2 dark:text-stone-300">URL pattern for the relay "browse" links</label>
@@ -540,7 +555,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				@layout.SubSectionTitle("update")
 				<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
 					<div>current version: <span class="text-stone-600 dark:text-stone-400" x-ref="currentVersion">{ currentVersion }</span></div>
-					<div>latest version: <span class="text-stone-600 dark:text-stone-400" x-ref="latestVersion"><a class="font-medium hover:underline underline-offset-4" href={ templ.SafeURL("https://github.com/fiatjaf/pyramid/releases/tag/" + latestVersion.name) } target="_blank">{ latestVersion.name }</a></span></div>
+					<div>latest version: <span class="text-stone-600 dark:text-stone-400" x-ref="latestVersion"><a class="hover:font-medium underline underline-offset-4" href={ templ.SafeURL("https://github.com/fiatjaf/pyramid/releases/tag/" + latestVersion.name) } target="_blank">{ latestVersion.name }</a></span></div>
 				</p>
 				<div class="mt-2">
 					<button
