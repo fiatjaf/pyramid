@@ -549,22 +549,6 @@ func forumHandler(w http.ResponseWriter, r *http.Request) {
 
 func memberPageHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, isLogged := global.GetLoggedUser(r)
-	var user nostr.PubKey
-
-	pubkeyHex := r.PathValue("pubkey")
-	if pubkeyHex == "" && isLogged {
-		http.Redirect(w, r, "/u/"+nip19.EncodeNpub(loggedUser), 302)
-		return
-	} else if pubkeyHex != "" {
-		user = global.PubKeyFromInput(pubkeyHex)
-		if user == nostr.ZeroPK {
-			http.Error(w, "invalid pubkey", 400)
-			return
-		}
-	} else {
-		http.Redirect(w, r, "/", 302)
-		return
-	}
 
 	if r.Method == http.MethodPost {
 		if nip05Username := r.PostFormValue("nip05_username"); nip05Username != "" {
@@ -598,6 +582,23 @@ func memberPageHandler(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.Header.Get("Accept"), "text/html") {
 			http.Redirect(w, r, r.Header.Get("Referer"), 302)
 		}
+		return
+	}
+
+	var user nostr.PubKey
+
+	pubkeyHex := r.PathValue("pubkey")
+	if pubkeyHex == "" && isLogged {
+		http.Redirect(w, r, "/u/"+nip19.EncodeNpub(loggedUser), 302)
+		return
+	} else if pubkeyHex != "" {
+		user = global.PubKeyFromInput(pubkeyHex)
+		if user == nostr.ZeroPK {
+			http.Error(w, "invalid pubkey", 400)
+			return
+		}
+	} else {
+		http.Redirect(w, r, "/", 302)
 		return
 	}
 
