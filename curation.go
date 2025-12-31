@@ -7,6 +7,7 @@ import (
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/nip27"
+	"fiatjaf.com/nostr/nip70"
 	"fiatjaf.com/nostr/sdk"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
@@ -64,6 +65,9 @@ func processReactions(ctx context.Context, event nostr.Event) {
 		// fetch
 		targetEvent := fetchEventBasedOnHintsWeHave(target)
 		if targetEvent == nil {
+			return
+		}
+		if nip70.IsProtected(*targetEvent) {
 			return
 		}
 
