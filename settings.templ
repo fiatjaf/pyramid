@@ -250,6 +250,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					maxEventSize: ` + fmt.Sprint(global.Settings.MaxEventSize) + `,
 					requireCurrentTimestamp: ` + fmt.Sprint(global.Settings.RequireCurrentTimestamp) + `,
 					enableOTS: ` + fmt.Sprint(global.Settings.EnableOTS) + `,
+					acceptFutureEvents: ` + fmt.Sprint(global.Settings.AcceptScheduledEvents) + `,
 					browseUri: '` + global.Settings.BrowseURI + `',
 					linkUrl: '` + global.Settings.LinkURL + `',
 					saved: false,
@@ -268,19 +269,31 @@ templ settingsPage(loggedUser nostr.PubKey) {
 			>
 				@layout.SubSectionTitle("general")
 				<div class="space-y-4">
-					<div class="flex items-center">
-						<input
-							type="checkbox"
-							name="require_current_timestamp"
-							id="require_current_timestamp"
-							class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
-							x-model="requireCurrentTimestamp"
-							@change="saveSettings()"
-						/>
-						<label for="require_current_timestamp" class="ml-2 text-sm dark:text-stone-300">
+					<div class="flex justify-between gap-4 items-center">
+						<label for="require_current_timestamp" class="text-sm dark:text-stone-300 flex items-center">
+							<input
+								type="checkbox"
+								name="require_current_timestamp"
+								id="require_current_timestamp"
+								class="w-4 h-6 rounded border-stone-300 dark:border-stone-600 mr-2"
+								x-model="requireCurrentTimestamp"
+								@change="saveSettings()"
+							/>
 							require event timestamps to be current (within ±60 seconds)
 						</label>
 						<input type="hidden" name="require_current_timestamp" value="off"/>
+						<label for="accept_scheduled_events" class="text-sm dark:text-stone-300 flex items-center">
+							<input
+								type="checkbox"
+								name="accept_scheduled_events"
+								id="accept_scheduled_events"
+								class="w-4 h-6 rounded border-stone-300 dark:border-stone-600 mr-2"
+								x-model="acceptFutureEvents"
+								@change="saveSettings()"
+							/>
+							accept scheduled events
+						</label>
+						<input type="hidden" name="accept_scheduled_events" value="off"/>
 					</div>
 					<div>
 						<label class="block text-sm font-medium mb-2 dark:text-stone-300">max invites per person</label>

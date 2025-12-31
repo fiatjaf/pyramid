@@ -23,7 +23,8 @@ import (
 
 func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, msg string) {
 	if global.Settings.RequireCurrentTimestamp {
-		if event.CreatedAt > nostr.Now()+60 {
+		if event.CreatedAt > nostr.Now()+60 && !global.Settings.AcceptScheduledEvents {
+			// when accept_future_events is on we can accept this because the event will be stored separately anyway
 			return true, "event too much in the future"
 		}
 
@@ -349,12 +350,19 @@ func preventBroadcast(ws *khatru.WebSocket, filter nostr.Filter, event nostr.Eve
 			return true
 		} else {
 			// not paywalled, anyone can read
-			return false
 		}
 	} else {
 		// no paywalls, anyone can read
-		return false
 	}
+
+	// if we accept scheduled events we shouldn't broadcast them immediately, they will be broadcast later automatically
+	if global.Settings.AcceptScheduledEvents {
+		if event.CreatedAt > nostr.Now()+60 {
+			return true
+		}
+	}
+
+	return false
 }
 
 func processJoinRequest(ctx context.Context, event nostr.Event) {

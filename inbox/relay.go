@@ -106,6 +106,7 @@ func setupEnabled() {
 		}
 	}
 	Relay.DeleteEvent = func(ctx context.Context, id nostr.ID) error {
+		// TODO: allow deleting messages received
 		if err := global.IL.Inbox.DeleteEvent(id); err != nil {
 			return err
 		}

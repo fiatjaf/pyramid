@@ -125,6 +125,8 @@ func main() {
 	popular.Init()
 	uppermost.Init()
 
+	initScheduledRelay()
+
 	// setup main relay hooks and so on
 	relay.QueryStored = queryStored
 	relay.Count = func(ctx context.Context, filter nostr.Filter) (uint32, error) {
@@ -135,6 +137,9 @@ func main() {
 		if event.Tags.Find("h") != nil {
 			// nip29 logic
 			return global.IL.Groups.SaveEvent(event)
+		} else if global.Settings.AcceptScheduledEvents && event.CreatedAt > nostr.Now()+60 {
+			// future scheduled events
+			return global.IL.Scheduled.SaveEvent(event)
 		} else {
 			// normal logic
 			return global.IL.Main.SaveEvent(event)
@@ -150,11 +155,15 @@ func main() {
 		}
 	}
 	relay.DeleteEvent = func(ctx context.Context, id nostr.ID) error {
-		// try to delete from both
+		// try to delete from everywhere
 		if err := global.IL.Main.DeleteEvent(id); err != nil {
 			return err
 		}
+		// TODO: prevent deleting from group if too much time has passed
 		if err := global.IL.Groups.DeleteEvent(id); err != nil {
+			return err
+		}
+		if err := global.IL.Scheduled.DeleteEvent(id); err != nil {
 			return err
 		}
 		return nil
@@ -277,6 +286,9 @@ func main() {
 	if global.Settings.Groups.Enabled {
 		relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 29)
 	}
+	if global.Settings.AcceptScheduledEvents {
+		relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 16)
+	}
 	relay.ManagementAPI.AllowPubKey = allowPubKeyHandler
 	relay.ManagementAPI.BanEvent = banEventHandler
 	relay.ManagementAPI.BanPubKey = banPubKeyHandler
@@ -387,6 +399,9 @@ func run(ctx context.Context) error {
 		http.StripPrefix("/"+global.Settings.Moderated.HTTPBasePath, moderated.Relay))
 	mux.Handle("/"+global.Settings.Moderated.HTTPBasePath,
 		http.StripPrefix("/"+global.Settings.Moderated.HTTPBasePath, moderated.Relay))
+
+	mux.Handle("/scheduled/", http.StripPrefix("/scheduled", scheduled))
+	mux.Handle("/scheduled", http.StripPrefix("/scheduled", scheduled))
 
 	mux.Handle("/", relay)
 

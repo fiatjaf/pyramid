@@ -101,6 +101,11 @@ func Init() error {
 		return fmt.Errorf("failed to ensure 'moderated': %w", err)
 	}
 
+	IL.Scheduled, err = MMMM.EnsureLayer("scheduled")
+	if err != nil {
+		return fmt.Errorf("failed to ensure 'scheduled': %w", err)
+	}
+
 	// paywall cache
 	go paywallCacheCleanup()
 
@@ -134,4 +139,7 @@ var IL struct {
 	// algo
 	Popular   *mmm.IndexingLayer
 	Uppermost *mmm.IndexingLayer
+
+	// scheduled events
+	Scheduled *mmm.IndexingLayer
 }
