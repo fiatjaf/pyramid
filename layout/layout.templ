@@ -184,6 +184,8 @@ case "uppermost":
 							@NavLink("/stats", currentPage == "stats") {
 								stats
 							}
+						}
+						if pyramid.IsRoot(loggedUser) {
 							@NavLink("/settings", currentPage == "settings") {
 								settings
 							}
