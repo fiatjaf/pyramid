@@ -247,6 +247,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				class="space-y-6 mt-8"
 				x-data={ `{
 					maxInvitesPerPerson: ` + fmt.Sprint(global.Settings.MaxInvitesPerPerson) + `,
+					maxEventSize: ` + fmt.Sprint(global.Settings.MaxEventSize) + `,
 					requireCurrentTimestamp: ` + fmt.Sprint(global.Settings.RequireCurrentTimestamp) + `,
 					enableOTS: ` + fmt.Sprint(global.Settings.EnableOTS) + `,
 					browseUri: '` + global.Settings.BrowseURI + `',
@@ -289,6 +290,17 @@ templ settingsPage(loggedUser nostr.PubKey) {
 							min="1"
 							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
 							x-model="maxInvitesPerPerson"
+							@blur="saveSettings()"
+						/>
+					</div>
+					<div>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300">max event size (in bytes)</label>
+						<input
+							type="number"
+							name="max_event_size"
+							min="1"
+							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+							x-model="maxEventSize"
 							@blur="saveSettings()"
 						/>
 					</div>

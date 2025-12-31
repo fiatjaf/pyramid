@@ -36,6 +36,7 @@ type UserSettings struct {
 	BrowseURI               string `json:"browse_uri"`
 	LinkURL                 string `json:"link_url"`
 	MaxInvitesPerPerson     int    `json:"max_invites_per_person"`
+	MaxEventSize            int    `json:"max_event_size"`
 	RequireCurrentTimestamp bool   `json:"require_current_timestamp"`
 	EnableOTS               bool   `json:"enable_ots"`
 
@@ -185,6 +186,7 @@ func loadUserSettings() error {
 		BrowseURI:               "https://fevela.me/?r={url}",
 		LinkURL:                 "nostr:{code}",
 		MaxInvitesPerPerson:     4,
+		MaxEventSize:            10000,
 		RequireCurrentTimestamp: true,
 		EnableOTS:               true,
 		BlockedIPs:              []string{},
