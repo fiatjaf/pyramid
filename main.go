@@ -388,7 +388,7 @@ func run(ctx context.Context) error {
 	mux.Handle("/"+global.Settings.Moderated.HTTPBasePath,
 		http.StripPrefix("/"+global.Settings.Moderated.HTTPBasePath, moderated.Relay))
 
-	mux.Handle("/", relay)
+	mux.Handle("/{$}", relay)
 
 	g, ctx := errgroup.WithContext(ctx)
 
