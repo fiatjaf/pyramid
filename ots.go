@@ -44,11 +44,7 @@ func getOTSFilePath(event nostr.Event) string {
 	)
 }
 
-func triggerOTS(ctx context.Context, event nostr.Event) error {
-	if !global.Settings.EnableOTS {
-		return nil
-	}
-
+func triggerOTS(ctx context.Context, event nostr.Event) {
 	calendarServer := calendarServers[otsSerial%len(calendarServers)]
 	defer func() {
 		otsSerial++
@@ -61,19 +57,25 @@ func triggerOTS(ctx context.Context, event nostr.Event) error {
 		Msg("creating OTS proof")
 	if _, err := os.Stat(getOTSFilePath(event)); err == nil {
 		log.Warn().Str("id", event.ID.Hex()).Msg("OTS file already exists")
-		return nil
+		return
 	}
 
 	seq, err := opentimestamps.Stamp(context.Background(), calendarServer, event.ID)
 	if err != nil {
-		return err
+		log.Error().Err(err).Stringer("event", event).Msg("failed to stamp OTS")
+		return
 	}
 
-	return os.WriteFile(
+	if err := os.WriteFile(
 		getOTSFilePath(event),
 		opentimestamps.File{Digest: event.ID[:], Sequences: []opentimestamps.Sequence{seq}}.SerializeToFile(),
 		0644,
-	)
+	); err != nil {
+		log.Error().Err(err).Stringer("event", event).Msg("failed to write OTS proof")
+		return
+	}
+
+	return
 }
 
 func checkOTS(ctx context.Context) {

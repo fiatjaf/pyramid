@@ -262,10 +262,10 @@ func main() {
 		}
 
 		// trigger opentimestamping of selected event kinds
-		switch event.Kind {
-		case 1, 11, 1111, 20, 21, 22, 24, 9802:
-			if err := triggerOTS(ctx, event); err != nil {
-				log.Error().Err(err).Stringer("event", event).Msg("failed to trigger OTS proof")
+		if global.Settings.EnableOTS {
+			switch event.Kind {
+			case 1, 11, 1111, 20, 21, 22, 24, 9802:
+				go triggerOTS(ctx, event)
 			}
 		}
 	}
