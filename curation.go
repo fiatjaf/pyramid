@@ -67,7 +67,7 @@ func processReactions(ctx context.Context, event nostr.Event) {
 		if targetEvent == nil {
 			return
 		}
-		if nip70.IsProtected(*targetEvent) {
+		if nip70.IsProtected(*targetEvent) || nip70.HasEmbeddedProtected(*targetEvent) {
 			return
 		}
 
