@@ -61,6 +61,14 @@ func initScheduledRelay() {
 	scheduled.OnEvent = func(ctx context.Context, event nostr.Event) (reject bool, msg string) {
 		return true, "send your notes to the main relay with a future timestamp"
 	}
+	scheduled.PreventBroadcast = func(ws *khatru.WebSocket, filter nostr.Filter, event nostr.Event) bool {
+		for _, pk := range ws.AuthedPublicKeys {
+			if pk == event.PubKey {
+				return false
+			}
+		}
+		return true
+	}
 
 	// start the scheduled events processor
 	go processScheduledEvents()
@@ -92,7 +100,7 @@ func processScheduledEvents() {
 
 			// broadcast to main relay clients would be handled by main relay
 			n := relay.BroadcastEvent(event)
-			log.Debug().Stringer("event", event).Int("broadcasted", n).Msg("published scheduled event")
+			log.Info().Stringer("event", event).Int("broadcasted", n).Msg("published scheduled event")
 		}
 	}
 }

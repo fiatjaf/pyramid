@@ -139,6 +139,7 @@ func main() {
 			return global.IL.Groups.SaveEvent(event)
 		} else if global.Settings.AcceptScheduledEvents && event.CreatedAt > nostr.Now()+60 {
 			// future scheduled events
+			scheduled.BroadcastEvent(event)
 			return global.IL.Scheduled.SaveEvent(event)
 		} else {
 			// normal logic
