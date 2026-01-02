@@ -44,7 +44,7 @@ func initScheduledRelay() {
 			// only allow authed users to access scheduled events
 			authedPublicKeys := khatru.GetAllAuthed(ctx)
 			if len(authedPublicKeys) == 0 {
-				return true, "auth-required: must be a relay member"
+				return true, "auth-required: can only see your own scheduled notes"
 			}
 
 			for _, authed := range authedPublicKeys {
@@ -53,7 +53,7 @@ func initScheduledRelay() {
 				}
 			}
 
-			return true, "restricted: you're not a relay member"
+			return true, "restricted: you're not even a relay member"
 		},
 	)
 

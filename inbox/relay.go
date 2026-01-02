@@ -36,11 +36,11 @@ func Init() {
 
 func setupDisabled() {
 	Relay = khatru.NewRelay()
-	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Relay.Router().HandleFunc("/"+global.Settings.Inbox.HTTPBasePath+"/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		inboxPage(loggedUser).Render(r.Context(), w)
 	})
-	Relay.Router().HandleFunc("POST /enable", enableHandler)
+	Relay.Router().HandleFunc("POST /"+global.Settings.Inbox.HTTPBasePath+"/enable", enableHandler)
 }
 
 func setupEnabled() {
@@ -139,13 +139,13 @@ func setupEnabled() {
 		return info
 	}
 
-	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Relay.Router().HandleFunc("/"+global.Settings.Inbox.HTTPBasePath+"/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		inboxPage(loggedUser).Render(r.Context(), w)
 	})
 
-	Relay.Router().HandleFunc("POST /disable", disableHandler)
-	Relay.Router().HandleFunc("POST /check-wot", checkWoTHandler)
+	Relay.Router().HandleFunc("POST /"+global.Settings.Internal.HTTPBasePath+"/disable", disableHandler)
+	Relay.Router().HandleFunc("POST /"+global.Settings.Internal.HTTPBasePath+"/check-wot", checkWoTHandler)
 
 	// compute aggregated WoT in background every 48h
 	go func() {

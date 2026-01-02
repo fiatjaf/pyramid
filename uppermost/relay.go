@@ -32,11 +32,11 @@ func Init() {
 
 func setupDisabled() {
 	Relay = khatru.NewRelay()
-	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Relay.Router().HandleFunc("/"+global.Settings.Uppermost.HTTPBasePath+"/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		uppermostPage(loggedUser).Render(r.Context(), w)
 	})
-	Relay.Router().HandleFunc("POST /enable", enableHandler)
+	Relay.Router().HandleFunc("POST /"+global.Settings.Uppermost.HTTPBasePath+"/enable", enableHandler)
 }
 
 func setupEnabled() {
@@ -77,11 +77,11 @@ func setupEnabled() {
 		return true, "restricted: read-only relay"
 	}
 
-	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Relay.Router().HandleFunc("/"+global.Settings.Uppermost.HTTPBasePath+"/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		uppermostPage(loggedUser).Render(r.Context(), w)
 	})
-	Relay.Router().HandleFunc("POST /disable", disableHandler)
+	Relay.Router().HandleFunc("POST /"+global.Settings.Uppermost.HTTPBasePath+"/disable", disableHandler)
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {

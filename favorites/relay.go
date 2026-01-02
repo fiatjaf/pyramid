@@ -32,11 +32,11 @@ func Init() {
 
 func setupDisabled() {
 	Relay = khatru.NewRelay()
-	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Relay.Router().HandleFunc("/"+global.Settings.Favorites.HTTPBasePath+"/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		favoritesPage(loggedUser).Render(r.Context(), w)
 	})
-	Relay.Router().HandleFunc("POST /enable", enableHandler)
+	Relay.Router().HandleFunc("POST /"+global.Settings.Favorites.HTTPBasePath+"/enable", enableHandler)
 }
 
 func setupEnabled() {
@@ -98,11 +98,11 @@ func setupEnabled() {
 		},
 	)
 
-	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Relay.Router().HandleFunc("/"+global.Settings.Favorites.HTTPBasePath, func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		favoritesPage(loggedUser).Render(r.Context(), w)
 	})
-	Relay.Router().HandleFunc("POST /disable", disableHandler)
+	Relay.Router().HandleFunc("POST /"+global.Settings.Favorites.HTTPBasePath+"/disable", disableHandler)
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {

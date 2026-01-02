@@ -32,11 +32,11 @@ func Init() {
 
 func setupDisabled() {
 	Relay = khatru.NewRelay()
-	Relay.Router().HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Relay.Router().HandleFunc("/"+global.Settings.Moderated.HTTPBasePath+"/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		moderatedPage(loggedUser).Render(r.Context(), w)
 	})
-	Relay.Router().HandleFunc("POST /enable", enableHandler)
+	Relay.Router().HandleFunc("POST /"+global.Settings.Moderated.HTTPBasePath+"/enable", enableHandler)
 }
 
 func setupEnabled() {
@@ -111,10 +111,10 @@ func setupEnabled() {
 		return true
 	}
 
-	Relay.Router().HandleFunc("POST /approve/{eventId}", approveHandler)
-	Relay.Router().HandleFunc("POST /reject/{eventId}", rejectHandler)
-	Relay.Router().HandleFunc("POST /disable", disableHandler)
-	Relay.Router().HandleFunc("/", moderatedPageHandler)
+	Relay.Router().HandleFunc("POST /"+global.Settings.Moderated.HTTPBasePath+"/approve/{eventId}", approveHandler)
+	Relay.Router().HandleFunc("POST /"+global.Settings.Moderated.HTTPBasePath+"/reject/{eventId}", rejectHandler)
+	Relay.Router().HandleFunc("POST /"+global.Settings.Moderated.HTTPBasePath+"/disable", disableHandler)
+	Relay.Router().HandleFunc("/"+global.Settings.Moderated.HTTPBasePath+"/", moderatedPageHandler)
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {

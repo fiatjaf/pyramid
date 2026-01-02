@@ -360,48 +360,32 @@ func start() {
 func run(ctx context.Context) error {
 	mux := http.NewServeMux()
 
-	mux.Handle("/"+global.Settings.Internal.HTTPBasePath+"/",
-		http.StripPrefix("/"+global.Settings.Internal.HTTPBasePath, internal.Relay))
-	mux.Handle("/"+global.Settings.Internal.HTTPBasePath,
-		http.StripPrefix("/"+global.Settings.Internal.HTTPBasePath, internal.Relay))
+	mux.Handle("/"+global.Settings.Internal.HTTPBasePath+"/", internal.Relay)
+	mux.Handle("/"+global.Settings.Internal.HTTPBasePath, internal.Relay)
 
-	mux.Handle("/"+global.Settings.Favorites.HTTPBasePath+"/",
-		http.StripPrefix("/"+global.Settings.Favorites.HTTPBasePath, favorites.Relay))
-	mux.Handle("/"+global.Settings.Favorites.HTTPBasePath,
-		http.StripPrefix("/"+global.Settings.Favorites.HTTPBasePath, favorites.Relay))
+	mux.Handle("/"+global.Settings.Favorites.HTTPBasePath+"/", favorites.Relay)
+	mux.Handle("/"+global.Settings.Favorites.HTTPBasePath, favorites.Relay)
 
-	mux.Handle("/grasp/",
-		http.StripPrefix("/grasp", grasp.Handler))
-	mux.Handle("/grasp",
-		http.StripPrefix("/grasp", grasp.Handler))
+	mux.Handle("/grasp/", grasp.Handler)
+	mux.Handle("/grasp", grasp.Handler)
 
-	mux.Handle("/groups/",
-		http.StripPrefix("/groups", groups.Handler))
-	mux.Handle("/groups",
-		http.StripPrefix("/groups", groups.Handler))
+	mux.Handle("/groups/", groups.Handler)
+	mux.Handle("/groups", groups.Handler)
 
-	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath+"/",
-		http.StripPrefix("/"+global.Settings.Inbox.HTTPBasePath, inbox.Relay))
-	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath,
-		http.StripPrefix("/"+global.Settings.Inbox.HTTPBasePath, inbox.Relay))
+	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath+"/", inbox.Relay)
+	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath, inbox.Relay)
 
-	mux.Handle("/"+global.Settings.Popular.HTTPBasePath+"/",
-		http.StripPrefix("/"+global.Settings.Popular.HTTPBasePath, popular.Relay))
-	mux.Handle("/"+global.Settings.Popular.HTTPBasePath,
-		http.StripPrefix("/"+global.Settings.Popular.HTTPBasePath, popular.Relay))
+	mux.Handle("/"+global.Settings.Popular.HTTPBasePath+"/", popular.Relay)
+	mux.Handle("/"+global.Settings.Popular.HTTPBasePath, popular.Relay)
 
-	mux.Handle("/"+global.Settings.Uppermost.HTTPBasePath+"/",
-		http.StripPrefix("/"+global.Settings.Uppermost.HTTPBasePath, uppermost.Relay))
-	mux.Handle("/"+global.Settings.Uppermost.HTTPBasePath,
-		http.StripPrefix("/"+global.Settings.Uppermost.HTTPBasePath, uppermost.Relay))
+	mux.Handle("/"+global.Settings.Uppermost.HTTPBasePath+"/", uppermost.Relay)
+	mux.Handle("/"+global.Settings.Uppermost.HTTPBasePath, uppermost.Relay)
 
-	mux.Handle("/"+global.Settings.Moderated.HTTPBasePath+"/",
-		http.StripPrefix("/"+global.Settings.Moderated.HTTPBasePath, moderated.Relay))
-	mux.Handle("/"+global.Settings.Moderated.HTTPBasePath,
-		http.StripPrefix("/"+global.Settings.Moderated.HTTPBasePath, moderated.Relay))
+	mux.Handle("/"+global.Settings.Moderated.HTTPBasePath+"/", moderated.Relay)
+	mux.Handle("/"+global.Settings.Moderated.HTTPBasePath, moderated.Relay)
 
-	mux.Handle("/scheduled/", http.StripPrefix("/scheduled", scheduled))
-	mux.Handle("/scheduled", http.StripPrefix("/scheduled", scheduled))
+	mux.Handle("/scheduled/", scheduled)
+	mux.Handle("/scheduled", scheduled)
 
 	mux.Handle("/", relay)
 

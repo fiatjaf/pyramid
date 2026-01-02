@@ -35,8 +35,8 @@ func Init(relay *khatru.Relay) {
 
 func setupDisabled() {
 	Handler.mux = http.NewServeMux()
-	Handler.mux.HandleFunc("POST /enable", enableHandler)
-	Handler.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Handler.mux.HandleFunc("POST /grasp/enable", enableHandler)
+	Handler.mux.HandleFunc("/grasp/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		graspPage(loggedUser).Render(r.Context(), w)
 	})
@@ -54,8 +54,8 @@ func setupEnabled() {
 	grasp.New(hostRelay, repoDir)
 
 	Handler.mux = http.NewServeMux()
-	Handler.mux.HandleFunc("POST /disable", disableHandler)
-	Handler.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Handler.mux.HandleFunc("POST /grasp/disable", disableHandler)
+	Handler.mux.HandleFunc("/grasp/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		// fetch fresh repository list on each request
 		graspPage(loggedUser).Render(r.Context(), w)
