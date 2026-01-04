@@ -98,7 +98,7 @@ func setupEnabled() {
 		},
 	)
 
-	Relay.Router().HandleFunc("/"+global.Settings.Favorites.HTTPBasePath, func(w http.ResponseWriter, r *http.Request) {
+	Relay.Router().HandleFunc("/"+global.Settings.Favorites.HTTPBasePath+"/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		favoritesPage(loggedUser).Render(r.Context(), w)
 	})
