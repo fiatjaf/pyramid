@@ -11,6 +11,8 @@ import (
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/eventstore/mmm"
 	"github.com/a-h/templ"
+	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/pyramid"
 	"github.com/go-analyze/charts"
 )
 
@@ -114,4 +116,47 @@ func generateWeeklyChart(stats mmm.EventStats, top5Kinds []nostr.Kind, name stri
 		_, err = fmt.Fprintf(w, `<img src="%s" alt="%s weekly activity chart" class="w-full max-w-4xl mx-auto rounded-lg shadow-md">`, dataURL, name)
 		return err
 	})
+}
+
+var relevantUsers map[string]*relevant
+
+func fillInRelevantUsersMapping() {
+	relevantUsers = map[string]*relevant{
+		"blossom": &relevant{"blossom", global.IL.Blossom, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
+		"events":  &relevant{"main", global.IL.Main, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
+	}
+}
+
+type relevant struct {
+	label        string
+	store        *mmm.IndexingLayer
+	pubkeys      []nostr.PubKey
+	lastComputed nostr.Timestamp
+}
+
+func (r *relevant) get() []nostr.PubKey {
+	if r.lastComputed < nostr.Now()-60*3 /* 3 minutes */ {
+		r.recompute()
+	}
+	return r.pubkeys
+}
+
+func (r *relevant) recompute() {
+	fmt.Println("recomputing relevant users", r, r.store)
+
+	stats, err := r.store.ComputeStats(mmm.StatsOptions{})
+	if err != nil {
+		log.Error().Err(err).Msg("failed to compute stats for usersWithEvents")
+		return
+	}
+
+	newList := make([]nostr.PubKey, 0, len(stats.PerPubKey))
+	for pubkey, count := range stats.PerPubKey {
+		if count.Total > 0 {
+			newList = append(newList, pubkey)
+		}
+	}
+
+	r.pubkeys = newList
+	r.lastComputed = nostr.Now()
 }

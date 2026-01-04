@@ -131,7 +131,7 @@ templ blossomPage(loggedUser nostr.PubKey) {
 						</thead>
 						<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
 							{{ hasBlobs := false }}
-							for blob := range blobIndex.List(ctx, loggedUser) {
+							for blob := range BlobIndex.List(ctx, loggedUser) {
 								{{ hasBlobs = true }}
 								<tr>
 									<td class="px-4 py-3 text-sm font-mono text-stone-900 dark:text-stone-100">
@@ -206,7 +206,7 @@ templ blossomPage(loggedUser nostr.PubKey) {
 							for member := range pyramid.Members.Range {
 								{{ userBlobs := 0 }}
 								{{ userSize := 0 }}
-								for blob := range blobIndex.List(ctx, member) {
+								for blob := range BlobIndex.List(ctx, member) {
 									{{ totalBlobs++ }}
 									{{ totalSize += blob.Size }}
 									{{ userBlobs++ }}

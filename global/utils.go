@@ -5,10 +5,14 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/nip19"
+	"github.com/bep/debounce"
 )
+
+var FiveSecondsDebouncer = debounce.New(time.Second * 5)
 
 func GetLoggedUser(r *http.Request) (nostr.PubKey, bool) {
 	if cookie, _ := r.Cookie("nip98"); cookie != nil {

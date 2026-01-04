@@ -21,8 +21,8 @@ var (
 	Handler    = &MuxHandler{}
 	hostRelay  *khatru.Relay // hack to get the main relay object into here
 	blobDir    string
-	blobIndex  blossom.EventStoreBlobIndexWrapper
-	server     *blossom.BlossomServer
+	BlobIndex  blossom.EventStoreBlobIndexWrapper
+	Server     *blossom.BlossomServer
 	serviceURL string
 )
 
@@ -30,7 +30,7 @@ func Init(relay *khatru.Relay) {
 	hostRelay = relay
 	blobDir = filepath.Join(global.S.DataPath, "blossom-files")
 	serviceURL = global.Settings.HTTPScheme() + global.Settings.Domain
-	blobIndex = blossom.EventStoreBlobIndexWrapper{
+	BlobIndex = blossom.EventStoreBlobIndexWrapper{
 		Store:      global.IL.Blossom,
 		ServiceURL: serviceURL,
 	}
@@ -54,24 +54,24 @@ func setupEnabled() {
 		return
 	}
 
-	server = blossom.New(hostRelay, serviceURL)
-	server.Store = blobIndex
+	Server = blossom.New(hostRelay, serviceURL)
+	Server.Store = BlobIndex
 
-	server.StoreBlob = func(ctx context.Context, sha256 string, ext string, body []byte) error {
+	Server.StoreBlob = func(ctx context.Context, sha256 string, ext string, body []byte) error {
 		return os.WriteFile(filepath.Join(blobDir, sha256+ext), body, 0644)
 	}
-	server.LoadBlob = func(ctx context.Context, sha256 string, ext string) (io.ReadSeeker, *url.URL, error) {
+	Server.LoadBlob = func(ctx context.Context, sha256 string, ext string) (io.ReadSeeker, *url.URL, error) {
 		file, err := os.Open(filepath.Join(blobDir, sha256+ext))
 		if err != nil {
 			return nil, nil, err
 		}
 		return file, nil, nil
 	}
-	server.DeleteBlob = func(ctx context.Context, sha256 string, ext string) error {
+	Server.DeleteBlob = func(ctx context.Context, sha256 string, ext string) error {
 		return os.Remove(filepath.Join(blobDir, sha256+ext))
 	}
 
-	server.RejectUpload = func(ctx context.Context, auth *nostr.Event, size int, ext string) (bool, string, int) {
+	Server.RejectUpload = func(ctx context.Context, auth *nostr.Event, size int, ext string) (bool, string, int) {
 		if auth == nil {
 			return true, "authentication required", 401
 		}
@@ -127,29 +127,6 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 
 	setupDisabled()
 	http.Redirect(w, r, "/blossom/", 302)
-}
-
-func getExtFromType(mimeType string) string {
-	switch mimeType {
-	case "image/png":
-		return ".png"
-	case "image/jpeg":
-		return ".jpg"
-	case "image/gif":
-		return ".gif"
-	case "image/webp":
-		return ".webp"
-	case "video/mp4":
-		return ".mp4"
-	case "video/webm":
-		return ".webm"
-	case "audio/mpeg":
-		return ".mp3"
-	case "audio/ogg":
-		return ".ogg"
-	default:
-		return ""
-	}
 }
 
 type MuxHandler struct {

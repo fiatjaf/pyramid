@@ -51,6 +51,8 @@ func main() {
 	}
 	defer global.End()
 
+	fillInRelevantUsersMapping()
+
 	// start periodic version checking
 	go func() {
 		for {
@@ -323,6 +325,11 @@ func main() {
 		}
 		info.Software = "https://github.com/fiatjaf/pyramid"
 		return info
+	}
+
+	// start SFTP server
+	if err := startSFTP(":" + global.S.SFTPPort); err != nil {
+		log.Error().Err(err).Msg("failed to start SFTP server")
 	}
 
 	start()
