@@ -14,7 +14,6 @@ import (
 
 var (
 	log       = global.Log.With().Str("relay", "grasp").Logger()
-	Relay     *khatru.Relay
 	Handler   = &MuxHandler{}
 	repoDir   string
 	hostRelay *khatru.Relay
@@ -40,7 +39,6 @@ func setupDisabled() {
 		loggedUser, _ := global.GetLoggedUser(r)
 		graspPage(loggedUser).Render(r.Context(), w)
 	})
-	Relay = nil
 }
 
 func setupEnabled() {

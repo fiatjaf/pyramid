@@ -23,6 +23,7 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/fiatjaf/pyramid/blossom"
 	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/grasp"
@@ -116,6 +117,7 @@ func main() {
 	relay.Router().HandleFunc("/{$}", inviteTreeHandler)
 
 	// init sub relays
+	blossom.Init(relay)
 	favorites.Init()
 	grasp.Init(relay)
 	groups.Init(relay)
@@ -366,6 +368,9 @@ func run(ctx context.Context) error {
 
 	mux.Handle("/"+global.Settings.Favorites.HTTPBasePath+"/", favorites.Relay)
 	mux.Handle("/"+global.Settings.Favorites.HTTPBasePath, favorites.Relay)
+
+	mux.Handle("/blossom/", blossom.Handler)
+	mux.Handle("/blossom", blossom.Handler)
 
 	mux.Handle("/grasp/", grasp.Handler)
 	mux.Handle("/grasp", grasp.Handler)

@@ -99,16 +99,53 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								browse
 							</span>
 						}
-						if global.Settings.Groups.Enabled || pyramid.IsRoot(loggedUser) {
-							@NavLink("/groups/", currentPage == "groups") {
-								groups
-							}
-						}
-						if global.Settings.Grasp.Enabled || pyramid.IsRoot(loggedUser) {
-							@NavLink("/grasp/", currentPage == "grasp") {
-								grasp
-							}
-						}
+						<div
+							x-data="{ open: false }"
+							@click.away="open = false"
+							class="relative"
+						>
+							<button
+								@click="open = !open"
+								class={ "cursor-pointer rounded-lg px-4 py-2 font-medium flex items-center gap-1 themed:text-[var(--text-color)] themed:hover:bg-[rgb(from_var(--text-color)_r_g_b_/10%)] light:hover:bg-stone-100 dark:hover:bg-stone-700",
+                                    templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", currentPage == "groups" || currentPage == "grasp" || currentPage == "blossom"),
+                                    templ.KV("hidden", !(global.Settings.Groups.Enabled || global.Settings.Grasp.Enabled || global.Settings.Blossom.Enabled || pyramid.IsRoot(loggedUser))) }
+							>
+								switch currentPage {
+									case "groups":
+										groups
+									case "grasp":
+										grasp
+									case "blossom":
+										blossom
+									default:
+										services
+								}
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+								</svg>
+							</button>
+							<div
+								x-show="open"
+								x-transition
+								class="absolute left-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50"
+							>
+								if global.Settings.Groups.Enabled || pyramid.IsRoot(loggedUser) {
+									@NavLink("/groups/", currentPage == "groups") {
+										groups
+									}
+								}
+								if global.Settings.Grasp.Enabled || pyramid.IsRoot(loggedUser) {
+									@NavLink("/grasp/", currentPage == "grasp") {
+										grasp
+									}
+								}
+								if global.Settings.Blossom.Enabled || pyramid.IsRoot(loggedUser) {
+									@NavLink("/blossom/", currentPage == "blossom") {
+										blossom
+									}
+								}
+							</div>
+						</div>
 						<div
 							x-data="{ open: false }"
 							@click.away="open = false"
@@ -203,12 +240,12 @@ case "uppermost":
 								if pyramid.IsMember(loggedUser) {
 									<a href="/u" class="light:text-stone-700 dark:text-stone-300 font-medium hover:underline">
 										<nostr-name title={ loggedUser.Hex() } pubkey={ loggedUser.Hex() }>
-											{ loggedUser.Hex() }
+											{ loggedUser.Hex()[0:6] }
 										</nostr-name>
 									</a>
 								} else {
 									<nostr-name title={ loggedUser.Hex() } pubkey={ loggedUser.Hex() }>
-										{ loggedUser.Hex() }
+										{ loggedUser.Hex()[0:6] }
 									</nostr-name>
 								}
 							</div>

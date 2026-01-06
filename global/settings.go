@@ -80,6 +80,10 @@ type UserSettings struct {
 		Enabled bool `json:"enabled"`
 	} `json:"grasp"`
 
+	Blossom struct {
+		Enabled bool `json:"enabled"`
+	} `json:"blossom"`
+
 	Popular struct {
 		RelayMetadata
 		PercentThreshold int `json:"percent_threshold"`

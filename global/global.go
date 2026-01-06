@@ -106,6 +106,11 @@ func Init() error {
 		return fmt.Errorf("failed to ensure 'scheduled': %w", err)
 	}
 
+	IL.Blossom, err = MMMM.EnsureLayer("blossom")
+	if err != nil {
+		return fmt.Errorf("failed to ensure 'blossom': %w", err)
+	}
+
 	// paywall cache
 	go paywallCacheCleanup()
 
@@ -142,4 +147,7 @@ var IL struct {
 
 	// scheduled events
 	Scheduled *mmm.IndexingLayer
+
+	// blossom blob index
+	Blossom *mmm.IndexingLayer
 }
