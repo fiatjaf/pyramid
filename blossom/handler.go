@@ -83,7 +83,6 @@ func setupEnabled() {
 
 	Handler.mux = http.NewServeMux()
 	Handler.mux.HandleFunc("POST /blossom/disable", disableHandler)
-	Handler.mux.HandleFunc("GET /blossom/", pageHandler)
 	Handler.mux.HandleFunc("/blossom/", pageHandler)
 }
 
@@ -147,56 +146,6 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setupDisabled()
-	http.Redirect(w, r, "/blossom/", 302)
-}
-
-func deleteHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser, _ := global.GetLoggedUser(r)
-
-	if loggedUser == nostr.ZeroPK {
-		http.Error(w, "unauthorized", 401)
-		return
-	}
-
-	sha256 := r.PathValue("sha256")
-	if sha256 == "" {
-		http.Error(w, "missing sha256", 400)
-		return
-	}
-
-	if server == nil {
-		http.Error(w, "blossom not enabled", 400)
-		return
-	}
-
-	// find the blob to verify ownership and get the extension
-	var found bool
-	var ext string
-	for blob := range server.Store.List(r.Context(), loggedUser) {
-		if blob.SHA256 == sha256 {
-			found = true
-			ext = getExtFromType(blob.Type)
-			break
-		}
-	}
-
-	if !found {
-		http.Error(w, "blob not found or not owned by you", 404)
-		return
-	}
-
-	// delete from index
-	if err := blobIndex.Delete(r.Context(), sha256, loggedUser); err != nil {
-		log.Error().Err(err).Str("sha256", sha256).Msg("failed to delete blob from index")
-		http.Error(w, "failed to delete blob", 500)
-		return
-	}
-
-	// delete from disk
-	if err := server.DeleteBlob(r.Context(), sha256, ext); err != nil {
-		log.Warn().Err(err).Str("sha256", sha256).Msg("failed to delete blob file from disk")
-	}
-
 	http.Redirect(w, r, "/blossom/", 302)
 }
 

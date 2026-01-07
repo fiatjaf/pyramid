@@ -117,10 +117,10 @@ func main() {
 	relay.Router().HandleFunc("/{$}", inviteTreeHandler)
 
 	// init sub relays
-	blossom.Init(relay)
-	favorites.Init()
 	grasp.Init(relay)
 	groups.Init(relay)
+	blossom.Init(relay)
+	favorites.Init()
 	inbox.Init()
 	internal.Init()
 	moderated.Init()

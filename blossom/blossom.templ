@@ -26,7 +26,54 @@ templ blossomPage(loggedUser nostr.PubKey, userBlobs []blossom.BlobDescriptor, t
 					if len(userBlobs) == 0 {
 						<p class="text-sm text-stone-600 dark:text-stone-400">you have no blobs uploaded yet</p>
 					} else {
-						<div class="overflow-x-auto">
+						<div
+							class="overflow-x-auto"
+							x-data={ `{
+								deleting: false,
+								async deleteBlob(hash) {
+									this.deleting = true;
+									if (!confirm('delete blob '+ hash.slice(0, 16) +'...?')) {
+										return;
+									}
+
+									try {
+										// sign NIP-98 event for delete request
+										const authEvent = await window.nostr.signEvent({
+											created_at: Math.round(Date.now() / 1000),
+											kind: 24242,
+											tags: [
+												['t', 'delete'],
+												['x', hash],
+												['expiration', (Math.round(Date.now() / 1000) + 60).toString()],
+											],
+											content: ''
+										});
+
+										// make delete request with Authorization header
+										const response = await fetch('/' + hash, {
+											method: 'DELETE',
+											headers: {
+												'Authorization': 'Nostr ' + btoa(JSON.stringify(authEvent))
+											}
+										});
+
+										if (response.ok) {
+											// refresh page on success
+											window.location.reload();
+										} else {
+											// show error message
+											const errorReason = response.headers.get('X-Reason');
+											const errorText = await response.text();
+											alert('failed to delete blob: ' + (errorReason || errorText || response.statusText));
+										}
+									} catch (error) {
+										alert('error deleting blob: ' + String(error));
+									} finally {
+										this.deleting = false;
+									}
+								}
+							}` }
+						>
 							<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
 								<thead class="bg-stone-50 dark:bg-stone-800">
 									<tr>
@@ -51,11 +98,15 @@ templ blossomPage(loggedUser nostr.PubKey, userBlobs []blossom.BlobDescriptor, t
 												{ formatSize(blob.Size) }
 											</td>
 											<td class="px-4 py-3 text-sm">
-												<form method="POST" action={ templ.SafeURL("/blossom/delete/" + blob.SHA256) } onsubmit="return confirm('delete this blob?')">
-													<button type="submit" class="cursor-pointer text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-xs">
-														delete
-													</button>
-												</form>
+												if global.Settings.Blossom.Enabled {
+													<button
+														type="button"
+														class="cursor-pointer text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-xs"
+														@click={ "deleteBlob('" + blob.SHA256 + "')" }
+														x-text="deleting ? 'deleting...' : 'delete'"
+														:disabled="deleting"
+													></button>
+												}
 											</td>
 										</tr>
 									}
