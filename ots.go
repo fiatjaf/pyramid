@@ -83,14 +83,17 @@ func checkOTS(ctx context.Context) {
 		return
 	}
 
-	log.Info().Msg("checking pending OTS proofs")
 	entries, err := os.ReadDir(otsPendingDir)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to read ots pending directory")
 		return
 	}
 
+	nChecked := 0
+	nFulfilled := 0
 	for _, entry := range entries {
+		nChecked++
+
 		// the id is the first 64 chars of the filename
 		idHex := entry.Name()[0:64]
 		if !nostr.IsValid32ByteHex(idHex) {
@@ -166,5 +169,9 @@ func checkOTS(ctx context.Context) {
 		if err := os.Remove(filepath.Join(otsPendingDir, entry.Name())); err != nil {
 			log.Error().Err(err).Str("id", idHex).Msg("failed to remove pending OTS file")
 		}
+
+		nFulfilled++
 	}
+
+	log.Info().Int("pending", nChecked).Int("upgraded", nFulfilled).Msg("upgraded pending OTS proofs")
 }
