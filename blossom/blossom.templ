@@ -8,6 +8,7 @@ import (
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
 	"github.com/fiatjaf/pyramid/pyramid"
+	"time"
 )
 
 templ blossomPage(loggedUser nostr.PubKey) {
@@ -124,6 +125,7 @@ templ blossomPage(loggedUser nostr.PubKey) {
 								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">hash</th>
 								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">type</th>
 								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">size</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">upload date</th>
 								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider"></th>
 							</tr>
 						</thead>
@@ -142,6 +144,13 @@ templ blossomPage(loggedUser nostr.PubKey) {
 									</td>
 									<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
 										{ formatSize(blob.Size) }
+									</td>
+									<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+										if blob.Uploaded > nostr.Now() - 61 {
+											<span class="text-emerald-800">just now</span>
+										} else {
+											<span>{ blob.Uploaded.Time().Format(time.DateTime) }</span>
+										}
 									</td>
 									<td class="px-4 py-3 text-sm">
 										if global.Settings.Blossom.Enabled {
