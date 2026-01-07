@@ -88,27 +88,7 @@ func setupEnabled() {
 
 func pageHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
-
-	var userBlobs []blossom.BlobDescriptor
-	if loggedUser != nostr.ZeroPK {
-		for blob := range blobIndex.List(r.Context(), loggedUser) {
-			userBlobs = append(userBlobs, blob)
-		}
-	}
-
-	var totalBlobs int
-	var blobsByUser map[nostr.PubKey]int
-	if pyramid.IsRoot(loggedUser) {
-		blobsByUser = make(map[nostr.PubKey]int)
-		for member := range pyramid.Members.Range {
-			for range blobIndex.List(r.Context(), member) {
-				blobsByUser[member]++
-				totalBlobs++
-			}
-		}
-	}
-
-	blossomPage(loggedUser, userBlobs, totalBlobs, blobsByUser).Render(r.Context(), w)
+	blossomPage(loggedUser).Render(r.Context(), w)
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {

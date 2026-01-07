@@ -4,14 +4,13 @@ import (
 	"fmt"
 
 	"fiatjaf.com/nostr"
-	"fiatjaf.com/nostr/khatru/blossom"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
-templ blossomPage(loggedUser nostr.PubKey, userBlobs []blossom.BlobDescriptor, totalBlobs int, blobsByUser map[nostr.PubKey]int) {
+templ blossomPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "blossom") {
 		<div class="max-w-3xl mx-auto">
 			<h1 class="text-4xl font-bold mb-4 font-[family-name:var(--primary-font)]">blossom</h1>
@@ -21,133 +20,213 @@ templ blossomPage(loggedUser nostr.PubKey, userBlobs []blossom.BlobDescriptor, t
 				</p>
 			</div>
 			if pyramid.IsMember(loggedUser) {
-				<div class="mt-8">
-					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">your blobs</h3>
-					if len(userBlobs) == 0 {
-						<p class="text-sm text-stone-600 dark:text-stone-400">you have no blobs uploaded yet</p>
-					} else {
-						<div
-							class="overflow-x-auto"
-							x-data={ `{
-								deleting: false,
-								async deleteBlob(hash) {
-									this.deleting = true;
-									if (!confirm('delete blob '+ hash.slice(0, 16) +'...?')) {
-										return;
+				<div
+					class="mt-8"
+					x-data={ `{
+						deleting: false,
+						uploading: false,
+						hasBlobs: false,
+						async deleteBlob(hash) {
+							this.deleting = hash;
+							if (!confirm('delete blob '+ hash.slice(0, 16) +'...?')) {
+								return;
+							}
+
+							try {
+								const authEvent = await window.nostr.signEvent({
+									created_at: Math.round(Date.now() / 1000),
+									kind: 24242,
+									tags: [
+										['t', 'delete'],
+										['x', hash],
+										['expiration', (Math.round(Date.now() / 1000) + 60).toString()],
+									],
+									content: ''
+								});
+
+								// make delete request with Authorization header
+								const response = await fetch('/' + hash, {
+									method: 'DELETE',
+									headers: {
+										'Authorization': 'Nostr ' + btoa(JSON.stringify(authEvent))
 									}
+								});
 
-									try {
-										// sign NIP-98 event for delete request
-										const authEvent = await window.nostr.signEvent({
-											created_at: Math.round(Date.now() / 1000),
-											kind: 24242,
-											tags: [
-												['t', 'delete'],
-												['x', hash],
-												['expiration', (Math.round(Date.now() / 1000) + 60).toString()],
-											],
-											content: ''
-										});
-
-										// make delete request with Authorization header
-										const response = await fetch('/' + hash, {
-											method: 'DELETE',
-											headers: {
-												'Authorization': 'Nostr ' + btoa(JSON.stringify(authEvent))
-											}
-										});
-
-										if (response.ok) {
-											// refresh page on success
-											window.location.reload();
-										} else {
-											// show error message
-											const errorReason = response.headers.get('X-Reason');
-											const errorText = await response.text();
-											alert('failed to delete blob: ' + (errorReason || errorText || response.statusText));
-										}
-									} catch (error) {
-										alert('error deleting blob: ' + String(error));
-									} finally {
-										this.deleting = false;
-									}
+								if (response.ok) {
+									// refresh page on success
+									window.location.reload();
+								} else {
+									// show error message
+									const errorReason = response.headers.get('X-Reason');
+									const errorText = await response.text();
+									alert('failed to delete blob: ' + (errorReason || errorText || response.statusText));
 								}
-							}` }
-						>
-							<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
-								<thead class="bg-stone-50 dark:bg-stone-800">
-									<tr>
-										<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">hash</th>
-										<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">type</th>
-										<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">size</th>
-										<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider"></th>
-									</tr>
-								</thead>
-								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
-									for _, blob := range userBlobs {
-										<tr>
-											<td class="px-4 py-3 text-sm font-mono text-stone-900 dark:text-stone-100">
-												<a href={ templ.SafeURL(blob.URL) } target="_blank" class="hover:underline">
-													{ blob.SHA256[:16] }...
-												</a>
-											</td>
-											<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
-												{ blob.Type }
-											</td>
-											<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
-												{ formatSize(blob.Size) }
-											</td>
-											<td class="px-4 py-3 text-sm">
-												if global.Settings.Blossom.Enabled {
-													<button
-														type="button"
-														class="cursor-pointer text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-xs"
-														@click={ "deleteBlob('" + blob.SHA256 + "')" }
-														x-text="deleting ? 'deleting...' : 'delete'"
-														:disabled="deleting"
-													></button>
-												}
-											</td>
-										</tr>
+							} catch (error) {
+								alert('error deleting blob: ' + String(error));
+							} finally {
+								this.deleting = false;
+							}
+						},
+						async uploadBlob(file) {
+							if (!file) return;
+
+							this.uploading = true;
+
+							const hashBuffer = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+							const hash = Array.from(new Uint8Array(hashBuffer))
+								.map(b => b.toString(16).padStart(2, '0')).join('')
+
+							try {
+								const authEvent = await window.nostr.signEvent({
+									created_at: Math.round(Date.now() / 1000),
+									kind: 24242,
+									tags: [
+										['t', 'upload'],
+										['x', hash],
+										['expiration', (Math.round(Date.now() / 1000) + 60).toString()],
+									],
+									content: ''
+								});
+
+								const response = await fetch('/upload', {
+									method: 'PUT',
+									body: file,
+									headers: {
+										'Authorization': 'Nostr ' + btoa(JSON.stringify(authEvent))
 									}
-								</tbody>
-							</table>
-						</div>
-					}
+								});
+
+								if (response.ok) {
+									// on success open the uploaded URL and refresh this page
+									window.open((await response.json()).url)
+									window.location.reload();
+								} else {
+									// show error message
+									const errorReason = response.headers.get('X-Reason');
+									const errorText = await response.text();
+									alert('failed to upload blob: ' + (errorReason || errorText || response.statusText));
+								}
+							} catch (error) {
+								alert('error uploading blob: ' + String(error));
+							} finally {
+								this.uploading = false;
+								// reset file input
+								document.getElementById('fileInput').value = '';
+							}
+						}
+					}` }
+				>
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">your blobs</h3>
+					<p class="text-sm text-stone-600 dark:text-stone-400" x-show="!hasBlobs">you have no blobs uploaded yet</p>
+					<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700" x-show="hasBlobs">
+						<thead class="bg-stone-50 dark:bg-stone-800">
+							<tr>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">hash</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">type</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">size</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider"></th>
+							</tr>
+						</thead>
+						<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
+							{{ hasBlobs := false }}
+							for blob := range blobIndex.List(ctx, loggedUser) {
+								{{ hasBlobs = true }}
+								<tr>
+									<td class="px-4 py-3 text-sm font-mono text-stone-900 dark:text-stone-100">
+										<a href={ templ.SafeURL(blob.URL) } target="_blank" class="hover:underline">
+											{ blob.SHA256[:16] }...
+										</a>
+									</td>
+									<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+										{ blob.Type }
+									</td>
+									<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+										{ formatSize(blob.Size) }
+									</td>
+									<td class="px-4 py-3 text-sm">
+										if global.Settings.Blossom.Enabled {
+											<button
+												type="button"
+												class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-xs"
+												:class="deleting ? '' : 'cursor-pointer'"
+												@click={ "deleteBlob('" + blob.SHA256 + "')" }
+												x-text={ "deleting === '" + blob.SHA256 + "' ? 'deleting...' : 'delete'" }
+												:disabled="deleting"
+											></button>
+										}
+									</td>
+								</tr>
+							}
+							if hasBlobs {
+								<span x-init="hasBlobs = true"></span>
+							}
+						</tbody>
+					</table>
+					<div class="mt-4 mb-4">
+						<input
+							type="file"
+							class="hidden"
+							x-ref="fileInput"
+							@change="uploadBlob($event.target.files[0])"
+						/>
+						<button
+							type="button"
+							class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white font-medium"
+							:class="deleting ? '' : 'cursor-pointer'"
+							@click="$refs.fileInput.click()"
+							x-text="uploading ? 'uploading...' : 'upload file'"
+							:disabled="uploading"
+						></button>
+					</div>
 				</div>
 			}
 			if pyramid.IsRoot(loggedUser) {
 				<div class="mt-8">
 					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">server stats</h3>
-					<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
-						total blobs: { fmt.Sprintf("%d", totalBlobs) }
-					</p>
-					if len(blobsByUser) > 0 {
-						<div class="overflow-x-auto">
-							<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
-								<thead class="bg-stone-50 dark:bg-stone-800">
+					{{ totalBlobs := 0 }}
+					{{ totalSize := 0 }}
+					<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
+						<thead class="bg-stone-50 dark:bg-stone-800">
+							<tr>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">user</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">blobs</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">size</th>
+							</tr>
+						</thead>
+						<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
+							for member := range pyramid.Members.Range {
+								{{ userBlobs := 0 }}
+								{{ userSize := 0 }}
+								for blob := range blobIndex.List(ctx, member) {
+									{{ totalBlobs++ }}
+									{{ totalSize += blob.Size }}
+									{{ userBlobs++ }}
+									{{ userSize += blob.Size }}
+								}
+								if userBlobs > 0 {
 									<tr>
-										<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">user</th>
-										<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">blobs</th>
+										<td class="px-4 py-3 text-sm">
+											@layout.ProfileLink(member)
+										</td>
+										<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+											{ fmt.Sprintf("%d", userBlobs) }
+										</td>
+										<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+											{ formatSize(userSize) }
+										</td>
 									</tr>
-								</thead>
-								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
-									for pubkey, count := range blobsByUser {
-										if count > 0 {
-											<tr>
-												<td class="px-4 py-3 text-sm">
-													@layout.ProfileLink(pubkey)
-												</td>
-												<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
-													{ fmt.Sprintf("%d", count) }
-												</td>
-											</tr>
-										}
-									}
-								</tbody>
-							</table>
-						</div>
-					}
+								}
+							}
+						</tbody>
+					</table>
+					<div class="flex justify-between">
+						<p class="text-sm text-stone-600 dark:text-stone-400 mt-4">
+							total blobs: { fmt.Sprintf("%d", totalBlobs) }
+						</p>
+						<p class="text-sm text-stone-600 dark:text-stone-400 mt-4">
+							total size: { formatSize(totalSize) }
+						</p>
+					</div>
 				</div>
 			}
 			if pyramid.IsRoot(loggedUser) {
