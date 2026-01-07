@@ -180,7 +180,7 @@ templ blossomPage(loggedUser nostr.PubKey) {
 						/>
 						<button
 							type="button"
-							class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white font-medium"
+							class="px-4 py-2 rounded themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] themed:text-white light:bg-stone-200 light:hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
 							:class="deleting ? '' : 'cursor-pointer'"
 							@click="$refs.fileInput.click()"
 							x-text="uploading ? 'uploading...' : 'upload file'"
