@@ -90,7 +90,10 @@ func checkOTS(ctx context.Context) {
 	}
 
 	nChecked := 0
+	nErrored := 0
 	nFulfilled := 0
+	log.Info().Msg("checking ots proofs")
+
 	for _, entry := range entries {
 		nChecked++
 
@@ -98,6 +101,7 @@ func checkOTS(ctx context.Context) {
 		idHex := entry.Name()[0:64]
 		if !nostr.IsValid32ByteHex(idHex) {
 			log.Warn().Str("name", entry.Name()).Msg("invalid pending ots file")
+			nErrored++
 			continue
 		}
 
@@ -105,6 +109,7 @@ func checkOTS(ctx context.Context) {
 		kindBytes, err := hex.DecodeString(entry.Name()[64 : 64+2*2])
 		if err != nil {
 			log.Warn().Str("name", entry.Name()).Msg("invalid pending ots file")
+			nErrored++
 			continue
 		}
 		kind := binary.BigEndian.Uint16(kindBytes)
@@ -113,28 +118,28 @@ func checkOTS(ctx context.Context) {
 		createdAtBytes, err := hex.DecodeString(entry.Name()[64+2*2 : 64+2*2+4*2])
 		if err != nil {
 			log.Warn().Str("name", entry.Name()).Msg("invalid pending ots file")
+			nErrored++
 			continue
 		}
 		createdAt := binary.BigEndian.Uint32(createdAtBytes)
-
-		log.Info().Str("id", idHex).Uint16("kind", kind).Msg("checking OTS proof")
 
 		// the contents of the file are the weird ots binary format
 		b, err := os.ReadFile(filepath.Join(otsPendingDir, entry.Name()))
 		if err != nil {
 			log.Error().Err(err).Str("file", entry.Name()).Msg("failed to read OTS file")
+			nErrored++
 			continue
 		}
 		otsfile, err := opentimestamps.ReadFromFile(b)
 		if err != nil {
 			log.Error().Err(err).Str("file", entry.Name()).Msg("failed to parse OTS file")
+			nErrored++
 			continue
 		}
 
 		// try to upgrade the sequence (it should have a single sequence with a calendar server on it)
 		upgraded, err := opentimestamps.UpgradeSequence(ctx, otsfile.Sequences[0], otsfile.Digest)
 		if err != nil {
-			log.Warn().Err(err).Str("id", idHex).Msg("failed to upgrade OTS sequence")
 			continue
 		}
 
@@ -154,6 +159,7 @@ func checkOTS(ctx context.Context) {
 		}
 		if err := evt.Sign(global.Settings.RelayInternalSecretKey); err != nil {
 			log.Error().Err(err).Str("id", idHex).Msg("failed to sign OTS event")
+			nErrored++
 			continue
 		}
 
@@ -161,6 +167,7 @@ func checkOTS(ctx context.Context) {
 		log.Info().Stringer("event", evt).Msg("publishing OTS event")
 		if err := global.IL.Main.SaveEvent(evt); err != nil {
 			log.Error().Err(err).Str("id", idHex).Msg("failed to save OTS event")
+			nErrored++
 			continue
 		}
 		relay.BroadcastEvent(evt)
@@ -168,10 +175,12 @@ func checkOTS(ctx context.Context) {
 		// remove pending file
 		if err := os.Remove(filepath.Join(otsPendingDir, entry.Name())); err != nil {
 			log.Error().Err(err).Str("id", idHex).Msg("failed to remove pending OTS file")
+			nErrored++
 		}
 
 		nFulfilled++
 	}
 
-	log.Info().Int("pending", nChecked).Int("upgraded", nFulfilled).Msg("upgraded pending OTS proofs")
+	log.Info().Int("pending", nChecked).Int("upgraded", nFulfilled).Int("errored", nErrored).
+		Msg("upgraded pending OTS proofs")
 }

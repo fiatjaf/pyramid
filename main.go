@@ -65,7 +65,7 @@ func main() {
 		if err := initOTS(); err == nil {
 			for {
 				checkOTS(context.Background())
-				time.Sleep(time.Hour * 2)
+				time.Sleep(time.Hour * 4)
 			}
 		}
 	}()
