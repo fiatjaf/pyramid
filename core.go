@@ -456,8 +456,8 @@ func publishMembershipChange(pubkey nostr.PubKey, added bool) {
 		}
 		relayMembersList.Sign(global.Settings.RelayInternalSecretKey)
 		roomCreationPermissionList.Sign(global.Settings.RelayInternalSecretKey)
-		c.store.SaveEvent(relayMembersList)
-		c.store.SaveEvent(roomCreationPermissionList)
+		c.store.ReplaceEvent(relayMembersList)
+		c.store.ReplaceEvent(roomCreationPermissionList)
 		c.relay.BroadcastEvent(relayMembersList)
 		c.relay.BroadcastEvent(roomCreationPermissionList)
 	}
