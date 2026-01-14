@@ -577,7 +577,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 						<label class="block text-sm font-medium mb-2 dark:text-stone-300">password</label>
 						<input
 							name="ftp_password"
-							placeholder="password for FTP server"
+							placeholder="password for FTP server, please pick something big and unguessable"
 							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
 							x-model="ftpPassword"
 							@blur="saveSettings()"

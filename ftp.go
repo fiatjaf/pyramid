@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/eventstore/mmm"
 	blossom_lib "fiatjaf.com/nostr/nipb0/blossom"
 	"github.com/fiatjaf/pyramid/blossom"
 	"github.com/fiatjaf/pyramid/global"
@@ -187,6 +188,13 @@ func getSSHPublicKey() string {
 	return "SHA256:" + base64.RawStdEncoding.EncodeToString(hash[:])
 }
 
+func getEventStore(storeName string) *mmm.IndexingLayer {
+	if relevant, ok := relevantUsers[storeName]; ok {
+		return relevant.store
+	}
+	return nil
+}
+
 type SFTPVirtualFileSystem struct{}
 
 // FileReader interface implementation (for FileGet)
@@ -224,12 +232,17 @@ func (vfs SFTPVirtualFileSystem) Fileread(r *sftp.Request) (io.ReaderAt, error) 
 		}
 		data, err := io.ReadAll(reader)
 		return bytes.NewReader(data), err
-	case "events":
+	default:
+		// any of the relays
+		store := getEventStore(path[0])
+		if store == nil {
+			return nil, os.ErrNotExist
+		}
 		spl := strings.Split(path[len(path)-1], ".")
 		id := spl[0]
 
 		if id, err := nostr.IDFromHex(id); err == nil {
-			for evt := range queryStored(r.Context(), nostr.Filter{IDs: []nostr.ID{id}}) {
+			for evt := range store.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
 				data, _ := json.MarshalIndent(evt, "", "  ")
 				return bytes.NewReader(data), nil
 			}
@@ -249,7 +262,7 @@ func (vfs SFTPVirtualFileSystem) Filewrite(r *sftp.Request) (io.WriterAt, error)
 	if len(path) < 2 {
 		return nil, os.ErrNotExist
 	}
-	if path[0] != "blossom" && path[0] != "events" {
+	if _, ok := relevantUsers[path[0]]; !ok {
 		return nil, os.ErrNotExist
 	}
 
@@ -267,7 +280,7 @@ func (vfs SFTPVirtualFileSystem) Filecmd(r *sftp.Request) error {
 	if len(path) < 3 {
 		return os.ErrNotExist
 	}
-	if path[0] != "blossom" && path[0] != "events" {
+	if _, ok := relevantUsers[path[0]]; !ok {
 		return os.ErrNotExist
 	}
 
@@ -306,17 +319,20 @@ func (vfs SFTPVirtualFileSystem) Filecmd(r *sftp.Request) error {
 			}
 
 			return nil
-		case "events":
+		default:
+			// main relay or any of the other relays
 			spl := strings.Split(path[len(path)-1], ".")
 			id, err := nostr.IDFromHex(spl[0])
 			if err != nil {
 				return err
 			}
 
-			return global.IL.Main.DeleteEvent(id)
+			store := getEventStore(path[0])
+			if store == nil {
+				return os.ErrNotExist
+			}
+			return store.DeleteEvent(id)
 		}
-
-		return fmt.Errorf("not implemented")
 
 	case "Rename":
 		return fmt.Errorf("rename not supported")
@@ -340,7 +356,7 @@ func (vfs SFTPVirtualFileSystem) Filelist(r *sftp.Request) (sftp.ListerAt, error
 	}
 
 	path := strings.Split(r.Filepath, "/")
-	if path[0] != "blossom" && path[0] != "events" {
+	if _, ok := relevantUsers[path[0]]; !ok {
 		return nil, os.ErrNotExist
 	}
 
@@ -447,7 +463,8 @@ func (w *SFTPWriterAt) WriteAt(data []byte, offset int64) (n int, err error) {
 		}
 
 		return len(data), nil
-	case "events":
+	default:
+		// main relay or any of the other relays
 		w.buf = append(w.buf, data...)
 
 		if len(data) < 16384 {
@@ -470,7 +487,12 @@ func (w *SFTPWriterAt) WriteAt(data []byte, offset int64) (n int, err error) {
 			if !evt.VerifySignature() {
 				return 0, fmt.Errorf("event signature is invalid")
 			}
-			if err := global.IL.Main.SaveEvent(evt); err != nil {
+
+			store := getEventStore(w.path[0])
+			if store == nil {
+				return 0, fmt.Errorf("invalid store: %s", w.path[0])
+			}
+			if err := store.SaveEvent(evt); err != nil {
 				return 0, fmt.Errorf("failed to save: %w", err)
 			}
 
@@ -480,8 +502,6 @@ func (w *SFTPWriterAt) WriteAt(data []byte, offset int64) (n int, err error) {
 
 		return len(data), nil
 	}
-
-	return 0, nil
 }
 
 type SFTPListerAt struct {
@@ -493,14 +513,28 @@ func (l SFTPListerAt) ListAt(ls []os.FileInfo, offset int64) (int, error) {
 	log.Info().Strs("path", l.path).Int64("offset", offset).Msg("SFTP list")
 
 	if l.path == nil {
-		if offset >= 2 {
+		storeNames := make([]string, 0, len(relevantUsers))
+		for name := range relevantUsers {
+			storeNames = append(storeNames, name)
+		}
+
+		if offset >= int64(len(storeNames)) {
 			return 0, nil
 		}
 
-		ls[0] = SFTPVirtualDirEntry("blossom")
-		ls[1] = SFTPVirtualDirEntry("events")
+		count := 0
+		for i, name := range storeNames {
+			if int64(i) < offset {
+				continue
+			}
+			if count >= len(ls) {
+				break
+			}
+			ls[count] = SFTPVirtualDirEntry(name)
+			count++
+		}
 
-		return 2, nil
+		return count, nil
 	}
 
 	n := 0
@@ -555,13 +589,19 @@ func (l SFTPListerAt) ListAt(ls []os.FileInfo, offset int64) (int, error) {
 				}
 			}
 			return n, nil
-		case "events":
+		default:
+			// any of the relays
 			filter := nostr.Filter{
 				Limit:   len(ls),
 				Authors: []nostr.PubKey{pubkey},
 			}
 
-			for evt := range queryStored(l.ctx, filter) {
+			store := getEventStore(l.path[0])
+			if store == nil {
+				return 0, os.ErrNotExist
+			}
+
+			for evt := range store.QueryEvents(filter, 100+int(offset)) {
 				if offset > 0 {
 					offset--
 					continue
