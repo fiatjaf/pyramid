@@ -49,6 +49,7 @@ func setupEnabled() {
 	Relay.ManagementAPI.ChangeRelayName = changeUppermostRelayNameHandler
 	Relay.ManagementAPI.ChangeRelayDescription = changeUppermostRelayDescriptionHandler
 	Relay.ManagementAPI.ChangeRelayIcon = changeUppermostRelayIconHandler
+	Relay.ManagementAPI.BanEvent = banUppermostEventHandler
 
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		info.Name = global.Settings.Uppermost.GetName()
@@ -162,4 +163,19 @@ func changeUppermostRelayIconHandler(ctx context.Context, icon string) error {
 
 	global.Settings.Uppermost.Icon = icon
 	return global.SaveUserSettings()
+}
+
+func banUppermostEventHandler(ctx context.Context, id nostr.ID, reason string) error {
+	caller, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(caller) {
+		return fmt.Errorf("must be a root user to ban an event")
+	}
+
+	log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("uppermost banevent called")
+
+	return global.IL.Uppermost.DeleteEvent(id)
 }

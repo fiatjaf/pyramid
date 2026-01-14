@@ -49,6 +49,7 @@ func setupEnabled() {
 	Relay.ManagementAPI.ChangeRelayName = changeInternalRelayNameHandler
 	Relay.ManagementAPI.ChangeRelayDescription = changeInternalRelayDescriptionHandler
 	Relay.ManagementAPI.ChangeRelayIcon = changeInternalRelayIconHandler
+	Relay.ManagementAPI.BanEvent = banInternalEventHandler
 
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		info.Name = global.Settings.Internal.GetName()
@@ -186,4 +187,19 @@ func changeInternalRelayIconHandler(ctx context.Context, icon string) error {
 
 	global.Settings.Internal.Icon = icon
 	return global.SaveUserSettings()
+}
+
+func banInternalEventHandler(ctx context.Context, id nostr.ID, reason string) error {
+	caller, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(caller) {
+		return fmt.Errorf("must be a root user to ban an event")
+	}
+
+	log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("internal banevent called")
+
+	return global.IL.Internal.DeleteEvent(id)
 }

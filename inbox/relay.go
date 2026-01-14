@@ -53,6 +53,7 @@ func setupEnabled() {
 	Relay.ManagementAPI.ListBannedPubKeys = listBannedPubkeysHandler
 	Relay.ManagementAPI.BanPubKey = banPubkeyHandler
 	Relay.ManagementAPI.AllowPubKey = allowPubkeyHandler
+	Relay.ManagementAPI.BanEvent = banInboxEventHandler
 
 	// use dual layer store
 	Relay.QueryStored = func(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
@@ -323,4 +324,26 @@ func checkWoTHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, fmt.Sprint(aggregatedWoT.Contains(pk)))
+}
+
+func banInboxEventHandler(ctx context.Context, id nostr.ID, reason string) error {
+	caller, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(caller) {
+		return fmt.Errorf("must be a root user to ban an event")
+	}
+
+	log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("inbox banevent called")
+
+	// Delete from both database layers
+	if err := global.IL.Inbox.DeleteEvent(id); err != nil {
+		return err
+	}
+	if err := global.IL.Secret.DeleteEvent(id); err != nil {
+		return err
+	}
+	return nil
 }

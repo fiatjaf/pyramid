@@ -49,6 +49,7 @@ func setupEnabled() {
 	Relay.ManagementAPI.ChangeRelayName = changeFavoritesRelayNameHandler
 	Relay.ManagementAPI.ChangeRelayDescription = changeFavoritesRelayDescriptionHandler
 	Relay.ManagementAPI.ChangeRelayIcon = changeFavoritesRelayIconHandler
+	Relay.ManagementAPI.BanEvent = banFavoritesEventHandler
 
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		info.Name = global.Settings.Favorites.GetName()
@@ -183,4 +184,19 @@ func changeFavoritesRelayIconHandler(ctx context.Context, icon string) error {
 
 	global.Settings.Favorites.Icon = icon
 	return global.SaveUserSettings()
+}
+
+func banFavoritesEventHandler(ctx context.Context, id nostr.ID, reason string) error {
+	caller, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+
+	if !pyramid.IsRoot(caller) {
+		return fmt.Errorf("must be a root user to ban an event")
+	}
+
+	log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("favorites banevent called")
+
+	return global.IL.Favorites.DeleteEvent(id)
 }
