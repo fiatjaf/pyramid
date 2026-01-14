@@ -14,14 +14,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 		<div class="max-w-4xl mx-auto">
 			<!-- landlubber link -->
 			<div class="mb-6 flex justify-end">
-				<a
-					href={ templ.SafeURL("https://landlubber.coracle.social/relays/" + global.Settings.Domain) }
-					target="_blank"
-					rel="noopener noreferrer"
-					class="inline-block px-4 py-2 rounded text-sm text-white font-medium themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] unthemed:bg-blue-600 unthemed:hover:bg-blue-700"
-				>
-					manage on landlubber
-				</a>
+				@layout.LandlubberButton("")
 			</div>
 			<!-- relay metadata -->
 			@layout.RelayMetadata("main",

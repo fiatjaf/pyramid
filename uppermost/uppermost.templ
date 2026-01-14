@@ -13,11 +13,16 @@ import (
 templ uppermostPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "uppermost") {
 		<div class="max-w-3xl mx-auto">
-			<div class="flex items-center mb-4">
-				if !global.Settings.Uppermost.IsIconDefault() {
-					<img src={ global.Settings.Uppermost.GetIcon() } class="h-8 w-8 mr-2"/>
+			<div class="flex items-center justify-between mb-4">
+				<div class="flex items-center">
+					if !global.Settings.Uppermost.IsIconDefault() {
+						<img src={ global.Settings.Uppermost.GetIcon() } class="h-8 w-8 mr-2"/>
+					}
+					<h1 class="text-4xl font-bold">{ global.Settings.Uppermost.GetName() }</h1>
+				</div>
+				if global.Settings.Uppermost.Enabled && pyramid.IsRoot(loggedUser) {
+					@layout.LandlubberButton(global.Settings.Uppermost.HTTPBasePath)
 				}
-				<h1 class="text-4xl font-bold">{ global.Settings.Uppermost.GetName() }</h1>
 			</div>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">{ global.Settings.Uppermost.GetDescription() }</p>

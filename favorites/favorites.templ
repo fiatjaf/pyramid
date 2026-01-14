@@ -11,11 +11,16 @@ import (
 templ favoritesPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "favorites") {
 		<div class="max-w-3xl mx-auto">
-			<div class="flex items-center mb-4">
-				if !global.Settings.Favorites.IsIconDefault() {
-					<img src={ global.Settings.Favorites.GetIcon() } class="h-8 w-8 mr-2"/>
+			<div class="flex items-center justify-between mb-4">
+				<div class="flex items-center">
+					if !global.Settings.Favorites.IsIconDefault() {
+						<img src={ global.Settings.Favorites.GetIcon() } class="h-8 w-8 mr-2"/>
+					}
+					<h1 class="text-4xl font-bold font-[family-name:var(--primary-font)]">{ global.Settings.Favorites.GetName() }</h1>
+				</div>
+				if global.Settings.Favorites.Enabled && pyramid.IsRoot(loggedUser) {
+					@layout.LandlubberButton(global.Settings.Favorites.HTTPBasePath)
 				}
-				<h1 class="text-4xl font-bold font-[family-name:var(--primary-font)]">{ global.Settings.Favorites.GetName() }</h1>
 			</div>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">{ global.Settings.Favorites.GetDescription() }</p>
