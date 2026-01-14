@@ -3,7 +3,6 @@ package moderated
 import (
 	"context"
 	"fmt"
-	"iter"
 	"net/http"
 	"time"
 
@@ -64,10 +63,11 @@ func setupEnabled() {
 		return info
 	}
 
-	// use moderated DB for queries
-	Relay.QueryStored = func(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
-		return global.IL.Moderated.QueryEvents(filter, 500)
-	}
+	// Cache pinned event at startup
+	global.CachePinnedEvent("moderated")
+
+	// use custom QueryStored with pinned event support
+	Relay.QueryStored = global.QueryStoredWithPinned("moderated")
 	Relay.Count = func(ctx context.Context, filter nostr.Filter) (uint32, error) {
 		return global.IL.Moderated.CountEvents(filter)
 	}

@@ -30,7 +30,7 @@ templ favoritesPage(loggedUser nostr.PubKey) {
 					</a>
 				}
 				if pyramid.IsRoot(loggedUser) {
-					@layout.SubRelaySettings("favorites", global.Settings.Favorites.Enabled, global.Settings.Favorites.Name, global.Settings.Favorites.Description, global.Settings.Favorites.Icon, global.Settings.Favorites.HTTPBasePath)
+					@layout.SubRelaySettings("favorites", global.Settings.Favorites.Enabled, global.Settings.Favorites.Name, global.Settings.Favorites.Description, global.Settings.Favorites.Icon, global.Settings.Favorites.Pinned, global.Settings.Favorites.HTTPBasePath)
 				}
 			</div>
 		</div>

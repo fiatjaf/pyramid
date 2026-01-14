@@ -13,11 +13,12 @@ import (
 
 type UserSettings struct {
 	// relay metadata
-	Domain           string `json:"domain"`
-	RelayName        string `json:"relay_name"`
-	RelayDescription string `json:"relay_description"`
-	RelayContact     string `json:"relay_contact"`
-	RelayIcon        string `json:"relay_icon"`
+	Domain           string   `json:"domain"`
+	RelayName        string   `json:"relay_name"`
+	RelayDescription string   `json:"relay_description"`
+	RelayContact     string   `json:"relay_contact"`
+	RelayIcon        string   `json:"relay_icon"`
+	Pinned           nostr.ID `json:"pinned,omitempty"`
 
 	// theme
 	Theme struct {
@@ -109,11 +110,12 @@ type UserSettings struct {
 type RelayMetadata struct {
 	base string // identifies where this is
 
-	Enabled      bool   `json:"enabled"`
-	Name         string `json:"name"`
-	Description  string `json:"description"`
-	Icon         string `json:"icon"`
-	HTTPBasePath string `json:"path"`
+	Enabled      bool     `json:"enabled"`
+	Name         string   `json:"name"`
+	Description  string   `json:"description"`
+	Icon         string   `json:"icon"`
+	HTTPBasePath string   `json:"path"`
+	Pinned       nostr.ID `json:"pinned,omitempty"`
 }
 
 func (rm RelayMetadata) GetName() string {

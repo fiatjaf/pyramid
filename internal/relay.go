@@ -60,7 +60,13 @@ func setupEnabled() {
 		return info
 	}
 
+	// cache pinned event at startup
+	global.CachePinnedEvent("internal")
+
 	Relay.UseEventstore(db, 500)
+
+	// use custom QueryStored with pinned event support
+	Relay.QueryStored = global.QueryStoredWithPinned("internal")
 
 	pk := global.Settings.RelayInternalSecretKey.Public()
 	Relay.Info.Self = &pk

@@ -59,7 +59,14 @@ func setupEnabled() {
 		info.Software = "https://github.com/fiatjaf/pyramid"
 		return info
 	}
+
+	// cache pinned event at startup
+	global.CachePinnedEvent("favorites")
+
 	Relay.UseEventstore(db, 500)
+
+	// use custom QueryStored with pinned event support
+	Relay.QueryStored = global.QueryStoredWithPinned("favorites")
 
 	pk := global.Settings.RelayInternalSecretKey.Public()
 	Relay.Info.Self = &pk

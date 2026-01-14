@@ -137,12 +137,18 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.RelayDescription = v[0]
 			case "main_icon":
 				global.Settings.RelayIcon = v[0]
+			case "main_pinned":
+				global.Settings.Pinned = checkPinnedID(v[0], global.IL.Main)
+				global.CachePinnedEvent("main")
 			case "favorites_name":
 				global.Settings.Favorites.Name = v[0]
 			case "favorites_description":
 				global.Settings.Favorites.Description = v[0]
 			case "favorites_icon":
 				global.Settings.Favorites.Icon = v[0]
+			case "favorites_pinned":
+				global.Settings.Favorites.Pinned = checkPinnedID(v[0], global.IL.Favorites)
+				global.CachePinnedEvent("favorites")
 			case "favorites_httpBasePath":
 				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
 					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)
@@ -158,6 +164,9 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Moderated.Description = v[0]
 			case "moderated_icon":
 				global.Settings.Moderated.Icon = v[0]
+			case "moderated_pinned":
+				global.Settings.Moderated.Pinned = checkPinnedID(v[0], global.IL.Moderated)
+				global.CachePinnedEvent("moderated")
 			case "moderated_httpBasePath":
 				if len(v[0]) > 0 {
 					global.Settings.Moderated.HTTPBasePath = v[0]
@@ -171,6 +180,9 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Inbox.Description = v[0]
 			case "inbox_icon":
 				global.Settings.Inbox.Icon = v[0]
+			case "inbox_pinned":
+				global.Settings.Inbox.Pinned = checkPinnedID(v[0], global.IL.Inbox)
+				global.CachePinnedEvent("inbox")
 			case "inbox_httpBasePath":
 				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
 					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)
@@ -186,6 +198,9 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Internal.Description = v[0]
 			case "internal_icon":
 				global.Settings.Internal.Icon = v[0]
+			case "internal_pinned":
+				global.Settings.Internal.Pinned = checkPinnedID(v[0], global.IL.Internal)
+				global.CachePinnedEvent("internal")
 			case "internal_httpBasePath":
 				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
 					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)
@@ -201,6 +216,9 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Popular.Description = v[0]
 			case "popular_icon":
 				global.Settings.Popular.Icon = v[0]
+			case "popular_pinned":
+				global.Settings.Popular.Pinned = checkPinnedID(v[0], global.IL.Popular)
+				global.CachePinnedEvent("popular")
 			case "popular_httpBasePath":
 				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
 					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)
@@ -216,6 +234,9 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Uppermost.Description = v[0]
 			case "uppermost_icon":
 				global.Settings.Uppermost.Icon = v[0]
+			case "uppermost_pinned":
+				global.Settings.Uppermost.Pinned = checkPinnedID(v[0], global.IL.Uppermost)
+				global.CachePinnedEvent("uppermost")
 			case "uppermost_httpBasePath":
 				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
 					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)

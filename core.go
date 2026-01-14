@@ -238,6 +238,21 @@ func rejectInviteRequestsNonAuthed(ctx context.Context, filter nostr.Filter) (bo
 // "-" plus the specific paywall "t" tag) to check if the querier is eligible for reading.
 func queryMain(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 	return func(yield func(nostr.Event) bool) {
+		// try to get a pinned note first
+		if global.PinnedCache.Main != nil &&
+			filter.IDs == nil && filter.Tags == nil && filter.Authors == nil &&
+			filter.Until == 0 && filter.Since < global.PinnedCache.Main.CreatedAt &&
+			(filter.Kinds == nil || slices.Contains(filter.Kinds, global.PinnedCache.Main.Kind)) {
+			// display pinned in this case
+			if !yield(*global.PinnedCache.Main) {
+				return
+			}
+			if filter.Limit > 0 {
+				// we've used one limit
+				filter.Limit--
+			}
+		}
+
 		// handle special invite requests
 		if idx := slices.Index(filter.Kinds, 28935); idx != -1 {
 			if authed, ok := khatru.GetAuthed(ctx); ok && pyramid.CanInviteMore(authed) {

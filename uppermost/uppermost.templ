@@ -32,7 +32,7 @@ templ uppermostPage(loggedUser nostr.PubKey) {
 					</a>
 				}
 				if pyramid.IsRoot(loggedUser) {
-					@layout.SubRelaySettings("uppermost", global.Settings.Uppermost.Enabled, global.Settings.Uppermost.Name, global.Settings.Uppermost.Description, global.Settings.Uppermost.Icon, global.Settings.Uppermost.HTTPBasePath) {
+					@layout.SubRelaySettings("uppermost", global.Settings.Uppermost.Enabled, global.Settings.Uppermost.Name, global.Settings.Uppermost.Description, global.Settings.Uppermost.Icon, global.Settings.Uppermost.Pinned, global.Settings.Uppermost.HTTPBasePath) {
 						<details>
 							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">threshold</summary>
 							<form
