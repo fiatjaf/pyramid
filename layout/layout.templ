@@ -95,7 +95,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							invite tree
 						}
 						@NavLink(global.Settings.BrowseURI, false) {
-							<span x-init="$el.parentNode.setAttribute('href', $el.parentNode.href.replace('{url}', encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 3).join('/')))); $el.parentNode.setAttribute('target', '_blank')">
+							<span x-init="$el.parentNode.setAttribute('href', $el.parentNode.href.replace(/({|%7B)url(}|%7D)/, encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 3).join('/')))); $el.parentNode.setAttribute('target', '_blank')">
 								browse
 							</span>
 						}
