@@ -7,6 +7,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
@@ -32,29 +33,32 @@ import (
 )
 
 var sftpVFS = SFTPVirtualFileSystem{}
+var sftpListener net.Listener
 
-func startSFTP(addr string) error {
+func startSFTP() error {
 	config := &ssh.ServerConfig{
 		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			if c.User() == "admin" && string(pass) == "password123" {
+			if c.User() == "admin" && string(pass) == global.Settings.FTP.Password {
 				return nil, nil
 			}
 			return nil, fmt.Errorf("password rejected for %q", c.User())
 		},
 	}
 
-	privateKey, err := getHostKey()
+	privateKey, err := getSFTPHostKey()
 	if err != nil {
 		return fmt.Errorf("failed to generate host key: %w", err)
 	}
 
 	config.AddHostKey(privateKey)
+	addr := net.JoinHostPort(global.S.Host, global.S.SFTPPort)
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("failed to listen on %s: %w", addr, err)
 	}
 
+	sftpListener = listener
 	log.Info().Msgf("SFTP server listening on %s", addr)
 
 	go func() {
@@ -62,6 +66,11 @@ func startSFTP(addr string) error {
 			conn, err := listener.Accept()
 			if err != nil {
 				log.Error().Err(err).Msg("failed to accept incoming connection")
+				if sftpListener == nil {
+					// server has stopped
+					return
+				}
+
 				continue
 			}
 
@@ -70,6 +79,14 @@ func startSFTP(addr string) error {
 	}()
 
 	return nil
+}
+
+func stopSFTP() {
+	if sftpListener != nil {
+		sftpListener.Close()
+		sftpListener = nil
+		log.Info().Msg("SFTP server stopped")
+	}
 }
 
 func handleSFTP(conn net.Conn, config *ssh.ServerConfig) {
@@ -122,7 +139,7 @@ func handleSFTP(conn net.Conn, config *ssh.ServerConfig) {
 	}
 }
 
-func getHostKey() (ssh.Signer, error) {
+func getSFTPHostKey() (ssh.Signer, error) {
 	keyPath := filepath.Join(global.S.DataPath, "sftp_host_key")
 
 	if _, err := os.Stat(keyPath); err == nil {
@@ -153,6 +170,21 @@ func getHostKey() (ssh.Signer, error) {
 	}
 
 	return signer, nil
+}
+
+func getSSHPublicKey() string {
+	key, err := getSFTPHostKey()
+	if err != nil {
+		return ""
+	}
+
+	pub := key.PublicKey()
+	if pub == nil {
+		return ""
+	}
+
+	hash := sha256.Sum256(pub.Marshal())
+	return "SHA256:" + base64.RawStdEncoding.EncodeToString(hash[:])
 }
 
 type SFTPVirtualFileSystem struct{}

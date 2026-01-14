@@ -263,7 +263,26 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				if val, err := strconv.Atoi(v[0]); err == nil {
 					global.Settings.Uppermost.PercentThreshold = val
 				}
+				//
+				// ftp settings
+			case "ftp_enabled":
+				global.Settings.FTP.Enabled = v[0] == "on"
+			case "ftp_password":
+				global.Settings.FTP.Password = v[0]
 			}
+		}
+
+		// start or stop SFTP server if necessary
+		if global.Settings.FTP.Enabled && global.Settings.FTP.Password != "" {
+			if sftpListener == nil {
+				go func() {
+					if err := startSFTP(); err != nil {
+						log.Error().Err(err).Msg("failed to start FTP server")
+					}
+				}()
+			}
+		} else {
+			stopSFTP()
 		}
 
 		if err := global.SaveUserSettings(); err != nil {

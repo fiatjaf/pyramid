@@ -98,6 +98,11 @@ type UserSettings struct {
 		RelayMetadata
 		MinPoW uint `json:"min_pow"`
 	} `json:"moderated"`
+
+	FTP struct {
+		Enabled  bool   `json:"enabled"`
+		Password string `json:"password"`
+	} `json:"ftp"`
 }
 
 type RelayMetadata struct {
@@ -209,6 +214,10 @@ func loadUserSettings() error {
 	Settings.Popular.HTTPBasePath = "popular"
 	Settings.Uppermost.HTTPBasePath = "uppermost"
 	Settings.Moderated.HTTPBasePath = "moderated"
+
+	// FTP settings
+	Settings.FTP.Enabled = false
+	Settings.FTP.Password = ""
 
 	// theme defaults
 	Settings.Theme.TextColor = "#ffffff"

@@ -535,6 +535,83 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					saved!
 				</div>
 			</form>
+			<!-- FTP Server Settings Section -->
+			<form
+				method="POST"
+				action="/settings"
+				class="space-y-6 mt-8"
+				x-data={ `{
+					ftpEnabled: ` + fmt.Sprint(global.Settings.FTP.Enabled) + `,
+					ftpPassword: '` + global.Settings.FTP.Password + `',
+					saved: false,
+					async saveSettings() {
+						const response = await fetch(this.$refs.form.action, {
+							method: 'POST',
+							body: new URLSearchParams(new FormData(this.$refs.form))
+						})
+						if (response.ok) {
+							this.saved = true;
+							setTimeout(() => this.saved = false, 2000)
+						}
+					}
+				}` }
+				x-ref="form"
+			>
+				@layout.SubSectionTitle("ftp server")
+				<div class="space-y-4">
+					<div class="flex items-center">
+						<input
+							type="checkbox"
+							name="ftp_enabled"
+							id="ftp_enabled"
+							class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
+							x-model="ftpEnabled"
+							@change="saveSettings()"
+						/>
+						<label for="ftp_enabled" class="ml-2 text-sm font-medium dark:text-stone-300">
+							enable FTP (SFTP) server for full read/write access to all events and blobs
+						</label>
+						<input type="hidden" name="ftp_enabled" value="off"/>
+					</div>
+					<div class="mt-4" x-show="ftpEnabled">
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300">password</label>
+						<input
+							name="ftp_password"
+							placeholder="password for FTP server"
+							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+							x-model="ftpPassword"
+							@blur="saveSettings()"
+						/>
+					</div>
+					<div x-show="ftpEnabled && ftpPassword" x-transition>
+						<div class="mt-4 p-4 bg-stone-50 dark:bg-stone-800 rounded-lg">
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+								<div>
+									<label class="block font-medium mb-2 dark:text-stone-300">connection info</label>
+									<div class="text-stone-600 dark:text-stone-400">
+										<div>port: <span class="font-mono">{ global.S.SFTPPort }</span></div>
+										<div>username: <span class="font-mono">admin</span></div>
+										<div>password: <span class="font-mono" x-text="ftpPassword"></span></div>
+									</div>
+								</div>
+								<div>
+									<label class="block font-medium mb-2 dark:text-stone-300">ssh public key fingerprint</label>
+									<div class="text-stone-600 dark:text-stone-400 font-mono text-xs break-all">
+										{ getSSHPublicKey() }
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div
+					x-show="saved"
+					x-transition
+					class="text-sm text-green-600 dark:text-green-400 font-medium"
+				>
+					saved!
+				</div>
+			</form>
 			<!-- update Section -->
 			<div
 				class="mt-8"

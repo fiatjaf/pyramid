@@ -327,9 +327,13 @@ func main() {
 		return info
 	}
 
-	// start SFTP server
-	if err := startSFTP(":" + global.S.SFTPPort); err != nil {
-		log.Error().Err(err).Msg("failed to start SFTP server")
+	// start SFTP server if enabled
+	if global.Settings.FTP.Enabled && global.Settings.FTP.Password != "" {
+		if err := startSFTP(); err != nil {
+			log.Error().Err(err).Msg("failed to start SFTP server")
+		}
+	} else if global.Settings.FTP.Enabled && global.Settings.FTP.Password == "" {
+		log.Warn().Msg("FTP server is enabled but no password is set - not starting server")
 	}
 
 	start()
