@@ -54,7 +54,8 @@ type UserSettings struct {
 
 	RelayInternalSecretKey nostr.SecretKey `json:"relay_internal_secret_key"`
 
-	BlockedIPs []string `json:"blocked_ips"`
+	BlockedIPs   []string     `json:"blocked_ips"`
+	AllowedKinds []nostr.Kind `json:"allowed_kinds,omitempty"`
 
 	// per-relay
 	Internal struct {

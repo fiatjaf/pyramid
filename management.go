@@ -108,3 +108,52 @@ func changeRelayIconHandler(ctx context.Context, icon string) error {
 	global.Settings.RelayIcon = icon
 	return global.SaveUserSettings()
 }
+
+func allowKindHandler(ctx context.Context, kind int) error {
+	caller, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+	if !pyramid.IsRoot(caller) {
+		return fmt.Errorf("unauthorized")
+	}
+	log.Info().Str("caller", caller.Hex()).Int("kind", kind).Msg("management allowkind called")
+
+	// Check if kind is already in the list
+	for _, k := range global.Settings.AllowedKinds {
+		if k == nostr.Kind(kind) {
+			return fmt.Errorf("kind %d is already allowed", kind)
+		}
+	}
+
+	// Add the kind to the allowed list
+	global.Settings.AllowedKinds = append(global.Settings.AllowedKinds, nostr.Kind(kind))
+	return global.SaveUserSettings()
+}
+
+func disallowKindHandler(ctx context.Context, kind int) error {
+	caller, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+	if !pyramid.IsRoot(caller) {
+		return fmt.Errorf("unauthorized")
+	}
+	log.Info().Str("caller", caller.Hex()).Int("kind", kind).Msg("management disallowkind called")
+
+	// Find and remove the kind from the list
+	for i, k := range global.Settings.AllowedKinds {
+		if k == nostr.Kind(kind) {
+			global.Settings.AllowedKinds = append(global.Settings.AllowedKinds[:i], global.Settings.AllowedKinds[i+1:]...)
+
+			// If the list is now empty, remove it from settings (omitempty will handle this)
+			if len(global.Settings.AllowedKinds) == 0 {
+				global.Settings.AllowedKinds = nil
+			}
+
+			return global.SaveUserSettings()
+		}
+	}
+
+	return fmt.Errorf("kind %d is not in the allowed list", kind)
+}

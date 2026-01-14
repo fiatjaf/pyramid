@@ -244,7 +244,7 @@ func main() {
 			return policies.SeqEvent(
 				policies.PreventTooManyIndexableTags(9, []nostr.Kind{3}, nil),
 				policies.PreventTooManyIndexableTags(1200, nil, []nostr.Kind{3}),
-				policies.RestrictToSpecifiedKinds(true, supportedKinds...),
+				policies.RestrictToSpecifiedKinds(true, getEffectiveKinds()...),
 				policies.RejectUnprefixedNostrReferences,
 				basicRejectionLogic,
 			)(ctx, event)
@@ -301,6 +301,8 @@ func main() {
 	relay.ManagementAPI.ChangeRelayName = changeRelayNameHandler
 	relay.ManagementAPI.ChangeRelayDescription = changeRelayDescriptionHandler
 	relay.ManagementAPI.ChangeRelayIcon = changeRelayIconHandler
+	relay.ManagementAPI.AllowKind = allowKindHandler
+	relay.ManagementAPI.DisallowKind = disallowKindHandler
 	relay.ManagementAPI.ListBlockedIPs = listBlockedIPsHandler
 	relay.ManagementAPI.BlockIP = blockIPHandler
 	relay.ManagementAPI.UnblockIP = unblockIPHandler

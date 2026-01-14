@@ -197,6 +197,14 @@ var supportedKinds = []nostr.Kind{
 	39701,
 }
 
+// getEffectiveKinds returns the allowed kinds from settings if present, otherwise defaults to supportedKinds
+func getEffectiveKinds() []nostr.Kind {
+	if len(global.Settings.AllowedKinds) > 0 {
+		return global.Settings.AllowedKinds
+	}
+	return supportedKinds
+}
+
 func rejectInviteRequestsNonAuthed(ctx context.Context, filter nostr.Filter) (bool, string) {
 	if idx := slices.Index(filter.Kinds, 28935); idx != -1 {
 		if authed, ok := khatru.GetAuthed(ctx); ok {
