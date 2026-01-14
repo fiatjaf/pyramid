@@ -1,5 +1,7 @@
 package layout
 
+import "github.com/fiatjaf/pyramid/global"
+
 templ SubRelaySettings(relayId string, enabled bool, name, description, icon, httpBasePath string) {
 	<div class="mt-24">
 		<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">configuration</h3>
@@ -71,9 +73,9 @@ templ RelayMetadata(relayId string, name, description, icon string) {
 	<div
 		class="space-y-6"
 		x-data={ `{
-			name: '` + name + `',
-			description: '` + description + `',
-			icon: '` + icon + `',
+			name: ` + global.JSONString(name) + `,
+			description: ` + global.JSONString(description) + `,
+			icon: ` + global.JSONString(icon) + `,
 			saved: false,
 			uploadError: null,
 			async saveSettings() {

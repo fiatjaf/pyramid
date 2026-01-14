@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unsafe"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/nip19"
@@ -43,4 +44,9 @@ func PubKeyFromInput(input string) nostr.PubKey {
 	}
 
 	return pubkey
+}
+
+func JSONString(str string) string {
+	b, _ := json.Marshal(str)
+	return unsafe.String(unsafe.SliceData(b), len(b))
 }

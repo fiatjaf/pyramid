@@ -251,8 +251,8 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					requireCurrentTimestamp: ` + fmt.Sprint(global.Settings.RequireCurrentTimestamp) + `,
 					enableOTS: ` + fmt.Sprint(global.Settings.EnableOTS) + `,
 					acceptScheduledEvents: ` + fmt.Sprint(global.Settings.AcceptScheduledEvents) + `,
-					browseUri: '` + global.Settings.BrowseURI + `',
-					linkUrl: '` + global.Settings.LinkURL + `',
+					browseUri: ` + global.JSONString(global.Settings.BrowseURI) + `,
+					linkUrl: ` + global.JSONString(global.Settings.LinkURL) + `,
 					saved: false,
 					async saveSettings() {
 						const response = await fetch(this.$refs.form.action, {
