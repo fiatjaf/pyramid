@@ -113,7 +113,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.RequireCurrentTimestamp = v[0] == "on"
 			case "enable_ots":
 				global.Settings.EnableOTS = v[0] == "on"
-			case "accept_future_events":
+			case "accept_scheduled_events":
 				global.Settings.AcceptScheduledEvents = v[0] == "on"
 			case "paywall_tag":
 				global.Settings.Paywall.Tag = v[0]

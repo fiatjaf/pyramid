@@ -250,7 +250,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					maxEventSize: ` + fmt.Sprint(global.Settings.MaxEventSize) + `,
 					requireCurrentTimestamp: ` + fmt.Sprint(global.Settings.RequireCurrentTimestamp) + `,
 					enableOTS: ` + fmt.Sprint(global.Settings.EnableOTS) + `,
-					acceptFutureEvents: ` + fmt.Sprint(global.Settings.AcceptScheduledEvents) + `,
+					acceptScheduledEvents: ` + fmt.Sprint(global.Settings.AcceptScheduledEvents) + `,
 					browseUri: '` + global.Settings.BrowseURI + `',
 					linkUrl: '` + global.Settings.LinkURL + `',
 					saved: false,
@@ -288,7 +288,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 								name="accept_scheduled_events"
 								id="accept_scheduled_events"
 								class="w-4 h-6 rounded border-stone-300 dark:border-stone-600 mr-2"
-								x-model="acceptFutureEvents"
+								x-model="acceptScheduledEvents"
 								@change="saveSettings()"
 							/>
 							accept scheduled events

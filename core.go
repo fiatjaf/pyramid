@@ -24,7 +24,7 @@ import (
 func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, msg string) {
 	if global.Settings.RequireCurrentTimestamp {
 		if event.CreatedAt > nostr.Now()+60 && !global.Settings.AcceptScheduledEvents {
-			// when accept_future_events is on we can accept this because the event will be stored separately anyway
+			// when accept_scheduled_events is on we can accept this because the event will be stored separately anyway
 			return true, "event too much in the future"
 		}
 

@@ -39,7 +39,7 @@ type UserSettings struct {
 	MaxEventSize            int    `json:"max_event_size"`
 	RequireCurrentTimestamp bool   `json:"require_current_timestamp"`
 	EnableOTS               bool   `json:"enable_ots"`
-	AcceptScheduledEvents   bool   `json:"accept_future_events"`
+	AcceptScheduledEvents   bool   `json:"accept_scheduled_events"`
 
 	Paywall struct {
 		Tag        string `json:"tag"`
