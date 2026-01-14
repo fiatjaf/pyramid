@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
@@ -109,29 +110,15 @@ func changeRelayIconHandler(ctx context.Context, icon string) error {
 	return global.SaveUserSettings()
 }
 
-func allowKindHandler(ctx context.Context, kind int) error {
-	caller, ok := khatru.GetAuthed(ctx)
-	if !ok {
-		return fmt.Errorf("not authenticated")
+func listAllowedKindsHandler(ctx context.Context) ([]nostr.Kind, error) {
+	if len(global.Settings.AllowedKinds) > 0 {
+		return global.Settings.AllowedKinds, nil
+	} else {
+		return supportedKinds, nil
 	}
-	if !pyramid.IsRoot(caller) {
-		return fmt.Errorf("unauthorized")
-	}
-	log.Info().Str("caller", caller.Hex()).Int("kind", kind).Msg("management allowkind called")
-
-	// Check if kind is already in the list
-	for _, k := range global.Settings.AllowedKinds {
-		if k == nostr.Kind(kind) {
-			return fmt.Errorf("kind %d is already allowed", kind)
-		}
-	}
-
-	// Add the kind to the allowed list
-	global.Settings.AllowedKinds = append(global.Settings.AllowedKinds, nostr.Kind(kind))
-	return global.SaveUserSettings()
 }
 
-func disallowKindHandler(ctx context.Context, kind int) error {
+func allowKindHandler(ctx context.Context, kind nostr.Kind) error {
 	caller, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")
@@ -139,21 +126,54 @@ func disallowKindHandler(ctx context.Context, kind int) error {
 	if !pyramid.IsRoot(caller) {
 		return fmt.Errorf("unauthorized")
 	}
-	log.Info().Str("caller", caller.Hex()).Int("kind", kind).Msg("management disallowkind called")
+	log.Info().Str("caller", caller.Hex()).Uint16("kind", uint16(kind)).Msg("management allowkind called")
 
-	// Find and remove the kind from the list
-	for i, k := range global.Settings.AllowedKinds {
-		if k == nostr.Kind(kind) {
-			global.Settings.AllowedKinds = append(global.Settings.AllowedKinds[:i], global.Settings.AllowedKinds[i+1:]...)
-
-			// If the list is now empty, remove it from settings (omitempty will handle this)
-			if len(global.Settings.AllowedKinds) == 0 {
-				global.Settings.AllowedKinds = nil
-			}
-
-			return global.SaveUserSettings()
-		}
+	if len(global.Settings.AllowedKinds) == 0 {
+		global.Settings.AllowedKinds = make([]nostr.Kind, len(supportedKinds))
+		copy(global.Settings.AllowedKinds, supportedKinds)
 	}
 
-	return fmt.Errorf("kind %d is not in the allowed list", kind)
+	// check if kind is already in the list, otherwise add it in the correct position
+	if idx, has := slices.BinarySearch(global.Settings.AllowedKinds, kind); !has {
+		next := make([]nostr.Kind, len(global.Settings.AllowedKinds)+1)
+		copy(next[0:idx], global.Settings.AllowedKinds[0:idx])
+		next[idx] = kind
+		copy(next[idx+1:], global.Settings.AllowedKinds[idx:])
+		global.Settings.AllowedKinds = next
+		return global.SaveUserSettings()
+	}
+
+	return nil
+}
+
+func disallowKindHandler(ctx context.Context, kind nostr.Kind) error {
+	caller, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+	if !pyramid.IsRoot(caller) {
+		return fmt.Errorf("unauthorized")
+	}
+	log.Info().Str("caller", caller.Hex()).Uint16("kind", uint16(kind)).Msg("management disallowkind called")
+
+	if len(global.Settings.AllowedKinds) == 0 {
+		global.Settings.AllowedKinds = make([]nostr.Kind, len(supportedKinds))
+		copy(global.Settings.AllowedKinds, supportedKinds)
+	}
+
+	// find and remove the kind from the list
+	idx := slices.Index(global.Settings.AllowedKinds, kind)
+	if idx != -1 {
+		global.Settings.AllowedKinds = append(
+			global.Settings.AllowedKinds[:idx],
+			global.Settings.AllowedKinds[idx+1:]...,
+		)
+	}
+
+	// if the list is now empty, remove it from settings
+	if len(global.Settings.AllowedKinds) == 0 {
+		global.Settings.AllowedKinds = nil
+	}
+
+	return global.SaveUserSettings()
 }

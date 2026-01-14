@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"iter"
 	"slices"
 	"unsafe"
@@ -33,6 +34,20 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 			if event.CreatedAt < nostr.Now()-60*5 {
 				return true, "event too much in the past"
 			}
+		}
+	}
+
+	// check allowed kinds:
+	// allow all ephemeral
+	if !event.Kind.IsEphemeral() {
+		var kinds []nostr.Kind
+		if len(global.Settings.AllowedKinds) > 0 {
+			kinds = global.Settings.AllowedKinds
+		} else {
+			kinds = supportedKinds
+		}
+		if _, allowed := slices.BinarySearch(kinds, nostr.Kind(event.Kind)); !allowed {
+			return true, fmt.Sprintf("event kind %d not allowed", event.Kind)
 		}
 	}
 
@@ -132,6 +147,7 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 	return true, "not authorized"
 }
 
+// this must be sorted, which we do on main()
 var supportedKinds = []nostr.Kind{
 	0,
 	1,
@@ -195,14 +211,6 @@ var supportedKinds = []nostr.Kind{
 	31924,
 	31925,
 	39701,
-}
-
-// getEffectiveKinds returns the allowed kinds from settings if present, otherwise defaults to supportedKinds
-func getEffectiveKinds() []nostr.Kind {
-	if len(global.Settings.AllowedKinds) > 0 {
-		return global.Settings.AllowedKinds
-	}
-	return supportedKinds
 }
 
 func rejectInviteRequestsNonAuthed(ctx context.Context, filter nostr.Filter) (bool, string) {

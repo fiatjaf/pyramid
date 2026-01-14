@@ -51,7 +51,10 @@ func main() {
 	}
 	defer global.End()
 
+	// stuff we have to initialize
 	fillInRelevantUsersMapping()
+	slices.Sort(supportedKinds)
+	slices.Sort(global.Settings.AllowedKinds)
 
 	// start periodic version checking
 	go func() {
@@ -244,7 +247,6 @@ func main() {
 			return policies.SeqEvent(
 				policies.PreventTooManyIndexableTags(9, []nostr.Kind{3}, nil),
 				policies.PreventTooManyIndexableTags(1200, nil, []nostr.Kind{3}),
-				policies.RestrictToSpecifiedKinds(true, getEffectiveKinds()...),
 				policies.RejectUnprefixedNostrReferences,
 				basicRejectionLogic,
 			)(ctx, event)
@@ -301,6 +303,7 @@ func main() {
 	relay.ManagementAPI.ChangeRelayName = changeRelayNameHandler
 	relay.ManagementAPI.ChangeRelayDescription = changeRelayDescriptionHandler
 	relay.ManagementAPI.ChangeRelayIcon = changeRelayIconHandler
+	relay.ManagementAPI.ListAllowedKinds = listAllowedKindsHandler
 	relay.ManagementAPI.AllowKind = allowKindHandler
 	relay.ManagementAPI.DisallowKind = disallowKindHandler
 	relay.ManagementAPI.ListBlockedIPs = listBlockedIPsHandler
