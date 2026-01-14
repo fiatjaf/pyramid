@@ -19,20 +19,9 @@ func allowPubKeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string)
 	}
 	log.Info().Str("caller", caller.Hex()).Str("pubkey", pubkey.Hex()).Str("reason", reason).Msg("management allowpubkey called")
 
+	publishMembershipChange(pubkey, true)
+
 	return pyramid.AddAction("invite", caller, pubkey)
-}
-
-func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
-	caller, ok := khatru.GetAuthed(ctx)
-	if !ok {
-		return fmt.Errorf("not authenticated")
-	}
-	if !pyramid.IsRoot(caller) {
-		return fmt.Errorf("must be a root user to ban an event")
-	}
-	log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("management banevent called")
-
-	return global.IL.Main.DeleteEvent(id)
 }
 
 func banPubKeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string) error {
@@ -41,6 +30,8 @@ func banPubKeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string) e
 		return fmt.Errorf("not authenticated")
 	}
 	log.Info().Str("caller", caller.Hex()).Str("pubkey", pubkey.Hex()).Str("reason", reason).Msg("management banpubkey called")
+
+	publishMembershipChange(pubkey, false)
 
 	return pyramid.AddAction("drop", caller, pubkey)
 }
@@ -66,6 +57,19 @@ func listAllowedPubKeysHandler(ctx context.Context) ([]nip86.PubKeyReason, error
 		list = append(list, nip86.PubKeyReason{PubKey: pubkey, Reason: reason})
 	}
 	return list, nil
+}
+
+func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
+	caller, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+	if !pyramid.IsRoot(caller) {
+		return fmt.Errorf("must be a root user to ban an event")
+	}
+	log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("management banevent called")
+
+	return global.IL.Main.DeleteEvent(id)
 }
 
 func changeRelayNameHandler(ctx context.Context, name string) error {
