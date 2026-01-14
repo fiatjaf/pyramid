@@ -34,7 +34,7 @@ templ NavLink(href string, selected bool) {
 
 templ LandlubberButton(relayPath string) {
 	<a
-		href={ templ.SafeURL("https://landlubber.coracle.social/relays/" + global.Settings.Domain + "%2F" + relayPath) }
+		href={ templ.SafeURL("https://landlubber.coracle.social/relays/" + global.Settings.Domain + "%2F" + relayPath + "/content") }
 		target="_blank"
 		rel="noopener noreferrer"
 		class="inline-block px-4 py-2 rounded text-sm text-white font-medium themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] unthemed:bg-blue-600 unthemed:hover:bg-blue-700"

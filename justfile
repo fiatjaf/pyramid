@@ -17,6 +17,6 @@ tailwind:
     ./node_modules/.bin/tailwindcss -i base.css -o static/styles.css
 
 deploy target: build
-    ssh root@{{target}} 'systemctl stop pyramid';
+    ssh root@{{target}} 'systemctl stop pyramid'
     scp pyramid-exe {{target}}:pyramid/pyramid
     ssh root@{{target}} 'systemctl start pyramid'
