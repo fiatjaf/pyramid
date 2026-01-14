@@ -46,7 +46,7 @@ func PubKeyFromInput(input string) nostr.PubKey {
 	return pubkey
 }
 
-func JSONString(str string) string {
-	b, _ := json.Marshal(str)
+func JSONString(v any) string {
+	b, _ := json.Marshal(v)
 	return unsafe.String(unsafe.SliceData(b), len(b))
 }

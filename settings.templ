@@ -345,7 +345,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 								type="button"
 								@mousedown="browseUri = 'https://jumble.social/?r={url}'"
 								@mouseup="saveSettings()"
-								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 							>
 								jumble
 							</button>
@@ -353,7 +353,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 								type="button"
 								@mousedown="browseUri = 'https://yakihonne.com/r/content?r={url}'"
 								@mouseup="saveSettings()"
-								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 							>
 								yakihonne
 							</button>
@@ -361,7 +361,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 								type="button"
 								@mousedown="browseUri = 'https://nosotros.app/feed?relay={url}&kind=1&limit=30&type=relayfeed'"
 								@mouseup="saveSettings()"
-								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 							>
 								nosotros
 							</button>
@@ -369,7 +369,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 								type="button"
 								@mousedown="browseUri = 'https://coracle.social/relays/{url}'"
 								@mouseup="saveSettings()"
-								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 							>
 								coracle
 							</button>
@@ -377,7 +377,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 								type="button"
 								@mousedown="browseUri = 'https://fevela.me/?r={url}'"
 								@mouseup="saveSettings()"
-								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 							>
 								fevela
 							</button>
@@ -397,7 +397,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 								type="button"
 								@mousedown="linkUrl = 'nostr:{code}'"
 								@mouseup="saveSettings()"
-								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 							>
 								native
 							</button>
@@ -405,7 +405,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 								type="button"
 								@mousedown="linkUrl = 'https://njump.me/{code}'"
 								@mouseup="saveSettings()"
-								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 							>
 								njump.me
 							</button>
@@ -413,10 +413,70 @@ templ settingsPage(loggedUser nostr.PubKey) {
 								type="button"
 								@mousedown="linkUrl = 'https://njump.to/{code}'"
 								@mouseup="saveSettings()"
-								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 							>
 								njump.to
 							</button>
+						</div>
+					</div>
+				</div>
+				<div
+					x-show="saved"
+					x-transition
+					class="text-sm text-green-600 dark:text-green-400 font-medium"
+				>
+					saved!
+				</div>
+			</form>
+			<!-- Allowed Kinds Settings Section -->
+			{{ actualAllowedKinds := global.Settings.AllowedKinds }}
+			if len(global.Settings.AllowedKinds) == 0 {
+				{{ actualAllowedKinds = supportedKindsDefault }}
+			}
+			<form
+				method="POST"
+				action="/settings"
+				class="space-y-6 mt-8"
+				x-data={ `{
+					showAllowedKinds: `+ fmt.Sprint(len(global.Settings.AllowedKinds) > 0) +`,
+					saved: false,
+					async saveSettings() {
+						const response = await fetch(this.$refs.form.action, {
+							method: 'POST',
+							body: new URLSearchParams(new FormData(this.$refs.form))
+						})
+						if (response.ok) {
+							this.saved = true;
+							setTimeout(() => this.saved = false, 2000)
+						}
+					}
+				}` }
+				x-ref="form"
+			>
+				@layout.SubSectionTitle("allowed kinds")
+				<div class="space-y-4">
+					<button
+						type="button"
+						x-show="!showAllowedKinds"
+						@mouseup="showAllowedKinds = true"
+						class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+					>
+						customize allowed event kinds
+					</button>
+					<div x-show="showAllowedKinds" x-transition class="mt-4">
+						<div class="space-y-2">
+							<textarea
+								name="allowed_kinds"
+								placeholder="enter kind numbers separated by commas (e.g., 1, 3, 6, 7)"
+								class="w-full px-3 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 h-32 font-mono text-sm"
+								@blur="saveSettings()"
+							>
+								{{ j := global.JSONString(actualAllowedKinds) }}
+								{ j[1:len(j)-1] }
+							</textarea>
+							<p class="text-xs text-stone-500 dark:text-stone-400">
+								enter kind numbers separated by commas. leave empty to use the default list.
+							</p>
 						</div>
 					</div>
 				</div>

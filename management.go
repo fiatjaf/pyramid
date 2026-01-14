@@ -118,7 +118,7 @@ func listAllowedKindsHandler(ctx context.Context) ([]nostr.Kind, error) {
 	if len(global.Settings.AllowedKinds) > 0 {
 		return global.Settings.AllowedKinds, nil
 	} else {
-		return supportedKinds, nil
+		return supportedKindsDefault, nil
 	}
 }
 
@@ -133,8 +133,8 @@ func allowKindHandler(ctx context.Context, kind nostr.Kind) error {
 	log.Info().Str("caller", caller.Hex()).Uint16("kind", uint16(kind)).Msg("management allowkind called")
 
 	if len(global.Settings.AllowedKinds) == 0 {
-		global.Settings.AllowedKinds = make([]nostr.Kind, len(supportedKinds))
-		copy(global.Settings.AllowedKinds, supportedKinds)
+		global.Settings.AllowedKinds = make([]nostr.Kind, len(supportedKindsDefault))
+		copy(global.Settings.AllowedKinds, supportedKindsDefault)
 	}
 
 	// check if kind is already in the list, otherwise add it in the correct position
@@ -161,8 +161,8 @@ func disallowKindHandler(ctx context.Context, kind nostr.Kind) error {
 	log.Info().Str("caller", caller.Hex()).Uint16("kind", uint16(kind)).Msg("management disallowkind called")
 
 	if len(global.Settings.AllowedKinds) == 0 {
-		global.Settings.AllowedKinds = make([]nostr.Kind, len(supportedKinds))
-		copy(global.Settings.AllowedKinds, supportedKinds)
+		global.Settings.AllowedKinds = make([]nostr.Kind, len(supportedKindsDefault))
+		copy(global.Settings.AllowedKinds, supportedKindsDefault)
 	}
 
 	// find and remove the kind from the list

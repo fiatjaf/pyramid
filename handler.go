@@ -264,6 +264,24 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 					global.Settings.Uppermost.PercentThreshold = val
 				}
 				//
+				// allowed kinds settings
+			case "allowed_kinds":
+				kinds := make([]nostr.Kind, 0, len(v[0])*6)
+				// split by comma and parse each kind
+				for _, s := range strings.Split(v[0], ",") {
+					if kind, err := strconv.ParseUint(strings.TrimSpace(s), 10, 16); err == nil {
+						kinds = append(kinds, nostr.Kind(kind))
+					}
+				}
+				// if no kinds are entered, set to nil to use the default list
+
+				if len(kinds) == 0 {
+					global.Settings.AllowedKinds = nil
+				} else {
+					global.Settings.AllowedKinds = kinds
+					slices.Sort(global.Settings.AllowedKinds)
+				}
+				//
 				// ftp settings
 			case "ftp_enabled":
 				global.Settings.FTP.Enabled = v[0] == "on"

@@ -53,7 +53,7 @@ func main() {
 
 	// stuff we have to initialize
 	fillInRelevantUsersMapping()
-	slices.Sort(supportedKinds)
+	slices.Sort(supportedKindsDefault)
 	slices.Sort(global.Settings.AllowedKinds)
 
 	// start periodic version checking

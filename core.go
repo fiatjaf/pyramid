@@ -44,7 +44,7 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		if len(global.Settings.AllowedKinds) > 0 {
 			kinds = global.Settings.AllowedKinds
 		} else {
-			kinds = supportedKinds
+			kinds = supportedKindsDefault
 		}
 		if _, allowed := slices.BinarySearch(kinds, nostr.Kind(event.Kind)); !allowed {
 			return true, fmt.Sprintf("event kind %d not allowed", event.Kind)
@@ -148,7 +148,7 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 }
 
 // this must be sorted, which we do on main()
-var supportedKinds = []nostr.Kind{
+var supportedKindsDefault = []nostr.Kind{
 	0,
 	1,
 	3,
