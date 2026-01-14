@@ -46,10 +46,10 @@ func setupEnabled() {
 
 	Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Favorites.HTTPBasePath
 
-	Relay.ManagementAPI.ChangeRelayName = changeFavoritesRelayNameHandler
-	Relay.ManagementAPI.ChangeRelayDescription = changeFavoritesRelayDescriptionHandler
-	Relay.ManagementAPI.ChangeRelayIcon = changeFavoritesRelayIconHandler
-	Relay.ManagementAPI.BanEvent = banFavoritesEventHandler
+	Relay.ManagementAPI.ChangeRelayName = changeRelayNameHandler
+	Relay.ManagementAPI.ChangeRelayDescription = changeRelayDescriptionHandler
+	Relay.ManagementAPI.ChangeRelayIcon = changeRelayIconHandler
+	Relay.ManagementAPI.BanEvent = banEventHandler
 
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		info.Name = global.Settings.Favorites.GetName()
@@ -144,7 +144,7 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/"+global.Settings.Favorites.HTTPBasePath+"/", 302)
 }
 
-func changeFavoritesRelayNameHandler(ctx context.Context, name string) error {
+func changeRelayNameHandler(ctx context.Context, name string) error {
 	author, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")
@@ -158,7 +158,7 @@ func changeFavoritesRelayNameHandler(ctx context.Context, name string) error {
 	return global.SaveUserSettings()
 }
 
-func changeFavoritesRelayDescriptionHandler(ctx context.Context, description string) error {
+func changeRelayDescriptionHandler(ctx context.Context, description string) error {
 	author, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")
@@ -172,7 +172,7 @@ func changeFavoritesRelayDescriptionHandler(ctx context.Context, description str
 	return global.SaveUserSettings()
 }
 
-func changeFavoritesRelayIconHandler(ctx context.Context, icon string) error {
+func changeRelayIconHandler(ctx context.Context, icon string) error {
 	author, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")
@@ -186,7 +186,7 @@ func changeFavoritesRelayIconHandler(ctx context.Context, icon string) error {
 	return global.SaveUserSettings()
 }
 
-func banFavoritesEventHandler(ctx context.Context, id nostr.ID, reason string) error {
+func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
 	caller, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")

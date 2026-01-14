@@ -47,13 +47,13 @@ func setupEnabled() {
 	Relay = khatru.NewRelay()
 	Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Inbox.HTTPBasePath
 
-	Relay.ManagementAPI.ChangeRelayName = changeInboxRelayNameHandler
-	Relay.ManagementAPI.ChangeRelayDescription = changeInboxRelayDescriptionHandler
-	Relay.ManagementAPI.ChangeRelayIcon = changeInboxRelayIconHandler
+	Relay.ManagementAPI.ChangeRelayName = changeRelayNameHandler
+	Relay.ManagementAPI.ChangeRelayDescription = changeRelayDescriptionHandler
+	Relay.ManagementAPI.ChangeRelayIcon = changeRelayIconHandler
 	Relay.ManagementAPI.ListBannedPubKeys = listBannedPubkeysHandler
 	Relay.ManagementAPI.BanPubKey = banPubkeyHandler
 	Relay.ManagementAPI.AllowPubKey = allowPubkeyHandler
-	Relay.ManagementAPI.BanEvent = banInboxEventHandler
+	Relay.ManagementAPI.BanEvent = banEventHandler
 
 	// use dual layer store
 	Relay.QueryStored = func(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
@@ -203,7 +203,7 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/"+global.Settings.Inbox.HTTPBasePath+"/", 302)
 }
 
-func changeInboxRelayNameHandler(ctx context.Context, name string) error {
+func changeRelayNameHandler(ctx context.Context, name string) error {
 	author, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")
@@ -217,7 +217,7 @@ func changeInboxRelayNameHandler(ctx context.Context, name string) error {
 	return global.SaveUserSettings()
 }
 
-func changeInboxRelayDescriptionHandler(ctx context.Context, description string) error {
+func changeRelayDescriptionHandler(ctx context.Context, description string) error {
 	author, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")
@@ -231,7 +231,7 @@ func changeInboxRelayDescriptionHandler(ctx context.Context, description string)
 	return global.SaveUserSettings()
 }
 
-func changeInboxRelayIconHandler(ctx context.Context, icon string) error {
+func changeRelayIconHandler(ctx context.Context, icon string) error {
 	author, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")
@@ -326,7 +326,7 @@ func checkWoTHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, fmt.Sprint(aggregatedWoT.Contains(pk)))
 }
 
-func banInboxEventHandler(ctx context.Context, id nostr.ID, reason string) error {
+func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
 	caller, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")

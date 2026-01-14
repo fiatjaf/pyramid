@@ -46,10 +46,10 @@ func setupEnabled() {
 
 	Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Internal.HTTPBasePath
 
-	Relay.ManagementAPI.ChangeRelayName = changeInternalRelayNameHandler
-	Relay.ManagementAPI.ChangeRelayDescription = changeInternalRelayDescriptionHandler
-	Relay.ManagementAPI.ChangeRelayIcon = changeInternalRelayIconHandler
-	Relay.ManagementAPI.BanEvent = banInternalEventHandler
+	Relay.ManagementAPI.ChangeRelayName = changeRelayNameHandler
+	Relay.ManagementAPI.ChangeRelayDescription = changeRelayDescriptionHandler
+	Relay.ManagementAPI.ChangeRelayIcon = changeRelayIconHandler
+	Relay.ManagementAPI.BanEvent = banEventHandler
 
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		info.Name = global.Settings.Internal.GetName()
@@ -147,7 +147,7 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/"+global.Settings.Internal.HTTPBasePath+"/", 302)
 }
 
-func changeInternalRelayNameHandler(ctx context.Context, name string) error {
+func changeRelayNameHandler(ctx context.Context, name string) error {
 	author, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")
@@ -161,7 +161,7 @@ func changeInternalRelayNameHandler(ctx context.Context, name string) error {
 	return global.SaveUserSettings()
 }
 
-func changeInternalRelayDescriptionHandler(ctx context.Context, description string) error {
+func changeRelayDescriptionHandler(ctx context.Context, description string) error {
 	author, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")
@@ -175,7 +175,7 @@ func changeInternalRelayDescriptionHandler(ctx context.Context, description stri
 	return global.SaveUserSettings()
 }
 
-func changeInternalRelayIconHandler(ctx context.Context, icon string) error {
+func changeRelayIconHandler(ctx context.Context, icon string) error {
 	author, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")
@@ -189,7 +189,7 @@ func changeInternalRelayIconHandler(ctx context.Context, icon string) error {
 	return global.SaveUserSettings()
 }
 
-func banInternalEventHandler(ctx context.Context, id nostr.ID, reason string) error {
+func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
 	caller, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")
