@@ -127,7 +127,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							<div
 								x-show="open"
 								x-transition
-								class="absolute left-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50"
+								class="absolute left-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50 themed:bg-[rgb(from_var(--secondary-bg-color)_r_g_b_/_var(--header-transparency))] light:bg-white/60 dark:bg-stone-800/90"
 							>
 								if global.Settings.Groups.Enabled || pyramid.IsRoot(loggedUser) {
 									@NavLink("/groups/", currentPage == "groups") {
@@ -180,7 +180,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							<div
 								x-show="open"
 								x-transition
-								class="absolute left-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50"
+								class="absolute left-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50 themed:bg-[rgb(from_var(--secondary-bg-color)_r_g_b_/_var(--header-transparency))] light:bg-white/60 dark:bg-stone-800/90"
 							>
 								for _, page := range []string {"internal", "inbox", "moderated", "favorites", "popular", "uppermost"} {
 									{{ var path string }}
