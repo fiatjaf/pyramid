@@ -194,7 +194,7 @@ func getUserSettingsPath() string {
 func loadUserSettings() error {
 	// start it with the defaults
 	Settings = UserSettings{
-		BrowseURI:               "https://fevela.me/?r={url}",
+		BrowseURI:               "https://jumble.social/?r={url}",
 		LinkURL:                 "nostr:{code}",
 		MaxInvitesPerPerson:     4,
 		MaxEventSize:            10000,

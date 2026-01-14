@@ -373,6 +373,14 @@ templ settingsPage(loggedUser nostr.PubKey) {
 							>
 								coracle
 							</button>
+							<button
+								type="button"
+								@mousedown="browseUri = 'https://fevela.me/?r={url}'"
+								@mouseup="saveSettings()"
+								class="px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+							>
+								fevela
+							</button>
 						</div>
 					</div>
 					<div>
