@@ -19,9 +19,11 @@ func allowPubKeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string)
 	}
 	log.Info().Str("caller", caller.Hex()).Str("pubkey", pubkey.Hex()).Str("reason", reason).Msg("management allowpubkey called")
 
-	publishMembershipChange(pubkey, true)
-
-	return pyramid.AddAction("invite", caller, pubkey)
+	err := pyramid.AddAction("invite", caller, pubkey)
+	if err == nil {
+		publishMembershipChange(pubkey, true)
+	}
+	return err
 }
 
 func banPubKeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string) error {
@@ -31,20 +33,22 @@ func banPubKeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string) e
 	}
 	log.Info().Str("caller", caller.Hex()).Str("pubkey", pubkey.Hex()).Str("reason", reason).Msg("management banpubkey called")
 
-	publishMembershipChange(pubkey, false)
-
-	return pyramid.AddAction("drop", caller, pubkey)
+	err := pyramid.AddAction("drop", caller, pubkey)
+	if err == nil {
+		publishMembershipChange(pubkey, false)
+	}
+	return err
 }
 
 func listAllowedPubKeysHandler(ctx context.Context) ([]nip86.PubKeyReason, error) {
 	log.Info().Msg("management listallowedpubkeys called")
 	list := make([]nip86.PubKeyReason, 0, pyramid.Members.Size())
-	for pubkey, inviters := range pyramid.Members.Range {
-		if len(inviters) == 0 {
+	for pubkey, member := range pyramid.Members.Range {
+		if len(member.Parents) == 0 {
 			continue
 		}
 		reason := "invited by "
-		for j, inv := range inviters {
+		for j, inv := range member.Parents {
 			if j > 0 {
 				reason += ", "
 			}

@@ -48,6 +48,13 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 		type_ = pyramid.ActionDrop
 	case pyramid.ActionLeave:
 		type_ = pyramid.ActionLeave
+	case pyramid.ActionDisable:
+		type_ = pyramid.ActionDisable
+	case pyramid.ActionEnable:
+		type_ = pyramid.ActionEnable
+	default:
+		http.Error(w, "unknown action", 400)
+		return
 	}
 	author, _ := global.GetLoggedUser(r)
 	target := global.PubKeyFromInput(r.PostFormValue("target"))

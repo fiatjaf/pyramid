@@ -18,30 +18,37 @@ import (
 
 var (
 	AbsoluteKey nostr.PubKey
-	Members     = xsync.NewMapOf[nostr.PubKey, []nostr.PubKey]() // { [user_pubkey]: [invited_by_list] }
+	Members     = xsync.NewMapOf[nostr.PubKey, Member]()
 )
+
+type Member struct {
+	Parents []nostr.PubKey
+	Removed bool
+}
 
 type Action string
 
 const (
-	ActionInvite = "invite"
-	ActionDrop   = "drop"
-	ActionLeave  = "leave"
+	ActionInvite  = "invite"
+	ActionDrop    = "drop"
+	ActionLeave   = "leave"
+	ActionDisable = "disable"
+	ActionEnable  = "enable"
 )
 
 func IsMember(pubkey nostr.PubKey) bool {
-	parents, _ := Members.Load(pubkey)
-	return len(parents) > 0
+	member, _ := Members.Load(pubkey)
+	return !member.Removed && len(member.Parents) > 0
 }
 
 func IsRoot(pubkey nostr.PubKey) bool {
-	parents, _ := Members.Load(pubkey)
-	return slices.Contains(parents, AbsoluteKey)
+	member, _ := Members.Load(pubkey)
+	return slices.Contains(member.Parents, AbsoluteKey)
 }
 
 func HasRootUsers() bool {
-	for _, parents := range Members.Range {
-		if slices.Contains(parents, AbsoluteKey) {
+	for _, member := range Members.Range {
+		if slices.Contains(member.Parents, AbsoluteKey) {
 			return true
 		}
 	}
@@ -49,11 +56,11 @@ func HasRootUsers() bool {
 	return false
 }
 
-func GetChildren(parent nostr.PubKey) iter.Seq[nostr.PubKey] {
-	return func(yield func(nostr.PubKey) bool) {
-		for pubkey, parents := range Members.Range {
-			if slices.Contains(parents, parent) {
-				if !yield(pubkey) {
+func GetChildren(parent nostr.PubKey) iter.Seq2[nostr.PubKey, Member] {
+	return func(yield func(nostr.PubKey, Member) bool) {
+		for pubkey, member := range Members.Range {
+			if slices.Contains(member.Parents, parent) {
+				if !yield(pubkey, member) {
 					return
 				}
 			}
@@ -71,8 +78,8 @@ func CanInviteMore(pubkey nostr.PubKey) bool {
 	}
 
 	totalInvited := 0
-	for _, parents := range Members.Range {
-		if slices.Contains(parents, pubkey) {
+	for _, member := range Members.Range {
+		if slices.Contains(member.Parents, pubkey) {
 			totalInvited++
 		}
 	}
@@ -81,17 +88,17 @@ func CanInviteMore(pubkey nostr.PubKey) bool {
 }
 
 func IsParentOf(parent nostr.PubKey, target nostr.PubKey) bool {
-	parents, _ := Members.Load(target)
-	return slices.Contains(parents, parent)
+	member, _ := Members.Load(target)
+	return slices.Contains(member.Parents, parent)
 }
 
 func IsAncestorOf(ancestor nostr.PubKey, target nostr.PubKey) bool {
-	parents, _ := Members.Load(target)
-	if len(parents) == 0 {
+	member, _ := Members.Load(target)
+	if len(member.Parents) == 0 {
 		return false
 	}
 
-	for _, parent := range parents {
+	for _, parent := range member.Parents {
 		if parent == ancestor {
 			return true
 		}
@@ -103,22 +110,22 @@ func IsAncestorOf(ancestor nostr.PubKey, target nostr.PubKey) bool {
 }
 
 func GetInviters(pubkey nostr.PubKey) []nostr.PubKey {
-	parents, _ := Members.Load(pubkey)
-	return parents
+	member, _ := Members.Load(pubkey)
+	return member.Parents
 }
 
-func hasSingleRootAncestor(ancestor nostr.PubKey, target nostr.PubKey) bool {
+func HasSingleRootAncestor(ancestor nostr.PubKey, target nostr.PubKey) bool {
 	if target == ancestor {
 		return true
 	}
 
-	parents, _ := Members.Load(target)
-	if len(parents) == 0 {
+	member, _ := Members.Load(target)
+	if len(member.Parents) == 0 {
 		return false
 	}
 
-	for _, parent := range parents {
-		if !hasSingleRootAncestor(ancestor, parent) {
+	for _, parent := range member.Parents {
+		if !HasSingleRootAncestor(ancestor, parent) {
 			return false
 		}
 	}
@@ -135,7 +142,7 @@ type managementAction struct {
 
 func AddAction(type_ Action, author nostr.PubKey, target nostr.PubKey) error {
 	if !IsMember(author) && author != AbsoluteKey {
-		return fmt.Errorf("pubkey %s doesn't have permission to invite", author)
+		return fmt.Errorf("pubkey %s isn't an active member", author)
 	}
 
 	switch type_ {
@@ -154,10 +161,21 @@ func AddAction(type_ Action, author nostr.PubKey, target nostr.PubKey) error {
 		}
 	case ActionDrop:
 		if !IsAncestorOf(author, target) {
-			return fmt.Errorf("insufficient permissions to drop this")
+			return fmt.Errorf("not an ancestor, can't drop")
 		}
 	case ActionLeave:
 		// anyone can leave anytime
+	case ActionDisable:
+		if !IsAncestorOf(author, target) {
+			return fmt.Errorf("not an ancestor, can't disable")
+		}
+		if !HasSingleRootAncestor(author, target) {
+			return fmt.Errorf("only a single root ancestor can disable, you can only drop")
+		}
+	case ActionEnable:
+		if !IsAncestorOf(author, target) {
+			return fmt.Errorf("not an ancestor, can't enable")
+		}
 	}
 
 	return appendActionToFile(type_, author, target)
@@ -176,7 +194,6 @@ func LoadManagement() error {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-
 		var action managementAction
 		if err := json.Unmarshal([]byte(scanner.Text()), &action); err != nil {
 			return err
@@ -200,25 +217,27 @@ func LoadManagement() error {
 func applyAction(type_ Action, author nostr.PubKey, target nostr.PubKey) {
 	switch type_ {
 	case ActionInvite:
-		Members.Compute(target, func(parents []nostr.PubKey, loaded bool) (newParents []nostr.PubKey, delete bool) {
-			return append(parents, author), false
+		Members.Compute(target, func(member Member, loaded bool) (newMember Member, delete bool) {
+			member.Parents = append(member.Parents, author)
+			member.Removed = false // when invited by someone else, a member is reenabled
+			return member, false
 		})
 	case ActionDrop:
-		parents, _ := Members.Load(target)
+		member, _ := Members.Load(target)
 
 		// remove parent links that trace back to author
-		for i := 0; i < len(parents); {
-			if hasSingleRootAncestor(author, parents[i]) {
-				parents[i] = parents[len(parents)-1]
-				parents = parents[:len(parents)-1]
+		for i := 0; i < len(member.Parents); {
+			if HasSingleRootAncestor(author, member.Parents[i]) {
+				member.Parents[i] = member.Parents[len(member.Parents)-1]
+				member.Parents = member.Parents[:len(member.Parents)-1]
 			} else {
 				i++
 			}
 		}
 
 		// if there are still parents we can't delete this, we just break the links we can and keep it like that
-		if len(parents) > 0 {
-			Members.Store(target, parents)
+		if len(member.Parents) > 0 {
+			Members.Store(target, member)
 			return
 		}
 
@@ -231,27 +250,38 @@ func applyAction(type_ Action, author nostr.PubKey, target nostr.PubKey) {
 		// recursively remove nodes that only have target as ancestor
 		var removeDescendants func(nostr.PubKey)
 		removeDescendants = func(dropped nostr.PubKey) {
-			for node, nodeParents := range Members.Range {
+			for nodeKey, node := range Members.Range {
 				// remove links from dropped node to this node
-				for i := 0; i < len(nodeParents); {
-					if nodeParents[i] == dropped {
-						nodeParents[i] = nodeParents[len(nodeParents)-1]
-						nodeParents = nodeParents[:len(nodeParents)-1]
+				for i := 0; i < len(node.Parents); {
+					if node.Parents[i] == dropped {
+						node.Parents[i] = node.Parents[len(node.Parents)-1]
+						node.Parents = node.Parents[:len(node.Parents)-1]
 					} else {
 						i++
 					}
 				}
 
-				// if node has no parents left, remove it and recurse
-				if len(nodeParents) == 0 {
-					Members.Delete(node)
-					removeDescendants(node)
+				// if nodeKey has no parents left, remove it and recurse
+				if len(node.Parents) == 0 {
+					Members.Delete(nodeKey)
+					removeDescendants(nodeKey)
 				} else {
-					Members.Store(node, nodeParents)
+					Members.Store(nodeKey, node)
 				}
 			}
 		}
 		removeDescendants(target)
+	case ActionDisable:
+		// mark as removed but keep in the tree so children continue to exist
+		Members.Compute(target, func(o Member, loaded bool) (Member, bool) {
+			o.Removed = true
+			return o, false
+		})
+	case ActionEnable:
+		Members.Compute(target, func(o Member, loaded bool) (Member, bool) {
+			o.Removed = false
+			return o, false
+		})
 	}
 }
 

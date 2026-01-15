@@ -51,11 +51,11 @@ templ inviteTreePage(loggedUser nostr.PubKey, nip05Names map[nostr.PubKey]string
 templ inviteTreeComponent(
 	curr nostr.PubKey,
 	loggedUser nostr.PubKey,
-	isAncestorOfLoggedUser bool,
+	isDescendantOfLoggedUser bool,
 	nip05Names map[nostr.PubKey]string,
 ) {
 	<ul>
-		for child := range pyramid.GetChildren(curr) {
+		for pubkey, member := range pyramid.GetChildren(curr) {
 			<li class="ml-6 py-1 group">
 				<div class="flex items-center gap-2">
 					<span
@@ -65,8 +65,13 @@ templ inviteTreeComponent(
 							class="text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400"
 						}
 					>
-						@layout.ProfileLink(child)
-						if pyramid.IsRoot(child) {
+						<div class="relative inline-block">
+							@layout.ProfileLink(pubkey)
+							if member.Removed {
+								<span class="absolute left-0 top-1/2 w-full h-0.5 bg-current -translate-y-1/2"></span>
+							}
+						</div>
+						if pyramid.IsRoot(pubkey) {
 							<span
 								class="cursor-default ml-2 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium themed:bg-[var(--accent-color)] themed:text-white light:bg-blue-50 light:text-blue-700 light:ring-1 light:ring-inset light:ring-blue-600/20 dark:bg-blue-900/20 dark:text-blue-400 dark:ring-blue-500/20"
 							>
@@ -74,26 +79,56 @@ templ inviteTreeComponent(
 							</span>
 						}
 					</span>
-					if (loggedUser != nostr.ZeroPK && loggedUser == curr) || isAncestorOfLoggedUser {
+					if (loggedUser != nostr.ZeroPK && loggedUser == curr) || isDescendantOfLoggedUser {
+						if pyramid.HasSingleRootAncestor(loggedUser, pubkey) {
+							if member.Removed {
+								<form method="post" action="/action" class="inline">
+									<input type="hidden" name="target" value={ pubkey.Hex() }/>
+									<input type="hidden" name="type" value="enable"/>
+									<button
+										type="submit"
+										title="this user will regain his membership status"
+										onclick="return confirm('really bring back this user?')"
+										class="cursor-pointer opacity-40 hover:opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-blue-600/10 hover:text-blue-700 text-gray-600 dark:text-gray-400"
+									>
+										enable
+									</button>
+								</form>
+							} else {
+								<form method="post" action="/action" class="inline">
+									<input type="hidden" name="target" value={ pubkey.Hex() }/>
+									<input type="hidden" name="type" value="disable"/>
+									<button
+										type="submit"
+										title="this user will be crossed out and lose his membership status, but will remain in the tree"
+										onclick="return confirm('really eliminate this user?')"
+										class="cursor-pointer opacity-40 hover:opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-red-600/10 hover:text-red-700 text-gray-600 dark:text-gray-400"
+									>
+										disable
+									</button>
+								</form>
+							}
+						}
 						<form method="post" action="/action" class="inline">
-							<input type="hidden" name="target" value={ child.Hex() }/>
+							<input type="hidden" name="target" value={ pubkey.Hex() }/>
 							<input type="hidden" name="type" value="drop"/>
 							<button
 								type="submit"
+								title="drops this user and all its descendants (unless they have other parents in the tree)"
 								onclick="return confirm('really drop this user and its descendants?')"
-								class="cursor-pointer opacity-40 hover:opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-red-500/10 hover:text-red-500 text-gray-600 dark:text-gray-400"
+								class="cursor-pointer opacity-40 hover:opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-red-800/10 hover:text-red-900 text-gray-600 dark:text-gray-400"
 							>
 								drop
 							</button>
 						</form>
 					}
-					if name, exists := nip05Names[child]; exists {
+					if name, exists := nip05Names[pubkey]; exists {
 						<div class="inline-flex items-center border rounded-md px-1 text-xs opacity-70 hover:opacity-100">
 							{ name }{ "@" }{ global.Settings.Domain }
 						</div>
 					}
 				</div>
-				@inviteTreeComponent(child, loggedUser, isAncestorOfLoggedUser || (loggedUser != nostr.ZeroPK && loggedUser == curr), nip05Names)
+				@inviteTreeComponent(pubkey, loggedUser, isDescendantOfLoggedUser || (loggedUser != nostr.ZeroPK && loggedUser == curr), nip05Names)
 			</li>
 		}
 	</ul>
