@@ -112,6 +112,8 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				// general settings
 			case "max_invites_per_person":
 				global.Settings.MaxInvitesPerPerson, _ = strconv.Atoi(v[0])
+			case "max_event_size":
+				global.Settings.MaxEventSize, _ = strconv.Atoi(v[0])
 			case "browse_uri":
 				global.Settings.BrowseURI = v[0]
 			case "link_url":
