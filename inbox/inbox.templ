@@ -13,57 +13,56 @@ import (
 
 templ inboxPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "inbox") {
-		<div class="max-w-3xl mx-auto">
-			<div class="flex items-center justify-between mb-4">
-				<div class="flex items-center">
-					if !global.Settings.Inbox.IsIconDefault() {
-						<img src={ global.Settings.Inbox.GetIcon() } class="h-8 w-8 mr-2"/>
-					}
-					<h1 class="text-4xl font-bold font-[family-name:var(--primary-font)]">{ global.Settings.Inbox.GetName() }</h1>
-				</div>
-				if global.Settings.Inbox.Enabled && pyramid.IsRoot(loggedUser) {
-					@layout.LandlubberButton(global.Settings.Inbox.HTTPBasePath)
+		<div class="flex items-center justify-between mb-4">
+			<div class="flex items-center">
+				if !global.Settings.Inbox.IsIconDefault() {
+					<img src={ global.Settings.Inbox.GetIcon() } class="h-8 w-8 mr-2"/>
 				}
+				<h1 class="text-4xl font-bold font-[family-name:var(--primary-font)]">{ global.Settings.Inbox.GetName() }</h1>
 			</div>
-			<div class="space-y-4 text-gray-700 dark:text-gray-300">
-				<p class="text-lg leading-relaxed">{ global.Settings.Inbox.GetDescription() }</p>
-				<div class="bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-					<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">what gets through:</h2>
-					<ul class="list-disc list-inside space-y-1 text-sm">
-						<li>events that mention relay members</li>
-						<li>from people in extended network</li>
-						<li>no hellthreads</li>
-						<li>option to block specific public keys and all their follows</li>
-					</ul>
-				</div>
-				<div class="bg-purple-50/50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4">
-					<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">secure messages:</h2>
-					<ul class="list-disc list-inside space-y-1 text-sm">
-						<li>incoming encrypted messages are stored separately and served only to their authenticated targets</li>
-						<li>optionally required proof-of-work to prevent DM spam</li>
-					</ul>
-				</div>
-				if global.Settings.Inbox.Enabled {
-					<a
-						class="mb-4 inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 themed:bg-[var(--accent-color)] unthemed:bg-blue-500 unthemed:bg-blue-600"
-						target="_blank"
-						href={ global.Settings.BrowseURI }
-						x-init="$el.href = $el.href.replace(/({|%7B)url(}|%7D)/, encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
-					>
-						browse inbox →
-					</a>
-					<div class="mt-6 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-						if !wotComputed {
-							<span>calculating aggregated web-of-trust...</span>
-						} else {
-							<div class="flex items-center gap-4">
-								<h3 class="font-semibold text-gray-800 dark:text-gray-200">check who is allowed to post</h3>
-								<div class="text-sm text-gray-600 dark:text-gray-400">
-									{ fmt.Sprintf("(total: %d pubkeys)", aggregatedWoT.Items) }
-								</div>
+			if global.Settings.Inbox.Enabled && pyramid.IsRoot(loggedUser) {
+				@layout.LandlubberButton(global.Settings.Inbox.HTTPBasePath)
+			}
+		</div>
+		<div class="space-y-4 text-gray-700 dark:text-gray-300">
+			<p class="text-lg leading-relaxed">{ global.Settings.Inbox.GetDescription() }</p>
+			<div class="bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+				<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">what gets through:</h2>
+				<ul class="list-disc list-inside space-y-1 text-sm">
+					<li>events that mention relay members</li>
+					<li>from people in extended network</li>
+					<li>no hellthreads</li>
+					<li>option to block specific public keys and all their follows</li>
+				</ul>
+			</div>
+			<div class="bg-purple-50/50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4">
+				<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">secure messages:</h2>
+				<ul class="list-disc list-inside space-y-1 text-sm">
+					<li>incoming encrypted messages are stored separately and served only to their authenticated targets</li>
+					<li>optionally required proof-of-work to prevent DM spam</li>
+				</ul>
+			</div>
+			if global.Settings.Inbox.Enabled {
+				<a
+					class="mb-4 inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 themed:bg-[var(--accent-color)] unthemed:bg-blue-500 unthemed:bg-blue-600"
+					target="_blank"
+					href={ global.Settings.BrowseURI }
+					x-init="$el.href = $el.href.replace(/({|%7B)url(}|%7D)/, encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
+				>
+					browse inbox →
+				</a>
+				<div class="mt-6 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+					if !wotComputed {
+						<span>calculating aggregated web-of-trust...</span>
+					} else {
+						<div class="flex items-center gap-4">
+							<h3 class="font-semibold text-gray-800 dark:text-gray-200">check who is allowed to post</h3>
+							<div class="text-sm text-gray-600 dark:text-gray-400">
+								{ fmt.Sprintf("(total: %d pubkeys)", aggregatedWoT.Items) }
 							</div>
-							<form
-								x-data="{
+						</div>
+						<form
+							x-data="{
 								pubkey: '',
 								loading: false,
 								result: null,
@@ -100,39 +99,39 @@ templ inboxPage(loggedUser nostr.PubKey) {
 									}
 								}
 							}"
-								@submit.prevent="checkWot()"
-							>
-								<div class="flex items-center gap-2 mb-3">
-									<input
-										type="text"
-										name="pubkey"
-										placeholder="hex pubkey or npub..."
-										class="flex-1 px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-										x-model="pubkey"
-										@input="result = null"
-									/>
-									<div x-show="error" x-transition class="text-red-600 dark:text-red-400 text-sm">
-										<span x-text="error"></span>
-									</div>
-									<div x-show="typeof result == 'boolean'" x-transition class="text-sm">
-										<div x-show="result" class="text-green-600 dark:text-green-400">
-											✓
-										</div>
-										<div x-show="!result" class="text-orange-600 dark:text-orange-400">
-											✗
-										</div>
-									</div>
-									<button
-										type="submit"
-										:disabled="loading"
-										class="cursor-pointer rounded-lg px-4 py-1.5 text-sm font-semibold text-white shadow-lg transform hover:scale-105 themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] light:bg-stone-600 light:hover:bg-stone-700 dark:bg-stone-500 dark:hover:bg-stone-600"
-									>check</button>
+							@submit.prevent="checkWot()"
+						>
+							<div class="flex items-center gap-2 mb-3">
+								<input
+									type="text"
+									name="pubkey"
+									placeholder="hex pubkey or npub..."
+									class="flex-1 px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+									x-model="pubkey"
+									@input="result = null"
+								/>
+								<div x-show="error" x-transition class="text-red-600 dark:text-red-400 text-sm">
+									<span x-text="error"></span>
 								</div>
-							</form>
-						}
-					</div>
-				}
-				{{
+								<div x-show="typeof result == 'boolean'" x-transition class="text-sm">
+									<div x-show="result" class="text-green-600 dark:text-green-400">
+										✓
+									</div>
+									<div x-show="!result" class="text-orange-600 dark:text-orange-400">
+										✗
+									</div>
+								</div>
+								<button
+									type="submit"
+									:disabled="loading"
+									class="cursor-pointer rounded-lg px-4 py-1.5 text-sm font-semibold text-white shadow-lg transform hover:scale-105 themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] light:bg-stone-600 light:hover:bg-stone-700 dark:bg-stone-500 dark:hover:bg-stone-600"
+								>check</button>
+							</div>
+						</form>
+					}
+				</div>
+			}
+			{{
 					blocked := make([]string, len(global.Settings.Inbox.SpecificallyBlocked))
 					for i, pk := range global.Settings.Inbox.SpecificallyBlocked {
 						blocked[i] = pk.Hex()
@@ -142,15 +141,15 @@ templ inboxPage(loggedUser nostr.PubKey) {
 						quoted = append(quoted, fmt.Sprintf("'%s'", b))
 					}
 					quoted = append(quoted, "\"\"")
-				}}
-				if pyramid.IsRoot(loggedUser) {
-					@layout.SubRelaySettings("inbox", global.Settings.Inbox.Enabled, global.Settings.Inbox.Name, global.Settings.Inbox.Description, global.Settings.Inbox.Icon, global.Settings.Inbox.Pinned, global.Settings.Inbox.HTTPBasePath) {
-						<details>
-							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">filters</summary>
-							<form
-								method="POST"
-								action="/settings"
-								x-data={ `{
+			}}
+			if pyramid.IsRoot(loggedUser) {
+				@layout.SubRelaySettings("inbox", global.Settings.Inbox.Enabled, global.Settings.Inbox.Name, global.Settings.Inbox.Description, global.Settings.Inbox.Icon, global.Settings.Inbox.Pinned, global.Settings.Inbox.HTTPBasePath) {
+					<details>
+						<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">filters</summary>
+						<form
+							method="POST"
+							action="/settings"
+							x-data={ `{
 								hellthreadLimit: ` + fmt.Sprint(global.Settings.Inbox.HellthreadLimit) + `,
 								minDMPoW: ` + fmt.Sprint(global.Settings.Inbox.MinDMPoW) + `,
 								blocked: [` + strings.Join(quoted, ",") + `],
@@ -166,62 +165,61 @@ templ inboxPage(loggedUser nostr.PubKey) {
 									}
 								}
 							}` }
-								x-ref="form"
+							x-ref="form"
+						>
+							<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">inbox relay</h3>
+							<div>
+								<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="inbox_hellthread_limit">hellthread limit</label>
+								<input
+									type="number"
+									name="inbox_hellthread_limit"
+									min="0"
+									class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-4"
+									x-model="hellthreadLimit"
+									@blur="saveSettings()"
+								/>
+							</div>
+							<div>
+								<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="inbox_min_dm_pow">minimum DM proof-of-work (bits, 0 to disable)</label>
+								<input
+									type="number"
+									name="inbox_min_dm_pow"
+									min="0"
+									max="32"
+									class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-4"
+									x-model="minDMPoW"
+									@blur="saveSettings()"
+								/>
+							</div>
+							<div>
+								<label class="block text-sm font-medium mb-2 dark:text-stone-300">specifically blocked pubkeys</label>
+								<div class="space-y-2 mb-4">
+									<template x-for="(pk, index) in blocked" :key="index">
+										<div class="flex items-center gap-2">
+											<input
+												type="text"
+												name="inbox_specifically_blocked"
+												class="flex-1 px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+												x-model="blocked[index]"
+												@input="if (blocked[index] && index === blocked.length - 1) blocked.push('')"
+												@blur="saveSettings()"
+											/>
+											<nostr-name x-show="blocked[index]" :pubkey="blocked[index]"></nostr-name>
+										</div>
+									</template>
+								</div>
+							</div>
+							<div
+								x-show="saved"
+								x-transition
+								class="text-sm text-green-600 dark:text-green-400 font-medium mb-4"
 							>
-								<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">inbox relay</h3>
-								<div>
-									<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="inbox_hellthread_limit">hellthread limit</label>
-									<input
-										type="number"
-										name="inbox_hellthread_limit"
-										min="0"
-										class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-4"
-										x-model="hellthreadLimit"
-										@blur="saveSettings()"
-									/>
-								</div>
-								<div>
-									<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="inbox_min_dm_pow">minimum DM proof-of-work (bits, 0 to disable)</label>
-									<input
-										type="number"
-										name="inbox_min_dm_pow"
-										min="0"
-										max="32"
-										class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-4"
-										x-model="minDMPoW"
-										@blur="saveSettings()"
-									/>
-								</div>
-								<div>
-									<label class="block text-sm font-medium mb-2 dark:text-stone-300">specifically blocked pubkeys</label>
-									<div class="space-y-2 mb-4">
-										<template x-for="(pk, index) in blocked" :key="index">
-											<div class="flex items-center gap-2">
-												<input
-													type="text"
-													name="inbox_specifically_blocked"
-													class="flex-1 px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-													x-model="blocked[index]"
-													@input="if (blocked[index] && index === blocked.length - 1) blocked.push('')"
-													@blur="saveSettings()"
-												/>
-												<nostr-name x-show="blocked[index]" :pubkey="blocked[index]"></nostr-name>
-											</div>
-										</template>
-									</div>
-								</div>
-								<div
-									x-show="saved"
-									x-transition
-									class="text-sm text-green-600 dark:text-green-400 font-medium mb-4"
-								>
-									saved!
-								</div>
-							</form>
-						</details>
-					}
+								saved!
+							</div>
+						</form>
+					</details>
 				}
-			</div>
+			}
 		</div>
 	}
 }

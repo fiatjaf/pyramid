@@ -10,34 +10,32 @@ import (
 
 templ internalPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "internal") {
-		<div class="max-w-3xl mx-auto">
-			<div class="flex items-center justify-between mb-4">
-				<div class="flex items-center">
-					if !global.Settings.Internal.IsIconDefault() {
-						<img src={ global.Settings.Internal.GetIcon() } class="h-8 w-8 mr-2"/>
-					}
-					<h1 class="text-4xl font-bold font-[family-name:var(--primary-font)]">{ global.Settings.Internal.GetName() }</h1>
-				</div>
-				if global.Settings.Internal.Enabled && pyramid.IsRoot(loggedUser) {
-					@layout.LandlubberButton(global.Settings.Internal.HTTPBasePath)
+		<div class="flex items-center justify-between mb-4">
+			<div class="flex items-center">
+				if !global.Settings.Internal.IsIconDefault() {
+					<img src={ global.Settings.Internal.GetIcon() } class="h-8 w-8 mr-2"/>
 				}
+				<h1 class="text-4xl font-bold font-[family-name:var(--primary-font)]">{ global.Settings.Internal.GetName() }</h1>
 			</div>
-			<div class="space-y-4 text-gray-700 dark:text-gray-300">
-				<p class="text-lg leading-relaxed">{ global.Settings.Internal.GetDescription() }</p>
-				if global.Settings.Internal.Enabled {
-					<a
-						class="mb-4 inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 themed:bg-[var(--accent-color)] unthemed:bg-blue-500 unthemed:hover:bg-blue-600"
-						target="_blank"
-						href={ global.Settings.BrowseURI }
-						x-init="$el.href = $el.href.replace(/({|%7B)url(}|%7D)/, encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
-					>
-						browse internal →
-					</a>
-				}
-				if pyramid.IsRoot(loggedUser) {
-					@layout.SubRelaySettings("internal", global.Settings.Internal.Enabled, global.Settings.Internal.Name, global.Settings.Internal.Description, global.Settings.Internal.Icon, global.Settings.Internal.Pinned, global.Settings.Internal.HTTPBasePath)
-				}
-			</div>
+			if global.Settings.Internal.Enabled && pyramid.IsRoot(loggedUser) {
+				@layout.LandlubberButton(global.Settings.Internal.HTTPBasePath)
+			}
+		</div>
+		<div class="space-y-4 text-gray-700 dark:text-gray-300">
+			<p class="text-lg leading-relaxed">{ global.Settings.Internal.GetDescription() }</p>
+			if global.Settings.Internal.Enabled {
+				<a
+					class="mb-4 inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 themed:bg-[var(--accent-color)] unthemed:bg-blue-500 unthemed:hover:bg-blue-600"
+					target="_blank"
+					href={ global.Settings.BrowseURI }
+					x-init="$el.href = $el.href.replace(/({|%7B)url(}|%7D)/, encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
+				>
+					browse internal →
+				</a>
+			}
+			if pyramid.IsRoot(loggedUser) {
+				@layout.SubRelaySettings("internal", global.Settings.Internal.Enabled, global.Settings.Internal.Name, global.Settings.Internal.Description, global.Settings.Internal.Icon, global.Settings.Internal.Pinned, global.Settings.Internal.HTTPBasePath)
+			}
 		</div>
 	}
 }

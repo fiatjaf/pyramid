@@ -12,38 +12,37 @@ import (
 
 templ popularPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "popular") {
-		<div class="max-w-3xl mx-auto">
-			<div class="flex items-center justify-between mb-4">
-				<div class="flex items-center">
-					if !global.Settings.Popular.IsIconDefault() {
-						<img src={ global.Settings.Popular.GetIcon() } class="h-8 w-8 mr-2"/>
-					}
-					<h1 class="text-4xl font-bold font-[family-name:var(--primary-font)]">{ global.Settings.Popular.GetName() }</h1>
-				</div>
-				if global.Settings.Popular.Enabled && pyramid.IsRoot(loggedUser) {
-					@layout.LandlubberButton(global.Settings.Popular.HTTPBasePath)
+		<div class="flex items-center justify-between mb-4">
+			<div class="flex items-center">
+				if !global.Settings.Popular.IsIconDefault() {
+					<img src={ global.Settings.Popular.GetIcon() } class="h-8 w-8 mr-2"/>
 				}
+				<h1 class="text-4xl font-bold font-[family-name:var(--primary-font)]">{ global.Settings.Popular.GetName() }</h1>
 			</div>
-			<div class="space-y-4 text-gray-700 dark:text-gray-300">
-				<p class="text-lg leading-relaxed">{ global.Settings.Popular.GetDescription() }</p>
-				if global.Settings.Popular.Enabled {
-					<a
-						class="mb-4 inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 themed:bg-[var(--accent-color)] unthemed:bg-blue-500 unthemed:hover:bg-blue-600"
-						target="_blank"
-						href={ global.Settings.BrowseURI }
-						x-init="$el.href = $el.href.replace(/({|%7B)url(}|%7D)/, encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
-					>
-						browse popular →
-					</a>
-				}
-				if pyramid.IsRoot(loggedUser) {
-					@layout.SubRelaySettings("popular", global.Settings.Popular.Enabled, global.Settings.Popular.Name, global.Settings.Popular.Description, global.Settings.Popular.Icon, global.Settings.Popular.Pinned, global.Settings.Popular.HTTPBasePath) {
-						<details>
-							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">threshold</summary>
-							<form
-								method="POST"
-								action="/settings"
-								x-data={ `{
+			if global.Settings.Popular.Enabled && pyramid.IsRoot(loggedUser) {
+				@layout.LandlubberButton(global.Settings.Popular.HTTPBasePath)
+			}
+		</div>
+		<div class="space-y-4 text-gray-700 dark:text-gray-300">
+			<p class="text-lg leading-relaxed">{ global.Settings.Popular.GetDescription() }</p>
+			if global.Settings.Popular.Enabled {
+				<a
+					class="mb-4 inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 themed:bg-[var(--accent-color)] unthemed:bg-blue-500 unthemed:hover:bg-blue-600"
+					target="_blank"
+					href={ global.Settings.BrowseURI }
+					x-init="$el.href = $el.href.replace(/({|%7B)url(}|%7D)/, encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
+				>
+					browse popular →
+				</a>
+			}
+			if pyramid.IsRoot(loggedUser) {
+				@layout.SubRelaySettings("popular", global.Settings.Popular.Enabled, global.Settings.Popular.Name, global.Settings.Popular.Description, global.Settings.Popular.Icon, global.Settings.Popular.Pinned, global.Settings.Popular.HTTPBasePath) {
+					<details>
+						<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">threshold</summary>
+						<form
+							method="POST"
+							action="/settings"
+							x-data={ `{
 									percentThreshold: ` + fmt.Sprint(global.Settings.Popular.PercentThreshold) + `,
 									saved: false,
 									async saveSettings() {
@@ -57,33 +56,32 @@ templ popularPage(loggedUser nostr.PubKey) {
 										}
 									}
 								}` }
-								x-ref="form"
+							x-ref="form"
+						>
+							<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">popular relay</h3>
+							<div>
+								<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="popular_percent_threshold">percent threshold (%)</label>
+								<input
+									type="number"
+									name="popular_percent_threshold"
+									min="0"
+									max="100"
+									class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-4"
+									x-model="percentThreshold"
+									@blur="saveSettings()"
+								/>
+							</div>
+							<div
+								x-show="saved"
+								x-transition
+								class="text-sm text-green-600 dark:text-green-400 font-medium mb-4"
 							>
-								<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">popular relay</h3>
-								<div>
-									<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="popular_percent_threshold">percent threshold (%)</label>
-									<input
-										type="number"
-										name="popular_percent_threshold"
-										min="0"
-										max="100"
-										class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-4"
-										x-model="percentThreshold"
-										@blur="saveSettings()"
-									/>
-								</div>
-								<div
-									x-show="saved"
-									x-transition
-									class="text-sm text-green-600 dark:text-green-400 font-medium mb-4"
-								>
-									saved!
-								</div>
-							</form>
-						</details>
-					}
+								saved!
+							</div>
+						</form>
+					</details>
 				}
-			</div>
+			}
 		</div>
 	}
 }
