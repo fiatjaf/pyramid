@@ -164,6 +164,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Favorites.HTTPBasePath = v[0]
 				favorites.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
 				delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+				favorites.Init()
 				go restartSoon()
 			case "moderated_name":
 				global.Settings.Moderated.Name = v[0]
@@ -179,6 +180,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 					global.Settings.Moderated.HTTPBasePath = v[0]
 					moderated.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
 					delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+					moderated.Init()
 					go restartSoon()
 				}
 			case "inbox_name":
@@ -198,6 +200,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Inbox.HTTPBasePath = v[0]
 				inbox.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
 				delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+				inbox.Init()
 				go restartSoon()
 			case "internal_name":
 				global.Settings.Internal.Name = v[0]
@@ -216,6 +219,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Internal.HTTPBasePath = v[0]
 				internal.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
 				delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+				internal.Init()
 				go restartSoon()
 			case "popular_name":
 				global.Settings.Popular.Name = v[0]
@@ -234,6 +238,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Popular.HTTPBasePath = v[0]
 				popular.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
 				delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+				popular.Init()
 				go restartSoon()
 			case "uppermost_name":
 				global.Settings.Uppermost.Name = v[0]
@@ -252,6 +257,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Uppermost.HTTPBasePath = v[0]
 				uppermost.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
 				delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+				uppermost.Init()
 				go restartSoon()
 				//
 				// moderated-specific
