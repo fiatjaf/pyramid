@@ -300,6 +300,7 @@ func main() {
 	relay.ManagementAPI.BanEvent = banEventHandler
 	relay.ManagementAPI.BanPubKey = banPubKeyHandler
 	relay.ManagementAPI.ListAllowedPubKeys = listAllowedPubKeysHandler
+	relay.ManagementAPI.ListBannedPubKeys = listBannedPubKeysHandler
 	relay.ManagementAPI.ChangeRelayName = changeRelayNameHandler
 	relay.ManagementAPI.ChangeRelayDescription = changeRelayDescriptionHandler
 	relay.ManagementAPI.ChangeRelayIcon = changeRelayIconHandler

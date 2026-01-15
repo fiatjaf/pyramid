@@ -44,7 +44,7 @@ func listAllowedPubKeysHandler(ctx context.Context) ([]nip86.PubKeyReason, error
 	log.Info().Msg("management listallowedpubkeys called")
 	list := make([]nip86.PubKeyReason, 0, pyramid.Members.Size())
 	for pubkey, member := range pyramid.Members.Range {
-		if len(member.Parents) == 0 {
+		if len(member.Parents) == 0 || member.Removed {
 			continue
 		}
 		reason := "invited by "
@@ -58,6 +58,19 @@ func listAllowedPubKeysHandler(ctx context.Context) ([]nip86.PubKeyReason, error
 				reason += inv.Hex()
 			}
 		}
+		list = append(list, nip86.PubKeyReason{PubKey: pubkey, Reason: reason})
+	}
+	return list, nil
+}
+
+func listBannedPubKeysHandler(ctx context.Context) ([]nip86.PubKeyReason, error) {
+	log.Info().Msg("management listbannedpubkeys called")
+	list := make([]nip86.PubKeyReason, 0, pyramid.Members.Size())
+	for pubkey, member := range pyramid.Members.Range {
+		if !member.Removed {
+			continue
+		}
+		reason := "removed member"
 		list = append(list, nip86.PubKeyReason{PubKey: pubkey, Reason: reason})
 	}
 	return list, nil
