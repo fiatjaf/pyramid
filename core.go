@@ -167,6 +167,8 @@ var supportedKindsDefault = []nostr.Kind{
 	1040,
 	1063,
 	1111,
+	1222,
+	1244,
 	1984,
 	1985,
 	7375,
