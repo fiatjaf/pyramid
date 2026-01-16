@@ -83,7 +83,8 @@ type UserSettings struct {
 	} `json:"grasp"`
 
 	Blossom struct {
-		Enabled bool `json:"enabled"`
+		Enabled           bool `json:"enabled"`
+		MaxUserUploadSize int  `json:"max_user_upload_size,omitempty"` // in megabytes, 0 means unlimited
 	} `json:"blossom"`
 
 	Popular struct {

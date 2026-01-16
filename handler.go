@@ -324,6 +324,10 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.FTP.Enabled = v[0] == "on"
 			case "ftp_password":
 				global.Settings.FTP.Password = v[0]
+			case "blossom_max_user_upload_size":
+				if maxSizeMB, err := strconv.Atoi(v[0]); err == nil {
+					global.Settings.Blossom.MaxUserUploadSize = maxSizeMB
+				}
 			}
 		}
 

@@ -78,6 +78,23 @@ func setupEnabled() {
 		if !pyramid.IsMember(auth.PubKey) {
 			return true, "only pyramid members can upload blobs", 403
 		}
+
+		// check user upload size limit
+		maxSize := global.Settings.Blossom.MaxUserUploadSize * 1024 * 1024
+		if maxSize > 0 {
+			if size > maxSize {
+				return true, "upload by itself exceeds user storage limit", 413
+			}
+
+			total := 0
+			for blob := range BlobIndex.List(ctx, auth.PubKey) {
+				total += blob.Size
+				if total+size > maxSize {
+					return true, "upload would exceed user storage limit", 413
+				}
+			}
+		}
+
 		return false, "", 0
 	}
 

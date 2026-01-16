@@ -2,13 +2,13 @@ package blossom
 
 import (
 	"fmt"
+	"time"
 
 	"fiatjaf.com/nostr"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
 	"github.com/fiatjaf/pyramid/pyramid"
-	"time"
 )
 
 templ blossomPage(loggedUser nostr.PubKey) {
@@ -111,8 +111,7 @@ templ blossomPage(loggedUser nostr.PubKey) {
 								alert('error uploading blob: ' + String(error));
 							} finally {
 								this.uploading = false;
-								// reset file input
-								document.getElementById('fileInput').value = '';
+								$refs.fileInput.value = '';
 							}
 						}
 					}` }
@@ -251,7 +250,49 @@ templ blossomPage(loggedUser nostr.PubKey) {
 							</button>
 						</form>
 					} else {
-						<details>
+						<form
+							method="POST"
+							action="/settings"
+							class="space-y-4"
+							x-data={ `{
+								maxUserUploadSize: ` + fmt.Sprint(global.Settings.Blossom.MaxUserUploadSize) + `,
+								saved: false,
+								async saveSettings() {
+									const response = await fetch(this.$refs.form.action, {
+										method: 'POST',
+										body: new URLSearchParams(new FormData(this.$refs.form))
+									});
+									if (response.ok) {
+										this.saved = true;
+										setTimeout(() => this.saved = false, 2000);
+									}
+								}
+							}` }
+							x-ref="form"
+						>
+							<div>
+								<label class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+									max total upload per user (in megabytes, zero means unlimited)
+								</label>
+								<input
+									type="number"
+									name="blossom_max_user_upload_size"
+									x-model="maxUserUploadSize"
+									min="0"
+									step="0.1"
+									@blur="saveSettings()"
+									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-md bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+								/>
+							</div>
+							<div
+								x-show="saved"
+								x-transition
+								class="text-sm text-green-600 dark:text-green-400 font-medium"
+							>
+								saved!
+							</div>
+						</form>
+						<details class="mt-4">
 							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">disable blossom</summary>
 							<form class="my-4" method="POST" action="/blossom/disable">
 								<button
