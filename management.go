@@ -86,7 +86,7 @@ func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
 	}
 	log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("management banevent called")
 
-	return global.IL.Main.DeleteEvent(id)
+	return deleteFromMain(id)
 }
 
 func changeRelayNameHandler(ctx context.Context, name string) error {

@@ -87,7 +87,7 @@ func processScheduledEvents() {
 			Until: nostr.Now() + 60,
 		}, 1000) {
 			// move to main relay and broadcast
-			if err := global.IL.Main.SaveEvent(event); err != nil {
+			if err := saveToMain(event); err != nil {
 				log.Error().Err(err).Stringer("event", event).Msg("failed to move scheduled event to main")
 				continue
 			}

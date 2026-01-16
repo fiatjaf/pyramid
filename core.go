@@ -237,6 +237,10 @@ func rejectInviteRequestsNonAuthed(ctx context.Context, filter nostr.Filter) (bo
 // if paywall settings are configured it stops at each paywalled event (events with the
 // "-" plus the specific paywall "t" tag) to check if the querier is eligible for reading.
 func queryMain(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
+	if filter.Search != "" {
+		return global.Search.Main.QueryEvents(filter, 40)
+	}
+
 	return func(yield func(nostr.Event) bool) {
 		// try to get a pinned note first
 		if global.PinnedCache.Main != nil &&
@@ -488,6 +492,28 @@ func virtualInviteValidationEvent(inviter nostr.PubKey) nostr.Event {
 	}
 	vivevt.ID = vivevt.GetID()
 	return vivevt
+}
+
+func deleteFromMain(id nostr.ID) error {
+	if err := global.Search.Main.DeleteEvent(id); err != nil {
+		return err
+	}
+
+	return global.IL.Main.DeleteEvent(id)
+}
+
+func saveToMain(event nostr.Event) error {
+	if err := global.IL.Main.SaveEvent(event); err != nil {
+		return err
+	}
+
+	switch event.Kind {
+	case 1, 11, 24, 1111, 30023, 30818:
+		if len(event.Content) > 45 {
+			return global.Search.Main.SaveEvent(event)
+		}
+	}
+	return nil
 }
 
 // splits the query between the main relay and the groups relay

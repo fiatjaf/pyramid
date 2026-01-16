@@ -150,7 +150,7 @@ func main() {
 			return global.IL.Scheduled.SaveEvent(event)
 		} else {
 			// normal logic
-			return global.IL.Main.SaveEvent(event)
+			return saveToMain(event)
 		}
 	}
 	relay.ReplaceEvent = func(ctx context.Context, event nostr.Event) error {
@@ -164,7 +164,7 @@ func main() {
 	}
 	relay.DeleteEvent = func(ctx context.Context, id nostr.ID) error {
 		// try to delete from everywhere
-		if err := global.IL.Main.DeleteEvent(id); err != nil {
+		if err := deleteFromMain(id); err != nil {
 			return err
 		}
 		// TODO: prevent deleting from group if too much time has passed
@@ -189,7 +189,6 @@ func main() {
 
 	relay.OnRequest = policies.SeqRequest(
 		policies.NoComplexFilters,
-		policies.NoSearchQueries,
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
 		func(ctx context.Context, filter nostr.Filter) (bool, string) {
 			if filter.Tags["h"] != nil {
@@ -289,7 +288,7 @@ func main() {
 	relay.OnConnect = onConnect
 	relay.PreventBroadcast = preventBroadcast
 
-	relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 43)
+	relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 43, 50)
 	if global.Settings.Groups.Enabled {
 		relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 29)
 	}
