@@ -36,6 +36,7 @@ func inviteTreeHandler(w http.ResponseWriter, r *http.Request) {
 			nip05Names[pubkey] = name
 		}
 	}
+
 	inviteTreePage(loggedUser, nip05Names).Render(r.Context(), w)
 }
 

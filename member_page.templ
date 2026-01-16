@@ -97,7 +97,7 @@ templ memberPage(loggedUser nostr.PubKey, user nostr.PubKey, nip05 string, mainS
 					action="/u"
 					class="space-y-6 mt-8"
 					x-data={ `{
-					nip05Username: ` + global.JSONString(nip05) + `',
+					nip05Username: ` + global.JSONString(nip05) + `,
 					saved: false,
 					async saveSettings() {
 						const response = await fetch(this.$refs.form.action, {
