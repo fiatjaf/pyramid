@@ -239,7 +239,7 @@ func rejectInviteRequestsNonAuthed(ctx context.Context, filter nostr.Filter) (bo
 // if paywall settings are configured it stops at each paywalled event (events with the
 // "-" plus the specific paywall "t" tag) to check if the querier is eligible for reading.
 func queryMain(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
-	if filter.Search != "" {
+	if filter.Search != "" && global.Settings.Search.Enable {
 		return global.Search.Main.QueryEvents(filter, 40)
 	}
 
@@ -509,10 +509,12 @@ func saveToMain(event nostr.Event) error {
 		return err
 	}
 
-	switch event.Kind {
-	case 1, 11, 24, 1111, 30023, 30818:
-		if len(event.Content) > 45 {
-			return global.Search.Main.SaveEvent(event)
+	if global.Settings.Search.Enable {
+		switch event.Kind {
+		case 1, 11, 24, 1111, 30023, 30818:
+			if len(event.Content) > 45 {
+				return global.Search.Main.SaveEvent(event)
+			}
 		}
 	}
 	return nil

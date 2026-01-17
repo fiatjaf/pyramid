@@ -191,6 +191,10 @@ func main() {
 		policies.NoComplexFilters,
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
 		func(ctx context.Context, filter nostr.Filter) (bool, string) {
+			if !global.Settings.Search.Enable && filter.Search != "" {
+				return true, "search is disabled"
+			}
+
 			if filter.Tags["h"] != nil {
 				// nip29 logic
 				if global.Settings.Groups.Enabled {
@@ -288,7 +292,10 @@ func main() {
 	relay.OnConnect = onConnect
 	relay.PreventBroadcast = preventBroadcast
 
-	relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 43, 50)
+	relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 43)
+	if global.Settings.Search.Enable {
+		relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 50)
+	}
 	if global.Settings.Groups.Enabled {
 		relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 29)
 	}
