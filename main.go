@@ -251,6 +251,7 @@ func main() {
 				policies.PreventTooManyIndexableTags(9, []nostr.Kind{3}, nil),
 				policies.PreventTooManyIndexableTags(1200, nil, []nostr.Kind{3}),
 				policies.RejectUnprefixedNostrReferences,
+				grasp.RejectIncomingEvent,
 				basicRejectionLogic,
 			)(ctx, event)
 		}
