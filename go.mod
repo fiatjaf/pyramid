@@ -3,7 +3,7 @@ module github.com/fiatjaf/pyramid
 go 1.25
 
 require (
-	fiatjaf.com/nostr v0.0.0-20260116111314-bd55c22768a2
+	fiatjaf.com/nostr v0.0.0-20260119132126-57cef15054d1
 	github.com/FastFilter/xorfilter v0.2.1
 	github.com/a-h/templ v0.3.960
 	github.com/bep/debounce v1.2.1
@@ -97,3 +97,5 @@ require (
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace fiatjaf.com/nostr => ../nostrlib

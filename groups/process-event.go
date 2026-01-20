@@ -7,16 +7,23 @@ import (
 	"fiatjaf.com/nostr/nip29"
 )
 
-func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) {
+func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) (groupsAffected []*Group) {
 	// apply moderation action
 	if action, err := nip29.PrepareModerationAction(event); err == nil {
 		// get group (or create it)
 		var group *Group
 		if event.Kind == nostr.KindSimpleGroupCreateGroup {
 			// if it's a group creation event we create the group first
-			groupId := GetGroupIDFromEvent(event)
+			groupId, ok := getGroupIDFromEvent(event)
+			if !ok {
+				log.Error().Stringer("event", event).Msg("event without a group id")
+				return
+			}
+
 			group = s.NewGroup(groupId)
 			s.Groups.Store(groupId, group)
+
+			nostr.AppendUnique(groupsAffected, group)
 
 			// create a put-user event for the creator to ensure membership is recorded
 			addCreator := nostr.Event{
@@ -35,10 +42,15 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) {
 				log.Error().Err(err).Msg("failed to save add-creator event")
 				return
 			}
-			s.ProcessEvent(context.Background(), addCreator)
+
+			for _, affected := range s.ProcessEvent(ctx, addCreator) {
+				nostr.AppendUnique(groupsAffected, affected)
+			}
+
 			s.broadcast(addCreator)
 		} else {
 			group = s.GetGroupFromEvent(event)
+			nostr.AppendUnique(groupsAffected, group)
 		}
 
 		// apply the moderation action
@@ -64,30 +76,6 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) {
 			// when the group was deleted we just remove it
 			s.Groups.Delete(group.Address.ID)
 		}
-
-		// propagate new replaceable events to listeners depending on what changed happened
-		for _, toBroadcast := range map[nostr.Kind][]func() nostr.Event{
-			nostr.KindSimpleGroupCreateGroup: {
-				group.ToMetadataEvent,
-				group.ToAdminsEvent,
-				group.ToMembersEvent,
-				group.ToRolesEvent,
-			},
-			nostr.KindSimpleGroupEditMetadata: {
-				group.ToMetadataEvent,
-			},
-			nostr.KindSimpleGroupPutUser: {
-				group.ToMembersEvent,
-				group.ToAdminsEvent,
-			},
-			nostr.KindSimpleGroupRemoveUser: {
-				group.ToMembersEvent,
-			},
-		}[event.Kind] {
-			evt := toBroadcast()
-			evt.Sign(s.secretKey)
-			s.broadcast(evt)
-		}
 	}
 
 	// we should have the group now (even if it's a group creation event it will have been created at this point)
@@ -95,6 +83,8 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) {
 	if group == nil {
 		return
 	}
+
+	groupsAffected = nostr.AppendUnique(groupsAffected, group)
 
 	// react to join request (already validated)
 	if event.Kind == nostr.KindSimpleGroupJoinRequest {
@@ -120,7 +110,11 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) {
 			log.Error().Err(err).Msg("failed to add user who requested to join")
 			return
 		}
-		s.ProcessEvent(context.Background(), addUser)
+
+		for _, affected := range s.ProcessEvent(ctx, addUser) {
+			nostr.AppendUnique(groupsAffected, affected)
+		}
+
 		s.broadcast(addUser)
 	}
 
@@ -146,7 +140,11 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) {
 				log.Error().Err(err).Msg("failed to remove user who requested to leave")
 				return
 			}
-			s.ProcessEvent(context.Background(), removeUser)
+
+			for _, affected := range s.ProcessEvent(ctx, removeUser) {
+				nostr.AppendUnique(groupsAffected, affected)
+			}
+
 			s.broadcast(removeUser)
 		}
 	}
@@ -154,4 +152,6 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) {
 	// add to "previous" for tag checking
 	lastIndex := group.last50index.Add(1) - 1
 	group.last50[lastIndex%50] = event.ID
+
+	return groupsAffected
 }

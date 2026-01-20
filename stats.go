@@ -27,7 +27,7 @@ type AuthorInfo struct {
 }
 
 func getTopKinds(perKind map[nostr.Kind]mmm.KindStats, infosLimit, kindsLimit int) ([]KindInfo, []nostr.Kind) {
-	var kindinfos = make([]KindInfo, 0, infosLimit)
+	kindinfos := make([]KindInfo, 0, infosLimit)
 	for kind, stats := range perKind {
 		kindinfos = append(kindinfos, KindInfo{Kind: kind, Count: stats.Total})
 	}
@@ -36,7 +36,7 @@ func getTopKinds(perKind map[nostr.Kind]mmm.KindStats, infosLimit, kindsLimit in
 	if len(kindinfos) > infosLimit {
 		kindinfos = kindinfos[:infosLimit]
 	}
-	var kinds = make([]nostr.Kind, 0, kindsLimit)
+	kinds := make([]nostr.Kind, 0, kindsLimit)
 	for i := range min(len(kindinfos), kindsLimit) {
 		kinds = append(kinds, kindinfos[i].Kind)
 	}
@@ -122,17 +122,17 @@ var relevantUsers map[string]*relevant
 
 func fillInRelevantUsersMapping() {
 	relevantUsers = map[string]*relevant{
-		"blossom":   &relevant{"blossom", global.IL.Blossom, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
-		"main":      &relevant{"main", global.IL.Main, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
-		"system":    &relevant{"system", global.IL.System, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
-		"internal":  &relevant{"internal", global.IL.Internal, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
-		"groups":    &relevant{"groups", global.IL.Groups, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
-		"favorites": &relevant{"favorites", global.IL.Favorites, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
-		"popular":   &relevant{"popular", global.IL.Popular, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
-		"uppermost": &relevant{"uppermost", global.IL.Uppermost, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
-		"inbox":     &relevant{"inbox", global.IL.Inbox, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
-		"secret":    &relevant{"secret", global.IL.Secret, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
-		"moderated": &relevant{"moderated", global.IL.Moderated, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
+		"blossom":   {"blossom", global.IL.Blossom, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
+		"main":      {"main", global.IL.Main, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
+		"system":    {"system", global.IL.System, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
+		"internal":  {"internal", global.IL.Internal, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
+		"groups":    {"groups", global.IL.Groups, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
+		"favorites": {"favorites", global.IL.Favorites, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
+		"popular":   {"popular", global.IL.Popular, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
+		"uppermost": {"uppermost", global.IL.Uppermost, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
+		"inbox":     {"inbox", global.IL.Inbox, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
+		"secret":    {"secret", global.IL.Secret, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
+		"moderated": {"moderated", global.IL.Moderated, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
 	}
 }
 
@@ -151,8 +151,6 @@ func (r *relevant) get() []nostr.PubKey {
 }
 
 func (r *relevant) recompute() {
-	fmt.Println("recomputing relevant users", r, r.store)
-
 	stats, err := r.store.ComputeStats(mmm.StatsOptions{})
 	if err != nil {
 		log.Error().Err(err).Msg("failed to compute stats for usersWithEvents")

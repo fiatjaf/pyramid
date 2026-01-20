@@ -189,7 +189,6 @@ func main() {
 
 	relay.OnRequest = policies.SeqRequest(
 		policies.NoComplexFilters,
-		policies.FilterIPRateLimiter(20, time.Minute, 100),
 		func(ctx context.Context, filter nostr.Filter) (bool, string) {
 			if !global.Settings.Search.Enable && filter.Search != "" {
 				return true, "search is disabled"
@@ -260,13 +259,13 @@ func main() {
 	relay.OnEventSaved = func(ctx context.Context, event nostr.Event) {
 		if h := event.Tags.Find("h"); h != nil {
 			// nip29 logic
-			groups.State.ProcessEvent(ctx, event)
+			groups.State.HandleEventSaved(event)
 			return
 		}
 
 		// normal logic
 		switch event.Kind {
-		case 6, 7, 9321, 9735, 9802, 1, 1111:
+		case 6, 7, 9321, 9735, 9802, 1, 1111, 1244:
 			processReactions(ctx, event)
 		case 0, 3, 10019:
 			global.IL.System.SaveEvent(event)
@@ -275,7 +274,7 @@ func main() {
 		// trigger opentimestamping of selected event kinds
 		if global.Settings.EnableOTS {
 			switch event.Kind {
-			case 1, 11, 1111, 20, 21, 22, 24, 9802:
+			case 1, 11, 1111, 1222, 1244, 20, 21, 22, 24, 9802:
 				go triggerOTS(ctx, event)
 			}
 		}

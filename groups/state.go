@@ -1,6 +1,7 @@
 package groups
 
 import (
+	"context"
 	"fmt"
 	"sync/atomic"
 
@@ -61,6 +62,18 @@ func NewGroupsState(opts Options) *GroupsState {
 	}
 
 	return state
+}
+
+func (s *GroupsState) HandleEventSaved(event nostr.Event) {
+	for _, affectedGroup := range s.ProcessEvent(context.Background(), event) {
+		for updated, err := range s.SyncGroupMetadataEvents(affectedGroup) {
+			if err != nil {
+				log.Error().Err(err).Stringer("event", event).Msg("failed to handle group event")
+			} else {
+				s.broadcast(updated)
+			}
+		}
+	}
 }
 
 func (s *GroupsState) WipeGroup(groupId string) error {

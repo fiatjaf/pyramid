@@ -1,6 +1,8 @@
 package groups
 
 import (
+	"fmt"
+	"iter"
 	"sync"
 	"sync/atomic"
 
@@ -114,16 +116,79 @@ nextgroup:
 		s.Groups.Store(group.Address.ID, group)
 	}
 
+	// sync metadata events for all groups
+	for _, group := range s.Groups.Range {
+		for updated, err := range s.SyncGroupMetadataEvents(group) {
+			if err != nil {
+				return err
+			} else {
+				s.broadcast(updated)
+			}
+		}
+	}
+
 	return nil
 }
 
 func (s *GroupsState) GetGroupFromEvent(event nostr.Event) *Group {
-	group, _ := s.Groups.Load(GetGroupIDFromEvent(event))
-	return group
+	if gid, ok := getGroupIDFromEvent(event); ok {
+		group, _ := s.Groups.Load(gid)
+		return group
+	}
+	return nil
 }
 
-func GetGroupIDFromEvent(event nostr.Event) string {
-	gtag := event.Tags.Find("h")
-	groupId := gtag[1]
-	return groupId
+func getGroupIDFromEvent(event nostr.Event) (string, bool) {
+	if nip29.MetadataEventKinds.Includes(event.Kind) {
+		gtag := event.Tags.Find("d")
+		if gtag != nil {
+			return gtag[1], true
+		}
+	} else {
+		gtag := event.Tags.Find("h")
+		if gtag != nil {
+			return gtag[1], true
+		}
+	}
+	return "", false
+}
+
+// SyncGroupMetadataEvents tries to save new versions of metadata events to the database.
+// if they are new enough (<3s) they are returned in the iterator, otherwise not.
+func (s *GroupsState) SyncGroupMetadataEvents(group *Group) iter.Seq2[nostr.Event, error] {
+	now := nostr.Now()
+
+	return func(yield func(nostr.Event, error) bool) {
+		group.mu.RLock()
+		defer group.mu.RUnlock()
+
+		for _, event := range [4]nostr.Event{
+			group.ToMetadataEvent(),
+			group.ToAdminsEvent(),
+			group.ToMembersEvent(),
+			group.ToRolesEvent(),
+		} {
+			if group.Private && event.Kind == nostr.KindSimpleGroupMembers {
+				// don't reveal lists of members of private groups ever, not even to members
+				continue
+			}
+
+			if err := event.Sign(s.secretKey); err != nil {
+				if !yield(nostr.Event{}, fmt.Errorf("failed to sign group metadata event %d: %w", event.Kind, err)) {
+					return
+				}
+			}
+
+			if err := s.DB.ReplaceEvent(event); err != nil {
+				if !yield(nostr.Event{}, fmt.Errorf("failed to save group metadata event %d: %w", event.Kind, err)) {
+					return
+				}
+			}
+			if event.CreatedAt > now-180 {
+				if !yield(event, nil) {
+					return
+				}
+			}
+		}
+	}
 }

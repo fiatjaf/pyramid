@@ -282,39 +282,10 @@ func onConnect(ctx context.Context) {
 }
 
 func preventBroadcast(ws *khatru.WebSocket, filter nostr.Filter, event nostr.Event) bool {
-	if global.Settings.Groups.Enabled {
+	if global.Settings.Groups.Enabled && (nip29.MetadataEventKinds.Includes(event.Kind) || event.Tags.Find("h") != nil) {
 		// nip29 metadata event
-		if slices.Contains(nip29.MetadataEventKinds, event.Kind) {
-			if filter.Kinds == nil {
-				// when a subscription doesn't specify kinds, assume they don't want nip29 metadata
-				return true
-			} else {
-				// (because we're checking event by event here, if there are kinds in the filter we assume this matches)
-				if group, ok := groups.State.Groups.Load(event.Tags.GetD()); ok {
-					return group.Private || !group.AnyOfTheseIsAMember(ws.AuthedPublicKeys)
-				} else {
-					log.Warn().Stringer("event", event).Msg("unexpected group not found")
-				}
-			}
-		}
-
-		// nip29 message
-		if h := event.Tags.Find("h"); h != nil {
-			if filter.Tags["h"] == nil {
-				// when a subscription doesn't specify the "h" tag, don't send them messages from nip29 groups
-				return true
-			} else {
-				// (because we're checking event by event here, if there are kinds in the filter we assume this matches)
-				// now even if they specify these we have to check if they can read
-				if group := groups.State.GetGroupFromEvent(event); group == nil {
-					log.Warn().Stringer("event", event).Msg("unexpected group not found")
-					return true
-				} else if group.Private {
-					return !group.AnyOfTheseIsAMember(ws.AuthedPublicKeys)
-				} else {
-					return false
-				}
-			}
+		if groups.State.ShouldPreventBroadcast(event, filter, ws.AuthedPublicKeys) {
+			return true
 		}
 	}
 
