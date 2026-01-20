@@ -240,6 +240,8 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				action="/settings"
 				class="space-y-6 mt-8"
 				x-data={ `{
+					showAllowedKinds: `+ fmt.Sprint(len(global.Settings.AllowedKinds) > 0) +`,
+					nip05Enabled: ` + fmt.Sprint(global.Settings.NIP05.Enabled) + `,
 					maxInvitesPerPerson: ` + fmt.Sprint(global.Settings.MaxInvitesPerPerson) + `,
 					maxEventSize: ` + fmt.Sprint(global.Settings.MaxEventSize) + `,
 					requireCurrentTimestamp: ` + fmt.Sprint(global.Settings.RequireCurrentTimestamp) + `,
@@ -291,10 +293,11 @@ templ settingsPage(loggedUser nostr.PubKey) {
 						<input type="hidden" name="accept_scheduled_events" value="off"/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">max invites per person</label>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="max_invites_per_person">max invites per person</label>
 						<input
 							type="number"
 							name="max_invites_per_person"
+							id="max_invites_per_person"
 							min="1"
 							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
 							x-model="maxInvitesPerPerson"
@@ -302,10 +305,11 @@ templ settingsPage(loggedUser nostr.PubKey) {
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">max event size (in bytes)</label>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="max_event_size">max event size (in bytes)</label>
 						<input
 							type="number"
 							name="max_event_size"
+							id="max_event_size"
 							min="1"
 							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
 							x-model="maxEventSize"
@@ -329,23 +333,53 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					<div class="flex items-center">
 						<input
 							type="checkbox"
-							name="enable_search"
-							id="enable_search"
+							name="nip05_enabled"
+							id="nip05_enabled"
 							class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
-							x-model="enableSearch"
+							x-model="nip05Enabled"
 							@change="saveSettings()"
 						/>
-						<label for="enable_search" class="ml-2 text-sm dark:text-stone-300">
-							enable NIP-50 full-text search
+						<label for="nip05_enabled" class="ml-2 text-sm font-medium dark:text-stone-300">
+							enable NIP-05 addresses for members
 						</label>
-						<input type="hidden" name="enable_search" value="off"/>
+						<input type="hidden" name="nip05_enabled" value="off"/>
+					</div>
+					{{ actualAllowedKinds := global.Settings.AllowedKinds }}
+					if len(global.Settings.AllowedKinds) == 0 {
+						{{ actualAllowedKinds = supportedKindsDefault }}
+					}
+					<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="allowed kinds">allowed kinds</label>
+					<button
+						type="button"
+						x-show="!showAllowedKinds"
+						@mouseup="showAllowedKinds = true"
+						class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+					>
+						customize allowed event kinds
+					</button>
+					<div x-show="showAllowedKinds" x-transition class="mt-4">
+						<div class="space-y-2">
+							<textarea
+								name="allowed_kinds"
+								placeholder="enter kind numbers separated by commas (e.g., 1, 3, 6, 7)"
+								class="w-full px-3 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 h-32 font-mono text-sm"
+								@blur="saveSettings()"
+							>
+								{{ j := global.JSONString(actualAllowedKinds) }}
+								{ j[1:len(j)-1] }
+							</textarea>
+							<p class="text-xs text-stone-500 dark:text-stone-400">
+								enter kind numbers separated by commas. leave empty to use the default list.
+							</p>
+						</div>
 					</div>
 					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">URL pattern for the relay "browse" links</label>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="browse_uri">URL pattern for the relay "browse" links</label>
 						<div class="flex flex-wrap gap-2 items-center">
 							<input
 								type="text"
 								name="browse_uri"
+								id="browse_uri"
 								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-3"
 								x-model="browseUri"
 								@blur="saveSettings()"
@@ -393,11 +427,12 @@ templ settingsPage(loggedUser nostr.PubKey) {
 						</div>
 					</div>
 					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">URL pattern for external links</label>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="link_url">URL pattern for external links</label>
 						<div class="flex flex-wrap gap-2 items-center">
 							<input
 								type="text"
 								name="link_url"
+								id="link_url"
 								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-3"
 								x-model="linkUrl"
 								@blur="saveSettings()"
@@ -437,17 +472,12 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					saved!
 				</div>
 			</form>
-			<!-- Allowed Kinds Settings Section -->
-			{{ actualAllowedKinds := global.Settings.AllowedKinds }}
-			if len(global.Settings.AllowedKinds) == 0 {
-				{{ actualAllowedKinds = supportedKindsDefault }}
-			}
+			<!-- NIP-50 Search Section -->
 			<form
 				method="POST"
 				action="/settings"
 				class="space-y-6 mt-8"
 				x-data={ `{
-					showAllowedKinds: `+ fmt.Sprint(len(global.Settings.AllowedKinds) > 0) +`,
 					saved: false,
 					async saveSettings() {
 						const response = await fetch(this.$refs.form.action, {
@@ -462,147 +492,20 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				}` }
 				x-ref="form"
 			>
-				@layout.SubSectionTitle("allowed kinds")
-				<div class="space-y-4">
-					<button
-						type="button"
-						x-show="!showAllowedKinds"
-						@mouseup="showAllowedKinds = true"
-						class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
-					>
-						customize allowed event kinds
-					</button>
-					<div x-show="showAllowedKinds" x-transition class="mt-4">
-						<div class="space-y-2">
-							<textarea
-								name="allowed_kinds"
-								placeholder="enter kind numbers separated by commas (e.g., 1, 3, 6, 7)"
-								class="w-full px-3 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 h-32 font-mono text-sm"
-								@blur="saveSettings()"
-							>
-								{{ j := global.JSONString(actualAllowedKinds) }}
-								{ j[1:len(j)-1] }
-							</textarea>
-							<p class="text-xs text-stone-500 dark:text-stone-400">
-								enter kind numbers separated by commas. leave empty to use the default list.
-							</p>
-						</div>
-					</div>
-				</div>
-				<div
-					x-show="saved"
-					x-transition
-					class="text-sm text-green-600 dark:text-green-400 font-medium"
-				>
-					saved!
-				</div>
-			</form>
-			<!-- Paywall Settings Section -->
-			<form
-				method="POST"
-				action="/settings"
-				class="space-y-6 mt-8"
-				x-data={ `{
-					paywallTag: '` + fmt.Sprint(global.Settings.Paywall.Tag) + `',
-					paywallUpdateOk: '` + fmt.Sprint(global.Settings.Paywall.Tag) + `' === '',
-					paywallAmount: ` + fmt.Sprint(global.Settings.Paywall.AmountSats) + `,
-					paywallPeriod: '` + fmt.Sprint(global.Settings.Paywall.PeriodDays) + `',
-					saved: false,
-					async saveSettings() {
-						const response = await fetch(this.$refs.form.action, {
-							method: 'POST',
-							body: new URLSearchParams(new FormData(this.$refs.form))
-						})
-						if (response.ok) {
-							this.saved = true;
-							setTimeout(() => this.saved = false, 2000)
-						}
-					}
-				}` }
-				x-ref="form"
-			>
-				@layout.SubSectionTitle("paywall")
-				<div class="space-x-4 flex space-between">
-					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">hashtag</label>
-						<input
-							type="text"
-							name="paywall_tag"
-							placeholder="e.g. 'premium'"
-							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-							x-model="paywallTag"
-							@keydown="paywallUpdateOk || (confirm('if you change the hashtag all previous posts using the previous hashtag will become public, continue?') ? paywallUpdateOk = true : $event.preventDefault())"
-							@blur="paywallUpdateOk && saveSettings()"
-						/>
-					</div>
-					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">amount (in satoshis)</label>
-						<input
-							type="number"
-							name="paywall_amount"
-							min="0"
-							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-							x-model="paywallAmount"
-							@blur="saveSettings()"
-						/>
-					</div>
-					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">period (in days)</label>
-						<input
-							type="text"
-							name="paywall_period"
-							placeholder="90"
-							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-							x-model="paywallPeriod"
-							@blur="saveSettings()"
-						/>
-					</div>
-				</div>
-				<div
-					x-show="saved"
-					x-transition
-					class="text-sm text-green-600 dark:text-green-400 font-medium"
-				>
-					saved!
-				</div>
-			</form>
-			<!-- NIP-05 Settings Section -->
-			<form
-				method="POST"
-				action="/settings"
-				class="space-y-6 mt-8"
-				x-data={ `{
-					nip05Enabled: ` + fmt.Sprint(global.Settings.NIP05.Enabled) + `,
-					saved: false,
-					async saveSettings() {
-						const response = await fetch(this.$refs.form.action, {
-							method: 'POST',
-							body: new URLSearchParams(new FormData(this.$refs.form))
-						})
-						if (response.ok) {
-							this.saved = true;
-							setTimeout(() => this.saved = false, 2000)
-						}
-					}
-				}` }
-				x-ref="form"
-			>
-				@layout.SubSectionTitle("nip05 addresses")
-				<div class="space-y-4">
-					<div class="flex items-center">
-						<input
-							type="checkbox"
-							name="nip05_enabled"
-							id="nip05_enabled"
-							class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
-							x-model="nip05Enabled"
-							@change="saveSettings()"
-						/>
-						<label for="nip05_enabled" class="ml-2 text-sm font-medium dark:text-stone-300">
-							enable NIP-05 addresses for members
-						</label>
-						<input type="hidden" name="nip05_enabled" value="off"/>
-					</div>
+				@layout.SubSectionTitle("full-text search")
+				<div class="flex items-center">
+					<input
+						type="checkbox"
+						name="enable_search"
+						id="enable_search"
+						class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
+						x-model="enableSearch"
+						@change="saveSettings()"
+					/>
+					<label for="enable_search" class="ml-2 text-sm dark:text-stone-300">
+						enable NIP-50 full-text search
+					</label>
+					<input type="hidden" name="enable_search" value="off"/>
 				</div>
 				<div
 					x-show="saved"
@@ -651,9 +554,10 @@ templ settingsPage(loggedUser nostr.PubKey) {
 						<input type="hidden" name="ftp_enabled" value="off"/>
 					</div>
 					<div class="mt-4" x-show="ftpEnabled">
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300">password</label>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300" id="ftp_password">password</label>
 						<input
 							name="ftp_password"
+							id="ftp_password"
 							placeholder="password for FTP server, please pick something big and unguessable"
 							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
 							x-model="ftpPassword"
@@ -679,6 +583,78 @@ templ settingsPage(loggedUser nostr.PubKey) {
 								</div>
 							</div>
 						</div>
+					</div>
+				</div>
+				<div
+					x-show="saved"
+					x-transition
+					class="text-sm text-green-600 dark:text-green-400 font-medium"
+				>
+					saved!
+				</div>
+			</form>
+			<!-- Paywall Settings Section -->
+			<form
+				method="POST"
+				action="/settings"
+				class="space-y-6 mt-8"
+				x-data={ `{
+					paywallTag: '` + fmt.Sprint(global.Settings.Paywall.Tag) + `',
+					paywallUpdateOk: '` + fmt.Sprint(global.Settings.Paywall.Tag) + `' === '',
+					paywallAmount: ` + fmt.Sprint(global.Settings.Paywall.AmountSats) + `,
+					paywallPeriod: '` + fmt.Sprint(global.Settings.Paywall.PeriodDays) + `',
+					saved: false,
+					async saveSettings() {
+						const response = await fetch(this.$refs.form.action, {
+							method: 'POST',
+							body: new URLSearchParams(new FormData(this.$refs.form))
+						})
+						if (response.ok) {
+							this.saved = true;
+							setTimeout(() => this.saved = false, 2000)
+						}
+					}
+				}` }
+				x-ref="form"
+			>
+				@layout.SubSectionTitle("paywall")
+				<div class="space-x-4 flex space-between">
+					<div>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="paywall_tag">hashtag</label>
+						<input
+							type="text"
+							name="paywall_tag"
+							label="paywall_tag"
+							placeholder="e.g. 'premium'"
+							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+							x-model="paywallTag"
+							@keydown="paywallUpdateOk || (confirm('if you change the hashtag all previous posts using the previous hashtag will become public, continue?') ? paywallUpdateOk = true : $event.preventDefault())"
+							@blur="paywallUpdateOk && saveSettings()"
+						/>
+					</div>
+					<div>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="paywall_amount">amount (in satoshis)</label>
+						<input
+							type="number"
+							name="paywall_amount"
+							id="paywall_amount"
+							min="0"
+							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+							x-model="paywallAmount"
+							@blur="saveSettings()"
+						/>
+					</div>
+					<div>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300" id="paywall_period">period (in days)</label>
+						<input
+							type="text"
+							name="paywall_period"
+							id="paywall_period"
+							placeholder="90"
+							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+							x-model="paywallPeriod"
+							@blur="saveSettings()"
+						/>
 					</div>
 				</div>
 				<div
