@@ -104,11 +104,11 @@ templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Even
 					<h2 class="text-lg font-semibold mb-3 dark:text-stone-200">view on other clients</h2>
 					<div class="flex gap-3">
 						<a
-							href={ "https://chachi.chat/" + global.Settings.Domain + "/" + group.Address.ID }
+							href={ "https://grimoire.rocks/run?cmd=chat%20" + group.Address.Relay + "%27" + group.Address.ID }
 							target="_blank"
 							class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
 						>
-							chachi.chat
+							grimoire.rocks
 						</a>
 						<a
 							href={ "https://app.flotilla.social/spaces/" + global.Settings.Domain + "/" + group.Address.ID }
@@ -116,6 +116,13 @@ templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Even
 							class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
 						>
 							flotilla.social
+						</a>
+						<a
+							href={ "https://chachi.chat/" + global.Settings.Domain + "/" + group.Address.ID }
+							target="_blank"
+							class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
+						>
+							chachi.chat
 						</a>
 					</div>
 				</div>
