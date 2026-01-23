@@ -427,14 +427,10 @@ func saveToMain(event nostr.Event) error {
 	}
 
 	if global.Settings.Search.Enable {
-		switch event.Kind {
-		case 1, 11, 24, 1111, 30023, 30818:
-			if len(event.Content) > 45 {
-				return global.Search.Main.SaveEvent(event)
-			}
-		}
+		return global.Search.Main.IndexEvent(event)
+	} else {
+		return nil
 	}
-	return nil
 }
 
 // splits the query between the main relay and the groups relay

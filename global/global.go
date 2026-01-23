@@ -3,9 +3,7 @@ package global
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
-	"fiatjaf.com/nostr/eventstore/bleve"
 	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/sdk"
 	"github.com/kelseyhightower/envconfig"
@@ -114,12 +112,10 @@ func Init() error {
 		return fmt.Errorf("failed to ensure 'blossom': %w", err)
 	}
 
-	Search.Main = &bleve.BleveBackend{
-		Path:          filepath.Join(S.DataPath, "search/main"),
-		RawEventStore: IL.Main,
-	}
-	if err := Search.Main.Init(); err != nil {
-		return fmt.Errorf("failed to init search database: %w", err)
+	if Settings.Search.Enable {
+		if err := InitSearch(); err != nil {
+			return fmt.Errorf("failed to initialized search: %w", err)
+		}
 	}
 
 	// paywall cache
@@ -131,10 +127,6 @@ func Init() error {
 func End() {
 	MMMM.Close()
 	Search.Main.Close()
-}
-
-var Search struct {
-	Main *bleve.BleveBackend
 }
 
 var IL struct {

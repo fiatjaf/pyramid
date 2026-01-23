@@ -208,7 +208,7 @@ func loadUserSettings() error {
 		EnableOTS:               true,
 		BlockedIPs:              []string{},
 	}
-	Settings.Search.Enable = true
+	Settings.Search.Enable = false
 
 	Settings.Inbox.Enabled = true
 	Settings.Internal.Enabled = true
