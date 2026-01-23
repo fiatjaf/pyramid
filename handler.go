@@ -17,6 +17,7 @@ import (
 	"fiatjaf.com/nostr/nip05"
 	"fiatjaf.com/nostr/nip19"
 
+	"github.com/fiatjaf/pyramid/blossom"
 	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/inbox"
@@ -547,6 +548,9 @@ func setupDomain(domain string) error {
 	moderated.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Moderated.HTTPBasePath
 	popular.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Popular.HTTPBasePath
 	uppermost.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Uppermost.HTTPBasePath
+
+	blossom.BlobIndex.ServiceURL = global.Settings.HTTPScheme() + global.Settings.Domain
+	blossom.Server.ServiceURL = blossom.BlobIndex.ServiceURL
 
 	go restartSoon()
 	return nil

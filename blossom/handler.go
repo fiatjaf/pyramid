@@ -17,22 +17,20 @@ import (
 )
 
 var (
-	log        = global.Log.With().Str("module", "blossom").Logger()
-	Handler    = &MuxHandler{}
-	hostRelay  *khatru.Relay // hack to get the main relay object into here
-	blobDir    string
-	BlobIndex  blossom.EventStoreBlobIndexWrapper
-	Server     *blossom.BlossomServer
-	serviceURL string
+	log       = global.Log.With().Str("module", "blossom").Logger()
+	Handler   = &MuxHandler{}
+	hostRelay *khatru.Relay // hack to get the main relay object into here
+	blobDir   string
+	BlobIndex blossom.EventStoreBlobIndexWrapper
+	Server    *blossom.BlossomServer
 )
 
 func Init(relay *khatru.Relay) {
 	hostRelay = relay
 	blobDir = filepath.Join(global.S.DataPath, "blossom-files")
-	serviceURL = global.Settings.HTTPScheme() + global.Settings.Domain
 	BlobIndex = blossom.EventStoreBlobIndexWrapper{
 		Store:      global.IL.Blossom,
-		ServiceURL: serviceURL,
+		ServiceURL: global.Settings.HTTPScheme() + global.Settings.Domain,
 	}
 
 	if !global.Settings.Blossom.Enabled {
@@ -54,7 +52,7 @@ func setupEnabled() {
 		return
 	}
 
-	Server = blossom.New(hostRelay, serviceURL)
+	Server = blossom.New(hostRelay, BlobIndex.ServiceURL)
 	Server.Store = BlobIndex
 
 	Server.StoreBlob = func(ctx context.Context, sha256 string, ext string, body []byte) error {
