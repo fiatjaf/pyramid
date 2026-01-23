@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	contentField   = "c"
-	kindField      = "k"
-	createdAtField = "a"
-	pubkeyField    = "p"
+	labelContentField   = "c"
+	labelKindField      = "k"
+	labelCreatedAtField = "a"
+	labelPubkeyField    = "p"
 )
 
 var Search struct {
@@ -66,7 +66,7 @@ func (b *BleveIndex) IndexEvent(event nostr.Event) error {
 }
 
 func (b *BleveIndex) Close() {
-	if b.index != nil {
+	if b != nil && b.index != nil {
 		b.index.Close()
 	}
 }
@@ -84,6 +84,27 @@ func (b *BleveIndex) Init() error {
 	if err == bleve.ErrorIndexPathDoesNotExist {
 		// create new index with default mapping
 		mapping := bleveMapping.NewIndexMapping()
+		mapping.DefaultMapping.Dynamic = false
+		doc := bleveMapping.NewDocumentStaticMapping()
+
+		contentField := bleveMapping.NewTextFieldMapping()
+		contentField.Store = false
+		doc.AddFieldMappingsAt(labelContentField, contentField)
+
+		authorField := bleveMapping.NewKeywordFieldMapping()
+		authorField.Store = false
+		doc.AddFieldMappingsAt(labelPubkeyField, authorField)
+
+		kindField := bleveMapping.NewNumericFieldMapping()
+		kindField.Store = false
+		doc.AddFieldMappingsAt(labelKindField, kindField)
+
+		timestampField := bleveMapping.NewDateTimeFieldMapping()
+		timestampField.Store = false
+		doc.AddFieldMappingsAt(labelCreatedAtField, timestampField)
+
+		mapping.AddDocumentMapping("event", doc)
+
 		index, err = bleve.New(b.Path, mapping)
 		if err != nil {
 			return fmt.Errorf("error creating index: %w", err)
@@ -106,14 +127,12 @@ func (b *BleveIndex) CountEvents(filter nostr.Filter) (uint32, error) {
 }
 
 func (b *BleveIndex) SaveEvent(evt nostr.Event) error {
-	doc := map[string]interface{}{
-		contentField:   evt.Content,
-		kindField:      strconv.Itoa(int(evt.Kind)),
-		pubkeyField:    evt.PubKey.Hex()[56:],
-		createdAtField: float64(evt.CreatedAt),
-	}
-
-	if err := b.index.Index(evt.ID.Hex(), doc); err != nil {
+	if err := b.index.Index(evt.ID.Hex(), map[string]any{
+		labelContentField:   evt.Content,
+		labelKindField:      evt.Kind,
+		labelPubkeyField:    evt.PubKey.Hex()[56:],
+		labelCreatedAtField: evt.CreatedAt.Time(),
+	}); err != nil {
 		return fmt.Errorf("failed to index '%s' document: %w", evt.ID, err)
 	}
 
@@ -166,7 +185,7 @@ func (b *BleveIndex) QueryEvents(filter nostr.Filter, maxLimit int) iter.Seq[nos
 		}
 
 		searchQ := bleve.NewMatchQuery(filter.Search)
-		searchQ.SetField(contentField)
+		searchQ.SetField(labelContentField)
 		var q bleveQuery.Query = searchQ
 
 		conjQueries := []bleveQuery.Query{searchQ}
@@ -175,7 +194,7 @@ func (b *BleveIndex) QueryEvents(filter nostr.Filter, maxLimit int) iter.Seq[nos
 			eitherKind := bleve.NewDisjunctionQuery()
 			for _, kind := range filter.Kinds {
 				kindQ := bleve.NewTermQuery(strconv.Itoa(int(kind)))
-				kindQ.SetField(kindField)
+				kindQ.SetField(labelKindField)
 				eitherKind.AddQuery(kindQ)
 			}
 			conjQueries = append(conjQueries, eitherKind)
@@ -188,7 +207,7 @@ func (b *BleveIndex) QueryEvents(filter nostr.Filter, maxLimit int) iter.Seq[nos
 					continue
 				}
 				pubkeyQ := bleve.NewTermQuery(pubkey.Hex()[56:])
-				pubkeyQ.SetField(pubkeyField)
+				pubkeyQ.SetField(labelPubkeyField)
 				eitherPubkey.AddQuery(pubkeyQ)
 			}
 			conjQueries = append(conjQueries, eitherPubkey)
@@ -206,7 +225,7 @@ func (b *BleveIndex) QueryEvents(filter nostr.Filter, maxLimit int) iter.Seq[nos
 				max = &maxVal
 			}
 			dateRangeQ := bleve.NewNumericRangeInclusiveQuery(min, max, nil, nil)
-			dateRangeQ.SetField(createdAtField)
+			dateRangeQ.SetField(labelCreatedAtField)
 			conjQueries = append(conjQueries, dateRangeQ)
 		}
 
