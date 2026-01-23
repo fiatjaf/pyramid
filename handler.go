@@ -25,6 +25,7 @@ import (
 	"github.com/fiatjaf/pyramid/moderated"
 	"github.com/fiatjaf/pyramid/popular"
 	"github.com/fiatjaf/pyramid/pyramid"
+	"github.com/fiatjaf/pyramid/search"
 	"github.com/fiatjaf/pyramid/uppermost"
 )
 
@@ -754,4 +755,45 @@ func nip05Handler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	json.NewEncoder(w).Encode(resp)
+}
+
+func searchReindexHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", http.StatusForbidden)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// check if search is enabled
+	if !global.Settings.Search.Enable {
+		http.Error(w, "search is not enabled", http.StatusBadRequest)
+		return
+	}
+
+	// close existing index
+	search.End()
+
+	// delete existing index directory
+	indexPath := search.Main.Path
+	if err := os.RemoveAll(indexPath); err != nil {
+		http.Error(w, fmt.Sprintf("failed to delete existing index: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// reinitialize the search index
+	if err := search.Init(); err != nil {
+		http.Error(w, fmt.Sprintf("failed to initialize new index: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// perform the reindexing
+	search.Reindex()
+
+	// Redirect back to settings page
+	http.Redirect(w, r, "/settings", 302)
 }

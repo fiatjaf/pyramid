@@ -1,10 +1,11 @@
-package global
+package search
 
 import (
 	"errors"
 	"fmt"
 	"iter"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"sync"
 
@@ -13,6 +14,7 @@ import (
 	bleve "github.com/blevesearch/bleve/v2"
 	bleveMapping "github.com/blevesearch/bleve/v2/mapping"
 	bleveQuery "github.com/blevesearch/bleve/v2/search/query"
+	"github.com/fiatjaf/pyramid/global"
 )
 
 const (
@@ -22,9 +24,12 @@ const (
 	labelPubkeyField    = "p"
 )
 
-var Search struct {
+var (
+	log  = global.Log.With().Str("relay", "grasp").Logger()
 	Main *BleveIndex
-}
+
+	indexableKinds = []nostr.Kind{1, 11, 24, 1111, 30023, 30818}
+)
 
 var _ eventstore.Store = (*BleveIndex)(nil)
 
@@ -40,23 +45,36 @@ type BleveIndex struct {
 	index bleve.Index
 }
 
-func InitSearch() error {
-	Search.Main = &BleveIndex{
-		Path:          filepath.Join(S.DataPath, "search/main"),
-		RawEventStore: IL.Main,
+func Init() error {
+	Main = &BleveIndex{
+		Path:          filepath.Join(global.S.DataPath, "search/main"),
+		RawEventStore: global.IL.Main,
 	}
-	if err := Search.Main.Init(); err != nil {
+	if err := Main.Init(); err != nil {
 		return fmt.Errorf("failed to init search database: %w", err)
 	}
 
 	return nil
 }
 
+func End() {
+	Main.Close()
+}
+
+func Reindex() {
+	for event := range global.IL.Main.QueryEvents(nostr.Filter{Kinds: indexableKinds}, 10_000_000) {
+		if err := Main.IndexEvent(event); err != nil {
+			log.Warn().Err(err).Stringer("event", event).Msg("failed to index event")
+		} else {
+			log.Debug().Str("event", event.ID.Hex()).Msg("indexed event")
+		}
+	}
+}
+
 func (b *BleveIndex) IndexEvent(event nostr.Event) error {
-	if b == Search.Main {
-		switch event.Kind {
-		case 1, 11, 24, 1111, 30023, 30818:
-			if len(event.Content) > 45 {
+	if b == Main {
+		if len(event.Content) > 45 {
+			if slices.Contains(indexableKinds, event.Kind) {
 				return b.SaveEvent(event)
 			}
 		}

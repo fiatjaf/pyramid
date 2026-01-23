@@ -20,6 +20,7 @@ import (
 	"github.com/fiatjaf/pyramid/groups"
 	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/pyramid"
+	"github.com/fiatjaf/pyramid/search"
 )
 
 func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, msg string) {
@@ -186,7 +187,7 @@ func rejectInviteRequestsNonAuthed(ctx context.Context, filter nostr.Filter) (bo
 // "-" plus the specific paywall "t" tag) to check if the querier is eligible for reading.
 func queryMain(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 	if filter.Search != "" && global.Settings.Search.Enable {
-		return global.Search.Main.QueryEvents(filter, 40)
+		return search.Main.QueryEvents(filter, 40)
 	}
 
 	return func(yield func(nostr.Event) bool) {
@@ -414,7 +415,7 @@ func virtualInviteValidationEvent(inviter nostr.PubKey) nostr.Event {
 }
 
 func deleteFromMain(id nostr.ID) error {
-	if err := global.Search.Main.DeleteEvent(id); err != nil {
+	if err := search.Main.DeleteEvent(id); err != nil {
 		return err
 	}
 
@@ -427,7 +428,7 @@ func saveToMain(event nostr.Event) error {
 	}
 
 	if global.Settings.Search.Enable {
-		return global.Search.Main.IndexEvent(event)
+		return search.Main.IndexEvent(event)
 	} else {
 		return nil
 	}

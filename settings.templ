@@ -247,7 +247,6 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					requireCurrentTimestamp: ` + fmt.Sprint(global.Settings.RequireCurrentTimestamp) + `,
 					enableOTS: ` + fmt.Sprint(global.Settings.EnableOTS) + `,
 					acceptScheduledEvents: ` + fmt.Sprint(global.Settings.AcceptScheduledEvents) + `,
-					enableSearch: ` + fmt.Sprint(global.Settings.Search.Enable) + `,
 					browseUri: ` + global.JSONString(global.Settings.BrowseURI) + `,
 					linkUrl: ` + global.JSONString(global.Settings.LinkURL) + `,
 					saved: false,
@@ -473,12 +472,10 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				</div>
 			</form>
 			<!-- NIP-50 Search Section -->
-			<form
-				method="POST"
-				action="/settings"
-				class="space-y-6 mt-8"
+			<div
 				x-data={ `{
 					saved: false,
+					enableSearch: ` + fmt.Sprint(global.Settings.Search.Enable) + `,
 					async saveSettings() {
 						const response = await fetch(this.$refs.form.action, {
 							method: 'POST',
@@ -490,31 +487,47 @@ templ settingsPage(loggedUser nostr.PubKey) {
 						}
 					}
 				}` }
-				x-ref="form"
 			>
-				@layout.SubSectionTitle("full-text search")
-				<div class="flex items-center">
-					<input
-						type="checkbox"
-						name="enable_search"
-						id="enable_search"
-						class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
-						x-model="enableSearch"
-						@change="saveSettings()"
-					/>
-					<label for="enable_search" class="ml-2 text-sm dark:text-stone-300">
-						enable NIP-50 full-text search
-					</label>
-					<input type="hidden" name="enable_search" value="off"/>
-				</div>
-				<div
-					x-show="saved"
-					x-transition
-					class="text-sm text-green-600 dark:text-green-400 font-medium"
+				<form
+					method="POST"
+					action="/settings"
+					class="space-y-6 mt-8"
+					x-ref="form"
 				>
-					saved!
+					@layout.SubSectionTitle("full-text search")
+					<div class="flex items-center">
+						<input
+							type="checkbox"
+							name="enable_search"
+							id="enable_search"
+							class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
+							x-model="enableSearch"
+							@change="saveSettings()"
+						/>
+						<label for="enable_search" class="ml-2 text-sm dark:text-stone-300">
+							enable NIP-50 full-text search
+						</label>
+						<input type="hidden" name="enable_search" value="off"/>
+					</div>
+					<div
+						x-show="saved"
+						x-transition
+						class="text-sm text-green-600 dark:text-green-400 font-medium"
+					>
+						saved!
+					</div>
+				</form>
+				<div class="mt-4" x-show="enableSearch">
+					<form method="POST" action="/search/reindex" onsubmit="return confirm('this will delete the current search index and rebuild it from scratch. this may take a while for large databases. continue?');">
+						<button
+							type="submit"
+							class="cursor-pointer px-6 py-2 rounded-lg font-semibold bg-stone-700 hover:bg-stone-800 dark:bg-stone-600 dark:hover:bg-stone-500 text-white shadow-md hover:shadow-lg"
+						>
+							reindex everything
+						</button>
+					</form>
 				</div>
-			</form>
+			</div>
 			<!-- FTP Server Settings Section -->
 			<form
 				method="POST"

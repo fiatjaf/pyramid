@@ -112,12 +112,6 @@ func Init() error {
 		return fmt.Errorf("failed to ensure 'blossom': %w", err)
 	}
 
-	if Settings.Search.Enable {
-		if err := InitSearch(); err != nil {
-			return fmt.Errorf("failed to initialized search: %w", err)
-		}
-	}
-
 	// paywall cache
 	go paywallCacheCleanup()
 
@@ -126,7 +120,6 @@ func Init() error {
 
 func End() {
 	MMMM.Close()
-	Search.Main.Close()
 }
 
 var IL struct {

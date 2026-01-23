@@ -33,6 +33,7 @@ import (
 	"github.com/fiatjaf/pyramid/moderated"
 	"github.com/fiatjaf/pyramid/popular"
 	"github.com/fiatjaf/pyramid/pyramid"
+	"github.com/fiatjaf/pyramid/search"
 	"github.com/fiatjaf/pyramid/uppermost"
 )
 
@@ -49,7 +50,14 @@ func main() {
 		log.Fatal().Err(err).Msg("couldn't initialize")
 		return
 	}
+	if global.Settings.Search.Enable {
+		if err := search.Init(); err != nil {
+			log.Fatal().Err(err).Msg("couldn't initialize search")
+			return
+		}
+	}
 	defer global.End()
+	defer search.End()
 
 	// stuff we have to initialize
 	fillInRelevantUsersMapping()
@@ -103,6 +111,7 @@ func main() {
 	// init basic http routes
 	relay.Router().HandleFunc("/action", actionHandler)
 	relay.Router().HandleFunc("/settings", settingsHandler)
+	relay.Router().HandleFunc("/search/reindex", searchReindexHandler)
 	relay.Router().HandleFunc("/u", memberPageHandler)
 	relay.Router().HandleFunc("/u/{pubkey}", memberPageHandler)
 	relay.Router().HandleFunc("/u/sync", syncHandler)

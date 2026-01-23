@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/search"
 )
 
 // this is set at build time to something else based on git
@@ -153,6 +154,7 @@ func performUpdateInPlace() error {
 	// this call does not return if successful, therefore we must perform a graceful deinitialization of all things
 	cancelStartContext(updating)
 	global.End()
+	search.End()
 	err = syscall.Exec(absPath, append([]string{absPath}, os.Args[1:]...), os.Environ())
 
 	// if we reach here, exec failed
