@@ -9,6 +9,8 @@ import (
 	"unsafe"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/khatru"
+	"fiatjaf.com/nostr/nip11"
 	"fiatjaf.com/nostr/nip19"
 	"github.com/bep/debounce"
 )
@@ -49,4 +51,26 @@ func PubKeyFromInput(input string) nostr.PubKey {
 func JSONString(v any) string {
 	b, _ := json.Marshal(v)
 	return unsafe.String(unsafe.SliceData(b), len(b))
+}
+
+func CleanupRelay(relay *khatru.Relay) {
+	relay.ManagementAPI = khatru.RelayManagementAPI{}
+	relay.OverwriteRelayInformation = nil
+	relay.QueryStored = nil
+	relay.Count = nil
+	relay.StoreEvent = nil
+	relay.ReplaceEvent = nil
+	relay.DeleteEvent = nil
+	relay.Info = &nip11.RelayInformationDocument{
+		Software:      "https://github.com/fiatjaf/pyramid",
+		Version:       "n/a",
+		SupportedNIPs: []any{},
+	}
+	relay.OnRequest = nil
+	relay.OnConnect = nil
+	relay.OnEvent = nil
+	relay.OnEphemeralEvent = nil
+	relay.OnEventSaved = nil
+	relay.OnDisconnect = nil
+	relay.OnCount = nil
 }

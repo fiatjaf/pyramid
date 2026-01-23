@@ -21,6 +21,8 @@ var (
 )
 
 func Init() {
+	Relay = khatru.NewRelay()
+
 	if global.Settings.Uppermost.Enabled {
 		// relay enabled
 		setupEnabled()
@@ -31,18 +33,19 @@ func Init() {
 }
 
 func setupDisabled() {
-	Relay = khatru.NewRelay()
-	Relay.Router().HandleFunc("/"+global.Settings.Uppermost.HTTPBasePath+"/", func(w http.ResponseWriter, r *http.Request) {
+	global.CleanupRelay(Relay)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/"+global.Settings.Uppermost.HTTPBasePath+"/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		uppermostPage(loggedUser).Render(r.Context(), w)
 	})
-	Relay.Router().HandleFunc("POST /"+global.Settings.Uppermost.HTTPBasePath+"/enable", enableHandler)
+	mux.HandleFunc("POST /"+global.Settings.Uppermost.HTTPBasePath+"/enable", enableHandler)
+	Relay.SetRouter(mux)
 }
 
 func setupEnabled() {
 	db := global.IL.Uppermost
-
-	Relay = khatru.NewRelay()
 
 	Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Uppermost.HTTPBasePath
 
@@ -77,18 +80,18 @@ func setupEnabled() {
 		policies.NoSearchQueries,
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
 	)
-
 	Relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
-
 	Relay.OnEvent = func(ctx context.Context, evt nostr.Event) (bool, string) {
 		return true, "restricted: read-only relay"
 	}
 
-	Relay.Router().HandleFunc("/"+global.Settings.Uppermost.HTTPBasePath+"/", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/"+global.Settings.Uppermost.HTTPBasePath+"/", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		uppermostPage(loggedUser).Render(r.Context(), w)
 	})
-	Relay.Router().HandleFunc("POST /"+global.Settings.Uppermost.HTTPBasePath+"/disable", disableHandler)
+	mux.HandleFunc("POST /"+global.Settings.Uppermost.HTTPBasePath+"/disable", disableHandler)
+	Relay.SetRouter(mux)
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {
