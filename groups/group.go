@@ -47,7 +47,7 @@ func (s *GroupsState) NewGroup(id string) *Group {
 		Group: nip29.Group{
 			Address: nip29.GroupAddress{
 				ID:    id,
-				Relay: global.Settings.WSScheme() + s.Domain,
+				Relay: global.Settings.WSScheme() + global.Settings.Domain,
 			},
 			Roles: []*nip29.Role{
 				{

@@ -41,7 +41,6 @@ func setupDisabled() {
 
 func setupEnabled() {
 	State = NewGroupsState(Options{
-		Domain:    global.Settings.Domain,
 		DB:        global.IL.Groups,
 		SecretKey: global.Settings.RelayInternalSecretKey,
 		Broadcast: hostRelay.BroadcastEvent,

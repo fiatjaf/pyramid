@@ -17,7 +17,6 @@ const (
 )
 
 type GroupsState struct {
-	Domain string
 	Groups *xsync.MapOf[string, *Group]
 	DB     eventstore.Store
 
@@ -32,7 +31,6 @@ type GroupsState struct {
 }
 
 type Options struct {
-	Domain    string
 	DB        eventstore.Store
 	SecretKey nostr.SecretKey
 	Broadcast func(nostr.Event) int
@@ -45,7 +43,6 @@ func NewGroupsState(opts Options) *GroupsState {
 	groups := xsync.NewMapOf[string, *Group]()
 
 	state := &GroupsState{
-		Domain: opts.Domain,
 		Groups: groups,
 		DB:     opts.DB,
 
