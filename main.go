@@ -301,16 +301,6 @@ func main() {
 	relay.OnConnect = onConnect
 	relay.PreventBroadcast = preventBroadcast
 
-	relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 43)
-	if global.Settings.Search.Enable {
-		relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 50)
-	}
-	if global.Settings.Groups.Enabled {
-		relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 29)
-	}
-	if global.Settings.AcceptScheduledEvents {
-		relay.Info.SupportedNIPs = append(relay.Info.SupportedNIPs, 16)
-	}
 	relay.ManagementAPI.AllowPubKey = allowPubKeyHandler
 	relay.ManagementAPI.BanEvent = banEventHandler
 	relay.ManagementAPI.BanPubKey = banPubKeyHandler
@@ -326,11 +316,23 @@ func main() {
 	relay.ManagementAPI.BlockIP = blockIPHandler
 	relay.ManagementAPI.UnblockIP = unblockIPHandler
 	relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
+		// prevent flotilla from doing its negentropy here as it is incompatible with our groups approach
 		if strings.Contains(r.Header.Get("User-Agent"), "aiohttp") || strings.Contains(r.Referer(), "flotilla") {
 			if idx := slices.Index(info.SupportedNIPs, 77); idx != -1 {
 				info.SupportedNIPs[idx] = info.SupportedNIPs[len(info.SupportedNIPs)-1]
 				info.SupportedNIPs = info.SupportedNIPs[0 : len(info.SupportedNIPs)-1]
 			}
+		}
+
+		info.SupportedNIPs = append(info.SupportedNIPs, 43)
+		if global.Settings.Search.Enable {
+			info.SupportedNIPs = append(info.SupportedNIPs, 50)
+		}
+		if global.Settings.Groups.Enabled {
+			info.SupportedNIPs = append(info.SupportedNIPs, 29)
+		}
+		if global.Settings.AcceptScheduledEvents {
+			info.SupportedNIPs = append(info.SupportedNIPs, 16)
 		}
 
 		pk := global.Settings.RelayInternalSecretKey.Public()
