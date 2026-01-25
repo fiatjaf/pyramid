@@ -83,9 +83,7 @@ func Init() error {
 		return fmt.Errorf("failed to init search database: %w", err)
 	}
 
-	detector = lingua.NewLanguageDetectorBuilder().
-		FromLanguages(languages...).
-		Build()
+	BuildLanguageDetector()
 
 	return nil
 }
@@ -102,6 +100,23 @@ func Reindex() {
 			log.Debug().Str("event", event.ID.Hex()).Msg("indexed event")
 		}
 	}
+}
+
+func BuildLanguageDetector() {
+	languages := make([]lingua.Language, 0, 2)
+
+	for _, code := range global.Settings.Search.Languages {
+		isoCode := lingua.GetIsoCode639_1FromValue(code)
+		lang := lingua.GetLanguageFromIsoCode639_1(isoCode)
+		languages = append(languages, lang)
+	}
+	if len(languages) == 0 {
+		languages = append(languages, lingua.English)
+	}
+
+	detector = lingua.NewLanguageDetectorBuilder().
+		FromLanguages(languages...).
+		Build()
 }
 
 func (b *BleveIndex) IndexEvent(event nostr.Event) error {
@@ -259,16 +274,33 @@ func (b *BleveIndex) QueryEvents(filter nostr.Filter, maxLimit int) iter.Seq[nos
 		}
 
 		// use query parser for complex search syntax
-		searchQ, exactMatches, err := parse(filter.Search)
+		languages := []string{"en"}
+		if len(global.Settings.Search.Languages) > 0 {
+			languages = global.Settings.Search.Languages
+		}
+		contentQueries := make([]bleveQuery.Query, 0, len(languages))
+
+		// search all the language fields we have configured
+		searchQ, exactMatches, err := parse(filter.Search, labelContentField+"_"+languages[0])
 		if err != nil {
 			// fallback to simple match query on parse error
-			log.Debug().Err(err).Str("search", filter.Search).Msg("parse error, falling back to simple match")
-			searchQ = bleve.NewMatchQuery(filter.Search)
+			log.Warn().Err(err).Str("search", filter.Search).Msg("parse error, falling back to simple match")
+			for _, code := range languages {
+				match := bleve.NewMatchQuery(filter.Search)
+				match.SetField(labelContentField + "_" + code)
+				contentQueries = append(contentQueries, match)
+			}
+		} else {
+			contentQueries = append(contentQueries, searchQ)
+			for _, code := range languages[1:] {
+				searchQ, _, _ := parse(filter.Search, labelContentField+"_"+code)
+				contentQueries = append(contentQueries, searchQ)
+			}
 		}
-		var q bleveQuery.Query = searchQ
+		var q bleveQuery.Query = bleveQuery.NewDisjunctionQuery(contentQueries)
 
-		conjQueries := []bleveQuery.Query{searchQ}
-
+		// gather other fields from the filter
+		conjQueries := []bleveQuery.Query{}
 		if len(filter.Kinds) > 0 {
 			eitherKind := bleve.NewDisjunctionQuery()
 			for _, kind := range filter.Kinds {
@@ -308,13 +340,15 @@ func (b *BleveIndex) QueryEvents(filter nostr.Filter, maxLimit int) iter.Seq[nos
 			conjQueries = append(conjQueries, dateRangeQ)
 		}
 
-		if len(conjQueries) > 1 {
-			q = bleve.NewConjunctionQuery(conjQueries...)
+		if len(conjQueries) > 0 {
+			conjQueries = append(conjQueries, q)
+			q = bleveQuery.NewConjunctionQuery(conjQueries)
 		}
 
 		req := bleve.NewSearchRequest(q)
 		req.Size = maxLimit
 		req.From = 0
+		req.Explain = true
 
 		result, err := b.index.Search(req)
 		if err != nil {

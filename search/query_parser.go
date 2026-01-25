@@ -32,7 +32,7 @@ type Parser struct {
 	field string
 }
 
-func parse(input string) (bleveQuery.Query, []string, error) {
+func parse(input string, field string) (bleveQuery.Query, []string, error) {
 	lexer := NewLexer(input)
 	p := &Parser{
 		lexer: lexer,
@@ -58,6 +58,7 @@ func parse(input string) (bleveQuery.Query, []string, error) {
 			if len(currentWords) > 0 {
 				match := bleve.NewMatchQuery(strings.Join(currentWords, " "))
 				match.SetOperator(bleveQuery.MatchQueryOperatorAnd)
+				match.SetField(field)
 				if negated {
 					fmt.Println("    ADD MUST NOT", currentWords, []any{curr})
 					curr.AddMustNot(match)
@@ -96,6 +97,7 @@ func parse(input string) (bleveQuery.Query, []string, error) {
 		} else if len(currentWords) > 0 {
 			match := bleve.NewMatchQuery(strings.Join(currentWords, " "))
 			match.SetOperator(bleveQuery.MatchQueryOperatorAnd)
+			match.SetField(field)
 			if negated {
 				fmt.Println("    ADD MUST NOT", currentWords, []any{curr})
 				curr.AddMustNot(match)
@@ -122,6 +124,7 @@ func parse(input string) (bleveQuery.Query, []string, error) {
 			if len(currentWords) > 0 {
 				match := bleve.NewMatchQuery(strings.Join(currentWords, " "))
 				match.SetOperator(bleveQuery.MatchQueryOperatorAnd)
+				match.SetField(field)
 				if negated {
 					fmt.Println("    ADD MUST NOT", currentWords, []any{curr})
 					curr.AddMustNot(match)
@@ -175,6 +178,7 @@ func parse(input string) (bleveQuery.Query, []string, error) {
 				// if this is not followed by a "(" or "NOT (" consider the follow next word as the only parameter
 				other := bleve.NewMatchQuery(next.Value)
 				other.SetOperator(bleveQuery.MatchQueryOperatorAnd)
+				other.SetField(field)
 				or := bleve.NewDisjunctionQuery()
 				or.AddQuery(curr)
 				or.AddQuery(other)
@@ -189,6 +193,7 @@ func parse(input string) (bleveQuery.Query, []string, error) {
 				// if this is not followed by a "(" consider the follow next word as the only parameter
 				other := bleve.NewMatchQuery(next.Value)
 				other.SetOperator(bleveQuery.MatchQueryOperatorAnd)
+				other.SetField(field)
 				and := bleve.NewConjunctionQuery()
 				and.AddQuery(curr)
 				and.AddQuery(other)
@@ -203,6 +208,7 @@ func parse(input string) (bleveQuery.Query, []string, error) {
 				// if this is not followed by a "(" or "NOT (" consider the follow next word as the only parameter
 				other := bleve.NewMatchQuery(next.Value)
 				other.SetOperator(bleveQuery.MatchQueryOperatorAnd)
+				other.SetField(field)
 				curr.AddMustNot(other)
 				fmt.Println("    COMBINE NOT", []any{curr}, "~", next.Value)
 			} else {

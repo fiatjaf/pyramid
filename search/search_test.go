@@ -7,6 +7,7 @@ import (
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/eventstore/slicestore"
+	"github.com/fiatjaf/pyramid/global"
 	"github.com/pemistahl/lingua-go"
 	"github.com/stretchr/testify/require"
 )
@@ -22,6 +23,12 @@ func TestSearch(t *testing.T) {
 
 	db := &slicestore.SliceStore{}
 	db.Init()
+
+	global.Settings.Search.Languages = []string{
+		"en",
+		"pt",
+	}
+	BuildLanguageDetector()
 
 	index := &BleveIndex{
 		Path:          filepath.Join(tempDir, "test_index"),
@@ -79,6 +86,13 @@ func TestSearch(t *testing.T) {
 		expected int
 	}{
 		{
+			name: "search for 'gold'",
+			filter: nostr.Filter{
+				Search: "gold",
+			},
+			expected: 3, // all events mention gold
+		},
+		{
 			name: "search for 'treasure'",
 			filter: nostr.Filter{
 				Search: "treasure",
@@ -86,11 +100,11 @@ func TestSearch(t *testing.T) {
 			expected: 3, // all events mention treasure
 		},
 		{
-			name: "search for 'gold'",
+			name: "search for 'emerald' together with 'astronomical'",
 			filter: nostr.Filter{
-				Search: "gold",
+				Search: "astronomical emeralds",
 			},
-			expected: 3, // all events mention gold
+			expected: 0, // no events mention emeralds together with astronomical
 		},
 		{
 			name: "search for 'secret map'",
@@ -100,19 +114,19 @@ func TestSearch(t *testing.T) {
 			expected: 1, // only one event mentions secret map
 		},
 		{
-			name: "search for 'emerald'",
-			filter: nostr.Filter{
-				Search: "+astronomical +emeralds",
-			},
-			expected: 0, // no events mention emeralds together with astronomical
-		},
-		{
 			name: "search with kind filter",
 			filter: nostr.Filter{
-				Search: "treasure guards",
+				Search: "gold",
 				Kinds:  []nostr.Kind{1},
 			},
 			expected: 2, // only two events are kind 1
+		},
+		{
+			name: "search in portuguese",
+			filter: nostr.Filter{
+				Search: "tesouro",
+			},
+			expected: 1,
 		},
 		{
 			name: "search for 'nonexistent'",

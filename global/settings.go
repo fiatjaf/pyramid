@@ -42,7 +42,8 @@ type UserSettings struct {
 	EnableOTS               bool   `json:"enable_ots"`
 	AcceptScheduledEvents   bool   `json:"accept_scheduled_events"`
 	Search                  struct {
-		Enable bool `json:"enable"`
+		Enable    bool     `json:"enable"`
+		Languages []string `json:"languages"`
 	} `json:"search"`
 
 	Paywall struct {

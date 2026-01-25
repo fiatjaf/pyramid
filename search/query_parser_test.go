@@ -14,11 +14,11 @@ func TestParseQuery(t *testing.T) {
 	require.NoError(t, err)
 
 	docs := []map[string]interface{}{
-		{"id": "1", "content": "I like fruit especially banana and strawberry"},
-		{"id": "2", "content": "I like fruit like apples and oranges"},
-		{"id": "3", "content": "I like vegetables but not fruit"},
-		{"id": "4", "content": "Banana bread is delicious"},
-		{"id": "5", "content": "Strawberry jam and banana smoothie"},
+		{"id": "1", "phrase": "I like fruit especially banana and strawberry"},
+		{"id": "2", "phrase": "I like fruit like apples and oranges"},
+		{"id": "3", "phrase": "I like vegetables but not fruit"},
+		{"id": "4", "phrase": "Banana bread is delicious"},
+		{"id": "5", "phrase": "Strawberry jam and banana smoothie"},
 	}
 
 	for _, doc := range docs {
@@ -42,7 +42,7 @@ func TestParseQuery(t *testing.T) {
 	}
 
 	for _, test := range testQueries {
-		query, exactMatches, err := parse(test.query)
+		query, exactMatches, err := parse(test.query, "phrase")
 		require.NoError(t, err)
 
 		require.Equal(t, test.exactMatches, exactMatches)
