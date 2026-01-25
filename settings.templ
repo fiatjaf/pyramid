@@ -20,7 +20,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				@layout.LandlubberButton("")
 			</div>
 			<!-- relay metadata -->
-			@layout.RelayMetadata("main",
+			@layout.RelayMetadata(global.RelayMain,
 				global.Settings.RelayName, global.Settings.RelayDescription, global.Settings.RelayIcon,
 				global.Settings.Pinned)
 			<!-- theme colors -->

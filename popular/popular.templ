@@ -36,7 +36,7 @@ templ popularPage(loggedUser nostr.PubKey) {
 				</a>
 			}
 			if pyramid.IsRoot(loggedUser) {
-				@layout.SubRelaySettings("popular", global.Settings.Popular.Enabled, global.Settings.Popular.Name, global.Settings.Popular.Description, global.Settings.Popular.Icon, global.Settings.Popular.Pinned, global.Settings.Popular.HTTPBasePath) {
+				@layout.SubRelaySettings(global.RelayPopular, global.Settings.Popular.Enabled, global.Settings.Popular.Name, global.Settings.Popular.Description, global.Settings.Popular.Icon, global.Settings.Popular.Pinned, global.Settings.Popular.HTTPBasePath) {
 					<details>
 						<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">threshold</summary>
 						<form

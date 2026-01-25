@@ -68,10 +68,10 @@ func setupEnabled() {
 	}
 
 	// Cache pinned event at startup
-	global.CachePinnedEvent("moderated")
+	global.CachePinnedEvent(global.RelayModerated)
 
 	// use custom QueryStored with pinned event support
-	Relay.QueryStored = global.QueryStoredWithPinned("moderated")
+	Relay.QueryStored = global.QueryStoredWithPinned(global.RelayModerated)
 	Relay.Count = func(ctx context.Context, filter nostr.Filter) (uint32, error) {
 		return global.IL.Moderated.CountEvents(filter)
 	}

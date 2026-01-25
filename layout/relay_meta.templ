@@ -7,7 +7,7 @@ import (
 )
 
 templ SubRelaySettings(
-	relayId string,
+	relayId global.RelayID,
 	enabled bool,
 	name, description, icon string,
 	pinned nostr.ID,
@@ -79,7 +79,7 @@ templ SubRelaySettings(
 	</div>
 }
 
-templ RelayMetadata(relayId string, name, description, icon string, pinned nostr.ID) {
+templ RelayMetadata(relayId global.RelayID, name, description, icon string, pinned nostr.ID) {
 	<div
 		class="space-y-6"
 		x-data={ `{

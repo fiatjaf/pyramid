@@ -10,25 +10,25 @@ import (
 )
 
 // QueryStoredWithPinned is a custom QueryStored function that returns pinned events first when that makes sense
-func QueryStoredWithPinned(relayId string) func(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
+func QueryStoredWithPinned(relayId RelayID) func(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 	return func(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 		var store *mmm.IndexingLayer
 		var get func() *nostr.Event
 
 		switch relayId {
-		case "internal":
+		case RelayInternal:
 			store = IL.Internal
 			get = func() *nostr.Event { return PinnedCache.Internal }
-		case "favorites":
+		case RelayFavorites:
 			store = IL.Favorites
 			get = func() *nostr.Event { return PinnedCache.Favorites }
-		case "popular":
+		case RelayPopular:
 			store = IL.Popular
 			get = func() *nostr.Event { return PinnedCache.Popular }
-		case "uppermost":
+		case RelayUppermost:
 			store = IL.Uppermost
 			get = func() *nostr.Event { return PinnedCache.Uppermost }
-		case "moderated":
+		case RelayModerated:
 			store = IL.Moderated
 			get = func() *nostr.Event { return PinnedCache.Moderated }
 		}
@@ -61,43 +61,43 @@ func QueryStoredWithPinned(relayId string) func(ctx context.Context, filter nost
 	}
 }
 
-func CachePinnedEvent(relayId string) {
+func CachePinnedEvent(relayId RelayID) {
 	var store *mmm.IndexingLayer
 	var pinnedID nostr.ID
 	var set func(*nostr.Event)
 
 	switch relayId {
-	case "main":
+	case RelayMain:
 		store = IL.Main
 		set = func(evt *nostr.Event) {
 			PinnedCache.Main = evt
 		}
 		pinnedID = Settings.Pinned
-	case "internal":
+	case RelayInternal:
 		store = IL.Internal
 		set = func(evt *nostr.Event) {
 			PinnedCache.Internal = evt
 		}
 		pinnedID = Settings.Internal.Pinned
-	case "favorites":
+	case RelayFavorites:
 		store = IL.Favorites
 		set = func(evt *nostr.Event) {
 			PinnedCache.Favorites = evt
 		}
 		pinnedID = Settings.Favorites.Pinned
-	case "popular":
+	case RelayPopular:
 		store = IL.Popular
 		set = func(evt *nostr.Event) {
 			PinnedCache.Popular = evt
 		}
 		pinnedID = Settings.Popular.Pinned
-	case "uppermost":
+	case RelayUppermost:
 		store = IL.Uppermost
 		set = func(evt *nostr.Event) {
 			PinnedCache.Uppermost = evt
 		}
 		pinnedID = Settings.Uppermost.Pinned
-	case "moderated":
+	case RelayModerated:
 		store = IL.Moderated
 		set = func(evt *nostr.Event) {
 			PinnedCache.Moderated = evt
@@ -113,7 +113,6 @@ func CachePinnedEvent(relayId string) {
 			break
 		}
 	}
-
 }
 
 var PinnedCache struct {

@@ -65,12 +65,12 @@ func setupEnabled() {
 	}
 
 	// cache pinned event at startup
-	global.CachePinnedEvent("favorites")
+	global.CachePinnedEvent(global.RelayFavorites)
 
 	Relay.UseEventstore(db, 500)
 
 	// use custom QueryStored with pinned event support
-	Relay.QueryStored = global.QueryStoredWithPinned("favorites")
+	Relay.QueryStored = global.QueryStoredWithPinned(global.RelayFavorites)
 
 	pk := global.Settings.RelayInternalSecretKey.Public()
 	Relay.Info.Self = &pk

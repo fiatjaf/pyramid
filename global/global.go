@@ -22,6 +22,26 @@ var (
 	Settings UserSettings
 )
 
+type RelayID string
+
+// String returns the string representation of RelayID
+func (r RelayID) String() string {
+	return string(r)
+}
+
+const (
+	RelayMain      RelayID = "main"
+	RelayInternal  RelayID = "internal"
+	RelayFavorites RelayID = "favorites"
+	RelayGroups    RelayID = "groups"
+	RelayInbox     RelayID = "inbox"
+	RelaySecret    RelayID = "secret"
+	RelayModerated RelayID = "moderated"
+	RelayPopular   RelayID = "popular"
+	RelayUppermost RelayID = "uppermost"
+	RelayBlossom   RelayID = "blossom"
+)
+
 var Log = zerolog.New(os.Stderr).Output(zerolog.ConsoleWriter{Out: os.Stdout}).With().Timestamp().Logger()
 
 func Init() error {

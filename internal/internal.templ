@@ -34,7 +34,7 @@ templ internalPage(loggedUser nostr.PubKey) {
 				</a>
 			}
 			if pyramid.IsRoot(loggedUser) {
-				@layout.SubRelaySettings("internal", global.Settings.Internal.Enabled, global.Settings.Internal.Name, global.Settings.Internal.Description, global.Settings.Internal.Icon, global.Settings.Internal.Pinned, global.Settings.Internal.HTTPBasePath)
+				@layout.SubRelaySettings(global.RelayInternal, global.Settings.Internal.Enabled, global.Settings.Internal.Name, global.Settings.Internal.Description, global.Settings.Internal.Icon, global.Settings.Internal.Pinned, global.Settings.Internal.HTTPBasePath)
 			}
 		</div>
 	}
