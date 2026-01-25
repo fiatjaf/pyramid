@@ -211,6 +211,7 @@ func loadUserSettings() error {
 		AcceptScheduledEvents:   true,
 	}
 	Settings.Search.Enable = false
+	Settings.Search.Languages = []string{"en"}
 
 	Settings.Inbox.Enabled = true
 	Settings.Internal.Enabled = true

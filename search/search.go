@@ -58,7 +58,7 @@ var (
 	Main *BleveIndex
 
 	indexableKinds = []nostr.Kind{0, 1, 11, 24, 1111, 30023, 30818}
-	languages      = []lingua.Language{lingua.GetLanguageFromIsoCode639_1(lingua.AR), lingua.GetLanguageFromIsoCode639_1(lingua.DA), lingua.GetLanguageFromIsoCode639_1(lingua.DE), lingua.GetLanguageFromIsoCode639_1(lingua.EN), lingua.GetLanguageFromIsoCode639_1(lingua.ES), lingua.GetLanguageFromIsoCode639_1(lingua.FA), lingua.GetLanguageFromIsoCode639_1(lingua.FI), lingua.GetLanguageFromIsoCode639_1(lingua.FR), lingua.GetLanguageFromIsoCode639_1(lingua.HI), lingua.GetLanguageFromIsoCode639_1(lingua.HR), lingua.GetLanguageFromIsoCode639_1(lingua.HU), lingua.GetLanguageFromIsoCode639_1(lingua.IT), lingua.GetLanguageFromIsoCode639_1(lingua.NL), lingua.GetLanguageFromIsoCode639_1(lingua.PL), lingua.GetLanguageFromIsoCode639_1(lingua.PT), lingua.GetLanguageFromIsoCode639_1(lingua.RO), lingua.GetLanguageFromIsoCode639_1(lingua.RU), lingua.GetLanguageFromIsoCode639_1(lingua.SV), lingua.GetLanguageFromIsoCode639_1(lingua.TR)}
+	Languages      = []lingua.Language{lingua.GetLanguageFromIsoCode639_1(lingua.AR), lingua.GetLanguageFromIsoCode639_1(lingua.DA), lingua.GetLanguageFromIsoCode639_1(lingua.DE), lingua.GetLanguageFromIsoCode639_1(lingua.EN), lingua.GetLanguageFromIsoCode639_1(lingua.ES), lingua.GetLanguageFromIsoCode639_1(lingua.FA), lingua.GetLanguageFromIsoCode639_1(lingua.FI), lingua.GetLanguageFromIsoCode639_1(lingua.FR), lingua.GetLanguageFromIsoCode639_1(lingua.HI), lingua.GetLanguageFromIsoCode639_1(lingua.HR), lingua.GetLanguageFromIsoCode639_1(lingua.HU), lingua.GetLanguageFromIsoCode639_1(lingua.IT), lingua.GetLanguageFromIsoCode639_1(lingua.NL), lingua.GetLanguageFromIsoCode639_1(lingua.PL), lingua.GetLanguageFromIsoCode639_1(lingua.PT), lingua.GetLanguageFromIsoCode639_1(lingua.RO), lingua.GetLanguageFromIsoCode639_1(lingua.RU), lingua.GetLanguageFromIsoCode639_1(lingua.SV), lingua.GetLanguageFromIsoCode639_1(lingua.TR)}
 	detector       lingua.LanguageDetector
 )
 
@@ -103,15 +103,17 @@ func Reindex() {
 }
 
 func BuildLanguageDetector() {
-	languages := make([]lingua.Language, 0, 2)
+	if len(global.Settings.Search.Languages) <= 1 {
+		detector = nil
+		return
+	}
+
+	languages := make([]lingua.Language, 0, len(global.Settings.Search.Languages))
 
 	for _, code := range global.Settings.Search.Languages {
 		isoCode := lingua.GetIsoCode639_1FromValue(code)
 		lang := lingua.GetLanguageFromIsoCode639_1(isoCode)
 		languages = append(languages, lang)
-	}
-	if len(languages) == 0 {
-		languages = append(languages, lingua.English)
 	}
 
 	detector = lingua.NewLanguageDetectorBuilder().
@@ -151,7 +153,7 @@ func (b *BleveIndex) Init() error {
 		mapping.DefaultMapping.Dynamic = false
 		doc := bleveMapping.NewDocumentStaticMapping()
 
-		for _, lang := range languages {
+		for _, lang := range Languages {
 			code := strings.ToLower(lang.IsoCode639_1().String())
 
 			contentField := bleveMapping.NewTextFieldMapping()
@@ -239,9 +241,19 @@ func (b *BleveIndex) SaveEvent(evt nostr.Event) error {
 		}
 	}
 
-	lang, ok := detector.DetectLanguageOf(content)
-	if !ok {
-		lang = lingua.English
+	var lang lingua.Language
+	if len(global.Settings.Search.Languages) == 1 {
+		// if only one language is configured, always use that language
+		isoCode := lingua.GetIsoCode639_1FromValue(global.Settings.Search.Languages[0])
+		lang = lingua.GetLanguageFromIsoCode639_1(isoCode)
+	} else {
+		// otherwise detect the language
+		var ok bool
+		lang, ok = detector.DetectLanguageOf(content)
+		if !ok {
+			isoCode := lingua.GetIsoCode639_1FromValue(global.Settings.Search.Languages[0])
+			lang = lingua.GetLanguageFromIsoCode639_1(isoCode)
+		}
 	}
 	doc[labelContentField+"_"+strings.ToLower(lang.IsoCode639_1().String())] = content
 

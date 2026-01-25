@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 
 	"fiatjaf.com/nostr"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
+	"github.com/fiatjaf/pyramid/search"
 )
 
 templ settingsPage(loggedUser nostr.PubKey) {
@@ -476,6 +479,18 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				x-data={ `{
 					saved: false,
 					enableSearch: ` + fmt.Sprint(global.Settings.Search.Enable) + `,
+					searchLanguages: ` + global.JSONString(global.Settings.Search.Languages) + `,
+					prevLanguages: ` + global.JSONString(global.Settings.Search.Languages) + `,
+					async saveSettings() {
+						const response = await fetch(this.$refs.form.action, {
+							method: 'POST',
+							body: new URLSearchParams(new FormData(this.$refs.form))
+						})
+						if (response.ok) {
+							this.saved = true;
+							setTimeout(() => this.saved = false, 2000)
+						}
+					},
 					async saveSettings() {
 						const response = await fetch(this.$refs.form.action, {
 							method: 'POST',
@@ -495,19 +510,42 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					x-ref="form"
 				>
 					@layout.SubSectionTitle("full-text search")
-					<div class="flex items-center">
-						<input
-							type="checkbox"
-							name="enable_search"
-							id="enable_search"
-							class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
-							x-model="enableSearch"
-							@change="saveSettings()"
-						/>
-						<label for="enable_search" class="ml-2 text-sm dark:text-stone-300">
-							enable NIP-50 full-text search
-						</label>
-						<input type="hidden" name="enable_search" value="off"/>
+					<div class="flex gap-8 items-start">
+						<div class="flex items-center">
+							<input
+								type="checkbox"
+								name="enable_search"
+								id="enable_search"
+								class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
+								x-model="enableSearch"
+								@change="saveSettings()"
+							/>
+							<label for="enable_search" class="ml-2 text-sm dark:text-stone-300">
+								enable NIP-50 full-text search
+							</label>
+							<input type="hidden" name="enable_search" value="off"/>
+						</div>
+						<div x-show="enableSearch" x-transition class="flex-1 max-w-md">
+							{{ selectedLanguages := global.Settings.Search.Languages }}
+							<label class="block text-sm font-medium mb-2 dark:text-stone-300">languages (current: { strings.Join(selectedLanguages, ", ") })</label>
+							<select
+								name="search_languages"
+								multiple
+								size="6"
+								class="w-full h-18 px-3 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+								x-ref="languageSelect"
+								@blur="saveSettings()"
+							>
+								for _, lang := range search.Languages {
+									{{ code := strings.ToLower(lang.IsoCode639_1().String()) }}
+									{{ name := lang.String() }}
+									<option value={ code } selected?={ slices.Contains(selectedLanguages, code) }>{ name }</option>
+								}
+							</select>
+							<p class="text-xs text-stone-500 dark:text-stone-400">
+								notes will be judged to be of one of these languages and indexed properly, ctrl+click to select multiple.
+							</p>
+						</div>
 					</div>
 					<div
 						x-show="saved"
@@ -517,6 +555,11 @@ templ settingsPage(loggedUser nostr.PubKey) {
 						saved!
 					</div>
 				</form>
+				<form
+					method="POST"
+					action="/settings"
+					class="hidden"
+				></form>
 				<div class="mt-4" x-show="enableSearch">
 					<form method="POST" action="/search/reindex" onsubmit="return confirm('this will delete the current search index and rebuild it from scratch. this may take a while for large databases. continue?');">
 						<button

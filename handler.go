@@ -27,6 +27,7 @@ import (
 	"github.com/fiatjaf/pyramid/pyramid"
 	"github.com/fiatjaf/pyramid/search"
 	"github.com/fiatjaf/pyramid/uppermost"
+	"github.com/pemistahl/lingua-go"
 )
 
 func inviteTreeHandler(w http.ResponseWriter, r *http.Request) {
@@ -129,6 +130,22 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.AcceptScheduledEvents = v[0] == "on"
 			case "enable_search":
 				global.Settings.Search.Enable = v[0] == "on"
+			case "search_languages":
+				if len(v) > 0 {
+					for _, code := range v {
+						isoCode := lingua.GetIsoCode639_1FromValue(code)
+						if isoCode == lingua.UnknownIsoCode639_1 {
+							http.Error(w, "invalid search language", 400)
+							return
+						}
+					}
+
+					global.Settings.Search.Languages = v
+				} else {
+					global.Settings.Search.Languages = []string{"en"}
+				}
+				// call BuildLanguageDetector() to rebuild with new languages
+				search.BuildLanguageDetector()
 			case "paywall_tag":
 				global.Settings.Paywall.Tag = v[0]
 			case "paywall_amount":
