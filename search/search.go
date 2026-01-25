@@ -248,8 +248,6 @@ func (b *BleveIndex) SaveEvent(evt nostr.Event) error {
 	// exact matching:
 	doc[labelReferencesField] = references
 
-	fmt.Println("::>", doc)
-
 	if err := b.index.Index(evt.ID.Hex(), doc); err != nil {
 		return fmt.Errorf("failed to index '%s' document: %w", evt.ID, err)
 	}

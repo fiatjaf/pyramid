@@ -1,7 +1,6 @@
 package search
 
 import (
-	"fmt"
 	"strings"
 
 	bleve "github.com/blevesearch/bleve/v2"
@@ -48,11 +47,9 @@ func parse(input string, field string) (bleveQuery.Query, []string, error) {
 	var lastOp TokenType = TokenAND // track last operator for parentheses
 
 	curr := bleve.NewBooleanQuery()
-	fmt.Println("\nINPUT:", input)
 
 	for {
 		token := p.lexer.NextToken()
-		fmt.Println("  TOKEN", token, []any{curr})
 
 		if token.Type == TokenEOF {
 			if len(currentWords) > 0 {
@@ -60,10 +57,8 @@ func parse(input string, field string) (bleveQuery.Query, []string, error) {
 				match.SetOperator(bleveQuery.MatchQueryOperatorAnd)
 				match.SetField(field)
 				if negated {
-					fmt.Println("    ADD MUST NOT", currentWords, []any{curr})
 					curr.AddMustNot(match)
 				} else {
-					fmt.Println("    ADD MUST", currentWords, []any{curr})
 					curr.AddMust(match)
 				}
 			}
@@ -99,10 +94,8 @@ func parse(input string, field string) (bleveQuery.Query, []string, error) {
 			match.SetOperator(bleveQuery.MatchQueryOperatorAnd)
 			match.SetField(field)
 			if negated {
-				fmt.Println("    ADD MUST NOT", currentWords, []any{curr})
 				curr.AddMustNot(match)
 			} else {
-				fmt.Println("    ADD MUST", currentWords, []any{curr})
 				curr.AddMust(match)
 			}
 			currentWords = currentWords[:0]
@@ -126,10 +119,8 @@ func parse(input string, field string) (bleveQuery.Query, []string, error) {
 				match.SetOperator(bleveQuery.MatchQueryOperatorAnd)
 				match.SetField(field)
 				if negated {
-					fmt.Println("    ADD MUST NOT", currentWords, []any{curr})
 					curr.AddMustNot(match)
 				} else {
-					fmt.Println("    ADD MUST", currentWords, []any{curr})
 					curr.AddMust(match)
 				}
 				currentWords = currentWords[:0]
@@ -148,14 +139,12 @@ func parse(input string, field string) (bleveQuery.Query, []string, error) {
 					or := bleve.NewDisjunctionQuery()
 					or.AddQuery(parent)
 					or.AddQuery(curr)
-					fmt.Println("    COMBINE OR", []any{parent}, "~", []any{curr}, []any{combined})
 					combined = or
 				case TokenAND:
 					and := bleve.NewConjunctionQuery()
 					and.AddQuery(parent)
 					and.AddQuery(curr)
 					combined = and
-					fmt.Println("    COMBINE AND", []any{parent}, "~", []any{curr}, "=>", []any{combined})
 				}
 
 				curr = bleve.NewBooleanQuery()
@@ -182,7 +171,6 @@ func parse(input string, field string) (bleveQuery.Query, []string, error) {
 				or := bleve.NewDisjunctionQuery()
 				or.AddQuery(curr)
 				or.AddQuery(other)
-				fmt.Println("    COMBINE OR", []any{curr}, "~", next.Value)
 				curr = bleve.NewBooleanQuery()
 				curr.AddMust(or)
 			} else {
@@ -197,7 +185,6 @@ func parse(input string, field string) (bleveQuery.Query, []string, error) {
 				and := bleve.NewConjunctionQuery()
 				and.AddQuery(curr)
 				and.AddQuery(other)
-				fmt.Println("    COMBINE AND", []any{curr}, "~", next.Value)
 				curr = bleve.NewBooleanQuery()
 				curr.AddMust(and)
 			} else {
@@ -210,7 +197,6 @@ func parse(input string, field string) (bleveQuery.Query, []string, error) {
 				other.SetOperator(bleveQuery.MatchQueryOperatorAnd)
 				other.SetField(field)
 				curr.AddMustNot(other)
-				fmt.Println("    COMBINE NOT", []any{curr}, "~", next.Value)
 			} else {
 				negated = true
 			}
@@ -219,6 +205,5 @@ func parse(input string, field string) (bleveQuery.Query, []string, error) {
 		}
 	}
 
-	fmt.Println("    returning", []any{curr}, "\n.")
 	return curr, exactMatches, nil
 }

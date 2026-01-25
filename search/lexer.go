@@ -1,7 +1,6 @@
 package search
 
 import (
-	"fmt"
 	"strings"
 	"unicode"
 )
@@ -53,14 +52,12 @@ func (l *Lexer) readWord() string {
 }
 
 func (l *Lexer) PeekToken() Token {
-	fmt.Print("                    peek")
 	next := l.NextToken()
 	l.peekedQueue = append(l.peekedQueue, next)
 	return next
 }
 
 func (l *Lexer) ReturnToken(tok Token) {
-	fmt.Println("                    return", tok)
 	l.peekedQueue = append(l.peekedQueue, tok)
 }
 
@@ -68,13 +65,8 @@ func (l *Lexer) NextToken() (tok Token) {
 	if len(l.peekedQueue) > 0 {
 		next := l.peekedQueue[len(l.peekedQueue)-1]
 		l.peekedQueue = l.peekedQueue[0 : len(l.peekedQueue)-1]
-		fmt.Println("                    nextq", next)
 		return next
 	}
-
-	defer func() {
-		fmt.Println("                    next", tok)
-	}()
 
 	l.skipWhitespace()
 
