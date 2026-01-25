@@ -54,7 +54,7 @@ const (
 )
 
 var (
-	log  = global.Log.With().Str("relay", "grasp").Logger()
+	log  = global.Log.With().Str("service", "search").Logger()
 	Main *BleveIndex
 
 	indexableKinds = []nostr.Kind{0, 1, 11, 24, 1111, 30023, 30818}

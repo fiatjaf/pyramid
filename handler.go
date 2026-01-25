@@ -129,7 +129,14 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			case "accept_scheduled_events":
 				global.Settings.AcceptScheduledEvents = v[0] == "on"
 			case "enable_search":
+				wasEnabled := global.Settings.Search.Enable
 				global.Settings.Search.Enable = v[0] == "on"
+				// update timestamp if search is being turned on (was off, now on)
+				if !wasEnabled && global.Settings.Search.Enable {
+					if err := search.UpdateSearchOn(); err != nil {
+						log.Warn().Err(err).Msg("failed to update search on timestamp")
+					}
+				}
 			case "search_languages":
 				if len(v) > 0 {
 					for _, code := range v {
@@ -146,6 +153,10 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				}
 				// call BuildLanguageDetector() to rebuild with new languages
 				search.BuildLanguageDetector()
+				// update timestamp when languages change
+				if err := search.UpdateLanguagesChange(); err != nil {
+					log.Warn().Err(err).Msg("failed to update languages change timestamp")
+				}
 			case "paywall_tag":
 				global.Settings.Paywall.Tag = v[0]
 			case "paywall_amount":
@@ -810,6 +821,11 @@ func searchReindexHandler(w http.ResponseWriter, r *http.Request) {
 
 	// perform the reindexing
 	search.Reindex()
+
+	// update reindex timestamp
+	if err := search.UpdateReindex(); err != nil {
+		log.Warn().Err(err).Msg("failed to update reindex timestamp")
+	}
 
 	// Redirect back to settings page
 	http.Redirect(w, r, "/settings", 302)

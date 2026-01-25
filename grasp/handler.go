@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	log       = global.Log.With().Str("relay", "grasp").Logger()
+	log       = global.Log.With().Str("service", "grasp").Logger()
 	Handler   = &MuxHandler{}
 	repoDir   string
 	hostRelay *khatru.Relay

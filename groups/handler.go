@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	log       = global.Log.With().Str("relay", "groups").Logger()
+	log       = global.Log.With().Str("service", "groups").Logger()
 	hostRelay *khatru.Relay // hack to get the main relay object into here
 	Handler   = &MuxHandler{}
 	State     *GroupsState

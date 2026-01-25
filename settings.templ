@@ -512,18 +512,60 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					@layout.SubSectionTitle("full-text search")
 					<div class="flex gap-8 items-start">
 						<div class="flex items-center">
-							<input
-								type="checkbox"
-								name="enable_search"
-								id="enable_search"
-								class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
-								x-model="enableSearch"
-								@change="saveSettings()"
-							/>
-							<label for="enable_search" class="ml-2 text-sm dark:text-stone-300">
-								enable NIP-50 full-text search
-							</label>
-							<input type="hidden" name="enable_search" value="off"/>
+							<div>
+								<input
+									type="checkbox"
+									name="enable_search"
+									id="enable_search"
+									class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
+									x-model="enableSearch"
+									@change="saveSettings()"
+								/>
+								<label for="enable_search" class="ml-2 text-sm dark:text-stone-300">
+									enable NIP-50 full-text search
+								</label>
+								<input type="hidden" name="enable_search" value="off"/>
+								<!-- Search Statistics -->
+								<div class="mt-4 p-4 bg-stone-50 dark:bg-stone-800 rounded-lg" x-show="enableSearch">
+									{{ searchStats, _ := search.GetStats() }}
+									<div class="text-sm space-y-2">
+										<div>
+											<span class="font-medium text-stone-700 dark:text-stone-300">indexed documents:</span>
+											<span class="ml-2 text-stone-600 dark:text-stone-400">{ searchStats.DocumentCount }</span>
+										</div>
+										<div>
+											<span class="font-medium text-stone-700 dark:text-stone-300">search last enabled:</span>
+											<span class="ml-2 text-stone-600 dark:text-stone-400">
+												if searchStats.LastSearchOn.IsZero() {
+													never
+												} else {
+													{ searchStats.LastSearchOn.Format("2006-01-02 15:04:05") }
+												}
+											</span>
+										</div>
+										<div>
+											<span class="font-medium text-stone-700 dark:text-stone-300">last reindex:</span>
+											<span class="ml-2 text-stone-600 dark:text-stone-400">
+												if searchStats.LastReindex.IsZero() {
+													never
+												} else {
+													{ searchStats.LastReindex.Format("2006-01-02 15:04:05") }
+												}
+											</span>
+										</div>
+										<div>
+											<span class="font-medium text-stone-700 dark:text-stone-300">languages last changed:</span>
+											<span class="ml-2 text-stone-600 dark:text-stone-400">
+												if searchStats.LastLanguagesChange.IsZero() {
+													never
+												} else {
+													{ searchStats.LastLanguagesChange.Format("2006-01-02 15:04:05") }
+												}
+											</span>
+										</div>
+									</div>
+								</div>
+							</div>
 						</div>
 						<div x-show="enableSearch" x-transition class="flex-1 max-w-md">
 							{{ selectedLanguages := global.Settings.Search.Languages }}
@@ -555,12 +597,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 						saved!
 					</div>
 				</form>
-				<form
-					method="POST"
-					action="/settings"
-					class="hidden"
-				></form>
-				<div class="mt-4" x-show="enableSearch">
+				<div class="mt-4" x-show={ "enableSearch && " + global.JSONString(search.ShouldShowReindexButton()) }>
 					<form method="POST" action="/search/reindex" onsubmit="return confirm('this will delete the current search index and rebuild it from scratch. this may take a while for large databases. continue?');">
 						<button
 							type="submit"

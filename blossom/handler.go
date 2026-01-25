@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	log       = global.Log.With().Str("module", "blossom").Logger()
+	log       = global.Log.With().Str("service", "blossom").Logger()
 	Handler   = &MuxHandler{}
 	hostRelay *khatru.Relay // hack to get the main relay object into here
 	blobDir   string
