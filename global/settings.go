@@ -208,6 +208,7 @@ func loadUserSettings() error {
 		RequireCurrentTimestamp: true,
 		EnableOTS:               true,
 		BlockedIPs:              []string{},
+		AcceptScheduledEvents:   true,
 	}
 	Settings.Search.Enable = false
 
