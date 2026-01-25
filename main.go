@@ -111,7 +111,7 @@ func main() {
 	// init basic http routes
 	relay.Router().HandleFunc("/action", actionHandler)
 	relay.Router().HandleFunc("/settings", settingsHandler)
-	relay.Router().HandleFunc("/search/reindex", searchReindexHandler)
+	relay.Router().HandleFunc("/search/reindex", search.StreamingReindexHTML)
 	relay.Router().HandleFunc("/u", memberPageHandler)
 	relay.Router().HandleFunc("/u/{pubkey}", memberPageHandler)
 	relay.Router().HandleFunc("/u/sync", syncHandler)

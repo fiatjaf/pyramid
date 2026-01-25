@@ -526,7 +526,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 								</label>
 								<input type="hidden" name="enable_search" value="off"/>
 								<!-- Search Statistics -->
-								<div class="mt-4 p-4 bg-stone-50 dark:bg-stone-800 rounded-lg" x-show="enableSearch">
+								<div class="mt-4 bg-stone-50 dark:bg-stone-800 rounded-lg" x-show="enableSearch">
 									{{ searchStats, _ := search.GetStats() }}
 									<div class="text-sm space-y-2">
 										<div>

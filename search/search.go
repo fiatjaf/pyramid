@@ -92,16 +92,6 @@ func End() {
 	Main.Close()
 }
 
-func Reindex() {
-	for event := range global.IL.Main.QueryEvents(nostr.Filter{Kinds: indexableKinds}, 10_000_000) {
-		if err := Main.SaveEvent(event); err != nil {
-			log.Warn().Err(err).Stringer("event", event).Msg("failed to index event")
-		} else {
-			log.Debug().Str("event", event.ID.Hex()).Msg("indexed event")
-		}
-	}
-}
-
 func BuildLanguageDetector() {
 	if len(global.Settings.Search.Languages) <= 1 {
 		detector = nil
