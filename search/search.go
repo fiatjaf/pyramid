@@ -1,37 +1,66 @@
 package search
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"iter"
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
+	"time"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/eventstore"
+	"fiatjaf.com/nostr/nip27"
+	"fiatjaf.com/nostr/sdk"
 	bleve "github.com/blevesearch/bleve/v2"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/ar"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/da"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/de"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/en"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/es"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/fa"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/fi"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/fr"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/gl"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/hi"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/hr"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/hu"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/in"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/it"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/nl"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/no"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/pl"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/pt"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/ro"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/ru"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/sv"
+	_ "github.com/blevesearch/bleve/v2/analysis/lang/tr"
 	bleveMapping "github.com/blevesearch/bleve/v2/mapping"
 	bleveQuery "github.com/blevesearch/bleve/v2/search/query"
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/pemistahl/lingua-go"
 )
 
 const (
-	labelContentField   = "c"
-	labelKindField      = "k"
-	labelCreatedAtField = "a"
-	labelPubkeyField    = "p"
+	labelContentField    = "c"
+	labelKindField       = "k"
+	labelCreatedAtField  = "a"
+	labelPubkeyField     = "p"
+	labelReferencesField = "r"
 )
 
 var (
 	log  = global.Log.With().Str("relay", "grasp").Logger()
 	Main *BleveIndex
 
-	indexableKinds = []nostr.Kind{1, 11, 24, 1111, 30023, 30818}
+	indexableKinds = []nostr.Kind{0, 1, 11, 24, 1111, 30023, 30818}
+	languages      = []lingua.Language{lingua.GetLanguageFromIsoCode639_1(lingua.AR), lingua.GetLanguageFromIsoCode639_1(lingua.DA), lingua.GetLanguageFromIsoCode639_1(lingua.DE), lingua.GetLanguageFromIsoCode639_1(lingua.EN), lingua.GetLanguageFromIsoCode639_1(lingua.ES), lingua.GetLanguageFromIsoCode639_1(lingua.FA), lingua.GetLanguageFromIsoCode639_1(lingua.FI), lingua.GetLanguageFromIsoCode639_1(lingua.FR), lingua.GetLanguageFromIsoCode639_1(lingua.HI), lingua.GetLanguageFromIsoCode639_1(lingua.HR), lingua.GetLanguageFromIsoCode639_1(lingua.HU), lingua.GetLanguageFromIsoCode639_1(lingua.IT), lingua.GetLanguageFromIsoCode639_1(lingua.NL), lingua.GetLanguageFromIsoCode639_1(lingua.PL), lingua.GetLanguageFromIsoCode639_1(lingua.PT), lingua.GetLanguageFromIsoCode639_1(lingua.RO), lingua.GetLanguageFromIsoCode639_1(lingua.RU), lingua.GetLanguageFromIsoCode639_1(lingua.SV), lingua.GetLanguageFromIsoCode639_1(lingua.TR)}
+	detector       lingua.LanguageDetector
 )
-
-var _ eventstore.Store = (*BleveIndex)(nil)
 
 type BleveIndex struct {
 	sync.Mutex
@@ -54,6 +83,10 @@ func Init() error {
 		return fmt.Errorf("failed to init search database: %w", err)
 	}
 
+	detector = lingua.NewLanguageDetectorBuilder().
+		FromLanguages(languages...).
+		Build()
+
 	return nil
 }
 
@@ -63,7 +96,7 @@ func End() {
 
 func Reindex() {
 	for event := range global.IL.Main.QueryEvents(nostr.Filter{Kinds: indexableKinds}, 10_000_000) {
-		if err := Main.IndexEvent(event); err != nil {
+		if err := Main.SaveEvent(event); err != nil {
 			log.Warn().Err(err).Stringer("event", event).Msg("failed to index event")
 		} else {
 			log.Debug().Str("event", event.ID.Hex()).Msg("indexed event")
@@ -73,10 +106,8 @@ func Reindex() {
 
 func (b *BleveIndex) IndexEvent(event nostr.Event) error {
 	if b == Main {
-		if len(event.Content) > 45 {
-			if slices.Contains(indexableKinds, event.Kind) {
-				return b.SaveEvent(event)
-			}
+		if slices.Contains(indexableKinds, event.Kind) {
+			return b.SaveEvent(event)
 		}
 	}
 
@@ -105,23 +136,46 @@ func (b *BleveIndex) Init() error {
 		mapping.DefaultMapping.Dynamic = false
 		doc := bleveMapping.NewDocumentStaticMapping()
 
-		contentField := bleveMapping.NewTextFieldMapping()
-		contentField.Store = false
-		doc.AddFieldMappingsAt(labelContentField, contentField)
+		for _, lang := range languages {
+			code := strings.ToLower(lang.IsoCode639_1().String())
+
+			contentField := bleveMapping.NewTextFieldMapping()
+			contentField.Store = false
+			contentField.IncludeTermVectors = false
+			contentField.DocValues = false
+			contentField.Analyzer = code
+			contentField.IncludeInAll = true
+			doc.AddFieldMappingsAt(labelContentField+"_"+code, contentField)
+		}
+
+		referencesField := bleveMapping.NewKeywordFieldMapping()
+		referencesField.IncludeInAll = true
+		referencesField.DocValues = false
+		referencesField.Store = false
+		referencesField.IncludeTermVectors = false
+		doc.AddFieldMappingsAt(labelReferencesField, referencesField)
 
 		authorField := bleveMapping.NewKeywordFieldMapping()
 		authorField.Store = false
+		authorField.IncludeTermVectors = false
+		authorField.DocValues = false
 		doc.AddFieldMappingsAt(labelPubkeyField, authorField)
 
-		kindField := bleveMapping.NewNumericFieldMapping()
+		kindField := bleveMapping.NewKeywordFieldMapping()
 		kindField.Store = false
+		kindField.IncludeTermVectors = false
+		kindField.DocValues = false
+		kindField.IncludeInAll = false
 		doc.AddFieldMappingsAt(labelKindField, kindField)
 
 		timestampField := bleveMapping.NewDateTimeFieldMapping()
 		timestampField.Store = false
+		timestampField.IncludeTermVectors = false
+		timestampField.DocValues = false
+		timestampField.IncludeInAll = false
 		doc.AddFieldMappingsAt(labelCreatedAtField, timestampField)
 
-		mapping.AddDocumentMapping("event", doc)
+		mapping.AddDocumentMapping("_default", doc)
 
 		index, err = bleve.New(b.Path, mapping)
 		if err != nil {
@@ -145,12 +199,43 @@ func (b *BleveIndex) CountEvents(filter nostr.Filter) (uint32, error) {
 }
 
 func (b *BleveIndex) SaveEvent(evt nostr.Event) error {
-	if err := b.index.Index(evt.ID.Hex(), map[string]any{
-		labelContentField:   evt.Content,
-		labelKindField:      evt.Kind,
+	doc := map[string]any{
+		labelKindField:      strconv.Itoa(int(evt.Kind)),
 		labelPubkeyField:    evt.PubKey.Hex()[56:],
 		labelCreatedAtField: evt.CreatedAt.Time(),
-	}); err != nil {
+	}
+
+	var content string
+	var references []string
+
+	if evt.Kind == 0 {
+		var pm sdk.ProfileMetadata
+		if err := json.Unmarshal([]byte(evt.Content), &pm); err == nil {
+			evt.Content = pm.Name + " " + pm.DisplayName + " " + pm.About
+			references = append(references, pm.NIP05)
+		}
+	}
+
+	for block := range nip27.Parse(evt.Content) {
+		if block.Pointer == nil {
+			content += block.Text
+		} else {
+			references = append(references, block.Pointer.AsTagReference())
+		}
+	}
+
+	lang, ok := detector.DetectLanguageOf(content)
+	if !ok {
+		lang = lingua.English
+	}
+	doc[labelContentField+"_"+strings.ToLower(lang.IsoCode639_1().String())] = content
+
+	// exact matching:
+	doc[labelReferencesField] = references
+
+	fmt.Println("::>", doc)
+
+	if err := b.index.Index(evt.ID.Hex(), doc); err != nil {
 		return fmt.Errorf("failed to index '%s' document: %w", evt.ID, err)
 	}
 
@@ -159,35 +244,6 @@ func (b *BleveIndex) SaveEvent(evt nostr.Event) error {
 
 func (b *BleveIndex) DeleteEvent(id nostr.ID) error {
 	return b.index.Delete(id.Hex())
-}
-
-func (b *BleveIndex) ReplaceEvent(evt nostr.Event) error {
-	b.Lock()
-	defer b.Unlock()
-
-	filter := nostr.Filter{Kinds: []nostr.Kind{evt.Kind}, Authors: []nostr.PubKey{evt.PubKey}}
-	if evt.Kind.IsAddressable() {
-		filter.Tags = nostr.TagMap{"d": []string{evt.Tags.GetD()}}
-	}
-
-	shouldStore := true
-	for previous := range b.QueryEvents(filter, 1) {
-		if nostr.IsOlder(previous, evt) {
-			if err := b.DeleteEvent(previous.ID); err != nil {
-				return fmt.Errorf("failed to delete event for replacing: %w", err)
-			}
-		} else {
-			shouldStore = false
-		}
-	}
-
-	if shouldStore {
-		if err := b.SaveEvent(evt); err != nil && err != eventstore.ErrDupEvent {
-			return fmt.Errorf("failed to save: %w", err)
-		}
-	}
-
-	return nil
 }
 
 func (b *BleveIndex) QueryEvents(filter nostr.Filter, maxLimit int) iter.Seq[nostr.Event] {
@@ -202,8 +258,13 @@ func (b *BleveIndex) QueryEvents(filter nostr.Filter, maxLimit int) iter.Seq[nos
 			return
 		}
 
-		searchQ := bleve.NewMatchQuery(filter.Search)
-		searchQ.SetField(labelContentField)
+		// use query parser for complex search syntax
+		searchQ, exactMatches, err := parse(filter.Search)
+		if err != nil {
+			// fallback to simple match query on parse error
+			log.Debug().Err(err).Str("search", filter.Search).Msg("parse error, falling back to simple match")
+			searchQ = bleve.NewMatchQuery(filter.Search)
+		}
 		var q bleveQuery.Query = searchQ
 
 		conjQueries := []bleveQuery.Query{searchQ}
@@ -232,17 +293,17 @@ func (b *BleveIndex) QueryEvents(filter nostr.Filter, maxLimit int) iter.Seq[nos
 		}
 
 		if filter.Since != 0 || filter.Until != 0 {
-			var min *float64
+			var min time.Time
 			if filter.Since != 0 {
-				minVal := float64(filter.Since)
-				min = &minVal
+				min = filter.Since.Time()
 			}
-			var max *float64
+			var max time.Time
 			if filter.Until != 0 {
-				maxVal := float64(filter.Until)
-				max = &maxVal
+				max = filter.Until.Time()
+			} else {
+				max = time.Now()
 			}
-			dateRangeQ := bleve.NewNumericRangeInclusiveQuery(min, max, nil, nil)
+			dateRangeQ := bleve.NewDateRangeQuery(min, max)
 			dateRangeQ.SetField(labelCreatedAtField)
 			conjQueries = append(conjQueries, dateRangeQ)
 		}
@@ -260,12 +321,25 @@ func (b *BleveIndex) QueryEvents(filter nostr.Filter, maxLimit int) iter.Seq[nos
 			return
 		}
 
+	resultHit:
 		for _, hit := range result.Hits {
 			id, err := nostr.IDFromHex(hit.ID)
 			if err != nil {
 				continue
 			}
 			for evt := range b.RawEventStore.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+				for _, exactMatch := range exactMatches {
+					if !strings.Contains(evt.Content, exactMatch) {
+						continue resultHit
+					}
+				}
+
+				for f, v := range filter.Tags {
+					if !evt.Tags.ContainsAny(f, v) {
+						continue resultHit
+					}
+				}
+
 				if !yield(evt) {
 					return
 				}

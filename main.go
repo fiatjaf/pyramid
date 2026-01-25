@@ -168,7 +168,7 @@ func main() {
 			return global.IL.Groups.ReplaceEvent(event)
 		} else {
 			// normal logic
-			return global.IL.Main.ReplaceEvent(event)
+			return replaceOnMain(event)
 		}
 	}
 	relay.DeleteEvent = func(ctx context.Context, id nostr.ID) error {

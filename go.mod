@@ -7,11 +7,13 @@ require (
 	github.com/FastFilter/xorfilter v0.2.1
 	github.com/a-h/templ v0.3.960
 	github.com/bep/debounce v1.2.1
+	github.com/blevesearch/bleve/v2 v2.4.4
 	github.com/go-analyze/charts v0.5.21
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/liamg/magic v0.0.1
 	github.com/mailru/easyjson v0.9.0
 	github.com/nbd-wtf/opentimestamps v0.4.0
+	github.com/pemistahl/lingua-go v1.4.0
 	github.com/pkg/sftp v1.13.10
 	github.com/puzpuzpuz/xsync/v3 v3.5.1
 	github.com/rs/zerolog v1.33.0
@@ -26,7 +28,6 @@ require (
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/bits-and-blooms/bitset v1.17.0 // indirect
-	github.com/blevesearch/bleve/v2 v2.4.4 // indirect
 	github.com/blevesearch/bleve_index_api v1.1.12 // indirect
 	github.com/blevesearch/geo v0.1.20 // indirect
 	github.com/blevesearch/go-faiss v1.0.24 // indirect
@@ -36,6 +37,7 @@ require (
 	github.com/blevesearch/scorch_segment_api/v2 v2.2.16 // indirect
 	github.com/blevesearch/segment v0.9.1 // indirect
 	github.com/blevesearch/snowballstem v0.9.0 // indirect
+	github.com/blevesearch/stempel v0.2.0 // indirect
 	github.com/blevesearch/upsidedown_store_api v1.0.2 // indirect
 	github.com/blevesearch/vellum v1.0.11 // indirect
 	github.com/blevesearch/zapx/v11 v11.3.10 // indirect
@@ -80,6 +82,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/cors v1.11.1 // indirect
 	github.com/savsgio/gotils v0.0.0-20250408102913-196191ec6287 // indirect
+	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/templexxx/cpu v0.0.1 // indirect
 	github.com/templexxx/xhex v0.0.0-20200614015412-aed53437177b // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect

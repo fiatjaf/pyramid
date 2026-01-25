@@ -434,6 +434,33 @@ func saveToMain(event nostr.Event) error {
 	}
 }
 
+func replaceOnMain(event nostr.Event) error {
+	if global.Settings.Search.Enable {
+		search.Main.Lock()
+		defer search.Main.Unlock()
+
+		filter := nostr.Filter{Kinds: []nostr.Kind{event.Kind}, Authors: []nostr.PubKey{event.PubKey}}
+		if event.Kind.IsAddressable() {
+			filter.Tags = nostr.TagMap{"d": []string{event.Tags.GetD()}}
+		}
+		for previous := range global.IL.Main.QueryEvents(filter, 10) {
+			if nostr.IsOlder(previous, event) {
+				search.Main.DeleteEvent(previous.ID)
+			}
+		}
+	}
+
+	if err := global.IL.Main.ReplaceEvent(event); err != nil {
+		return err
+	}
+
+	if global.Settings.Search.Enable {
+		return search.Main.IndexEvent(event)
+	} else {
+		return nil
+	}
+}
+
 // splits the query between the main relay and the groups relay
 func queryStored(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 	// if groups is disabled just query main directly
