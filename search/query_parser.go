@@ -81,7 +81,7 @@ func parse(input string, field string) (bleveQuery.Query, []string, error) {
 			if currentExactMatch.Len() > 0 {
 				currentExactMatch.WriteByte(' ')
 			}
-			currentExactMatch.WriteString(token.Value)
+			currentExactMatch.WriteString(strings.ToLower(token.Value))
 			currentWords = append(currentWords, token.Value)
 			continue
 		}

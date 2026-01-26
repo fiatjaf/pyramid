@@ -14,7 +14,7 @@ import (
 
 func TestSearch(t *testing.T) {
 	detector = lingua.NewLanguageDetectorBuilder().
-		FromLanguages(languages...).
+		FromLanguages(Languages...).
 		Build()
 
 	tempDir, err := os.MkdirTemp("", "test_search_pyramid")
@@ -44,15 +44,15 @@ func TestSearch(t *testing.T) {
 			PubKey:    nostr.MustPubKeyFromHex("0000000000000000000000000000000000000000000000000000000000000001"),
 			CreatedAt: nostr.Timestamp(1609459200),
 			Kind:      1,
-			Content:   "Ahoy mateys! I've discovered a treasure chest filled with gold doubloons and silver pieces buried beneath the old palm tree on Skull Island. The secret map shows an X marks the spot where the legendary pirate Blackbeard hid his most valuable plunder. The chest contains rubies, emeralds, and ancient coins from sunken Spanish galleons.",
+			Content:   "Ahoy mateys! I've discovered a treasure chest filled with gold doubloons and silver pieces buried beneath the old palm tree on Skull Island. The secret map shows an X marks the spot where the legendary pirate Blackbeard hid his most valuable plunder. The chest contains rubies, emeralds, and ancient coins from sunken Spanish galleons. https://www.youtube.com/watch?v=enTAromEeHo&t=88s",
 			Tags:      nil,
 		},
 		{
 			ID:        nostr.MustIDFromHex("0000000000000000000000000000000000000000000000000000000000000002"),
-			PubKey:    nostr.MustPubKeyFromHex("0000000000000000000000000000000000000000000000000000000000000002"),
+			PubKey:    nostr.MustPubKeyFromHex("0000000000000000000000000000000000000000000000000000000000000001"),
 			CreatedAt: nostr.Timestamp(1609545600),
 			Kind:      1111,
-			Content:   "The treasure map I found reveals the location of Captain Morgan's lost gold mine deep in the Caribbean waters. Following the ancient compass directions leads to a hidden cave filled with golden artifacts, jeweled swords, and the crown jewels of forgotten kingdoms. The secret passage is guarded by mysterious symbols only known to the brotherhood of the sea.",
+			Content:   "The treasure map I found reveals the location of Captain Morgan's lost gold mine deep in the Caribbean waters. Following the ancient compass directions leads to a hidden cave filled with golden artifacts, jeweled swords, and the crown jewels of forgotten kingdoms. The secret passage is guarded by mysterious symbols only known to the brotherhood of the sea. https://www.youtube.com/watch?v=yBtyNIqZios",
 			Tags:      nil,
 		},
 		{
@@ -68,7 +68,15 @@ func TestSearch(t *testing.T) {
 			PubKey:    nostr.MustPubKeyFromHex("0000000000000000000000000000000000000000000000000000000000000004"),
 			CreatedAt: nostr.Timestamp(1609545601),
 			Kind:      1111,
-			Content:   "Bom dia seus piratas melequentos, onde está esse bendito tesouro?",
+			Content:   "Bom dia seus piratas melequentos, onde está esse bendito tesouro? nostr:nprofile1qqsv6jemsnaq925ddfqjhwm3du3k0zk7dnj2ksk2k4hcfkf80mzf56spz9mhxue69uhkzcnpvdshgefwvdhk6tmjzyj",
+			Tags:      nil,
+		},
+		{
+			ID:        nostr.MustIDFromHex("0000000000000000000000000000000000000000000000000000000000000005"),
+			PubKey:    nostr.MustPubKeyFromHex("0000000000000000000000000000000000000000000000000000000000000005"),
+			CreatedAt: nostr.Timestamp(1609545602),
+			Kind:      30023,
+			Content:   "I pirati dei Caraibi del XVII e XVIII secolo sono diventati leggendari per la loro ricerca di tesori. Questi avventurieri del mare saccheggiavano navi cariche d'oro, argento e pietre preziose provenienti dalle colonie spagnole del Nuovo Mondo.\n\nSecondo la leggenda, molti pirati seppellivano i loro tesori su isole remote, creando mappe segrete con la famosa \"X\" che segnava il punto. Capitani famosi come Barbanera, Capitan Kidd e Henry Morgan sono entrati nell'immaginario collettivo come custodi di ricchezze nascoste.\n\nAnche se la maggior parte dei tesori dei pirati sono probabilmente solo miti, alcuni sono stati davvero ritrovati. Il fascino di questi bottini nascosti continua ad ispirare storie, film e cacciatori di tesori ancora oggi.",
 			Tags:      nil,
 		},
 	}
@@ -124,21 +132,56 @@ func TestSearch(t *testing.T) {
 		{
 			name: "search in portuguese",
 			filter: nostr.Filter{
-				Search: "tesouro",
+				Search: "melequento",
 			},
 			expected: 1,
 		},
 		{
-			name: "search for 'nonexistent'",
+			name: "search with exact match",
 			filter: nostr.Filter{
-				Search: "nonexistent",
+				Search: "\"the secret entrance can only be found during a full moon\"",
 			},
-			expected: 0, // no results
+			expected: 1,
 		},
 		{
-			name: "search with AND",
+			name: "search with OR across languages",
 			filter: nostr.Filter{
-				Search: "captain AND gold",
+				Search: "melequento OR matey",
+			},
+			expected: 2,
+		},
+		{
+			name: "search with exact reference found in the text",
+			filter: nostr.Filter{
+				Search: "tesouro nostr:nprofile1qqsv6jemsnaq925ddfqjhwm3du3k0zk7dnj2ksk2k4hcfkf80mzf56spzpmhxue69uhkyctwv9hxztnrdaksmfp5mw", // this is the same pubkey from above, but it's a different nprofile
+			},
+			expected: 1,
+		},
+		{
+			name: "search for URL",
+			filter: nostr.Filter{
+				Search: "https://www.youtube.com/watch?v=yBtyNIqZios treasure",
+			},
+			expected: 1,
+		},
+		{
+			name: "search for host/domain of URL",
+			filter: nostr.Filter{
+				Search: "www.youtube.com",
+			},
+			expected: 2,
+		},
+		{
+			name: "mentioning the author should include their notes in the result",
+			filter: nostr.Filter{
+				Search: " nostr:npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqshp52w2",
+			},
+			expected: 2,
+		},
+		{
+			name: "mentioning the author should include their notes in the result",
+			filter: nostr.Filter{
+				Search: "found gold? nostr:npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqshp52w2",
 			},
 			expected: 1,
 		},
