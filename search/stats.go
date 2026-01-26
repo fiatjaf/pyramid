@@ -29,6 +29,8 @@ type SearchStats struct {
 
 // initializeStatsFile sets up the stats file path
 func initializeStatsFile() {
+	statsMutex.Lock()
+	defer statsMutex.Unlock()
 	statsFile = filepath.Join(global.S.DataPath, "search", statsFileName)
 }
 
