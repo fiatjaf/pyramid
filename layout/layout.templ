@@ -156,20 +156,22 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								@click="open = !open"
 								class={ "cursor-pointer rounded-lg px-4 py-2 font-medium flex items-center gap-1 themed:text-[var(--text-color)] themed:hover:bg-[rgb(from_var(--text-color)_r_g_b_/10%)] light:hover:bg-stone-100 dark:hover:bg-stone-700",
                                     templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "moderated"),
-                                    templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !(global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)) && !global.Settings.Moderated.Enabled) }
+                                    templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !(global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)) && !(global.Settings.Personal.Enabled && pyramid.IsMember(loggedUser)) && !global.Settings.Moderated.Enabled ) }
 							>
 								switch currentPage {
-									case "favorites":
+									case string(global.RelayFavorites):
 										{ global.Settings.Favorites.HTTPBasePath }
-									case "uppermost":
+									case string(global.RelayUppermost):
 										{ global.Settings.Uppermost.HTTPBasePath }
-									case "popular":
+									case string(global.RelayPopular):
 										{ global.Settings.Popular.HTTPBasePath }
-									case "inbox":
+									case string(global.RelayInbox):
 										{ global.Settings.Inbox.HTTPBasePath }
-									case "internal":
+									case string(global.RelayInternal):
 										{ global.Settings.Internal.HTTPBasePath }
-									case "moderated":
+									case string(global.RelayPersonal):
+										{ global.Settings.Personal.HTTPBasePath }
+									case string(global.RelayModerated):
 										{ global.Settings.Moderated.HTTPBasePath }
 									default:
 										relays
@@ -183,34 +185,37 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								x-transition
 								class="absolute left-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50 themed:bg-[rgb(from_var(--secondary-bg-color)_r_g_b_/_var(--header-transparency))] light:bg-white/60 dark:bg-stone-800/90"
 							>
-								for _, page := range []string {"internal", "inbox", "moderated", "favorites", "popular", "uppermost"} {
+								for _, page := range []global.RelayID{global.RelayInternal, global.RelayInbox, global.RelayModerated, global.RelayFavorites, global.RelayPopular, global.RelayUppermost, global.RelayPersonal} {
 									{{ var path string }}
 									{{ var enabled bool }}
 									{{switch page {
-case "internal":
+case global.RelayInternal:
 	path = global.Settings.Internal.HTTPBasePath
 	enabled = global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)
-case "inbox":
+case global.RelayPersonal:
+	path = global.Settings.Personal.HTTPBasePath
+	enabled = global.Settings.Personal.Enabled && pyramid.IsMember(loggedUser)
+case global.RelayInbox:
 	path = global.Settings.Inbox.HTTPBasePath
 	enabled = global.Settings.Inbox.Enabled
-case "moderated":
+case global.RelayModerated:
 	path = global.Settings.Moderated.HTTPBasePath
 	enabled = global.Settings.Moderated.Enabled
-case "favorites":
+case global.RelayFavorites:
 	path = global.Settings.Favorites.HTTPBasePath
 	enabled = global.Settings.Favorites.Enabled
-case "popular":
+case global.RelayPopular:
 	path = global.Settings.Popular.HTTPBasePath
 	enabled = global.Settings.Popular.Enabled
-case "uppermost":
+case global.RelayUppermost:
 	path = global.Settings.Uppermost.HTTPBasePath
 	enabled = global.Settings.Uppermost.Enabled
 }
 									}}
 									if enabled || pyramid.IsRoot(loggedUser) {
-										@NavLink("/"+path+"/", currentPage == page) {
+										@NavLink("/"+path+"/", currentPage == page.String()) {
 											{ path }
-											if path != page {
+											if path != page.String() {
 												<span class="text-sm opacity-70">&nbsp;({ page })</span>
 											}
 										}

@@ -126,6 +126,7 @@ func fillInRelevantUsersMapping() {
 		"main":      {"main", global.IL.Main, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
 		"system":    {"system", global.IL.System, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
 		"internal":  {"internal", global.IL.Internal, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
+		"personal":  {"personal", global.IL.Personal, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
 		"groups":    {"groups", global.IL.Groups, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
 		"favorites": {"favorites", global.IL.Favorites, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
 		"popular":   {"popular", global.IL.Popular, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},

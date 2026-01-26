@@ -32,6 +32,7 @@ func (r RelayID) String() string {
 const (
 	RelayMain      RelayID = "main"
 	RelayInternal  RelayID = "internal"
+	RelayPersonal  RelayID = "personal"
 	RelayFavorites RelayID = "favorites"
 	RelayGroups    RelayID = "groups"
 	RelayInbox     RelayID = "inbox"
@@ -80,6 +81,11 @@ func Init() error {
 	IL.Internal, err = MMMM.EnsureLayer("internal")
 	if err != nil {
 		return fmt.Errorf("failed to ensure 'internal': %w", err)
+	}
+
+	IL.Personal, err = MMMM.EnsureLayer("personal")
+	if err != nil {
+		return fmt.Errorf("failed to ensure 'personal': %w", err)
 	}
 
 	IL.Groups, err = MMMM.EnsureLayer("groups")
@@ -152,6 +158,7 @@ var IL struct {
 	// specific
 	Favorites *mmm.IndexingLayer
 	Internal  *mmm.IndexingLayer
+	Personal  *mmm.IndexingLayer
 	Groups    *mmm.IndexingLayer
 	Inbox     *mmm.IndexingLayer
 

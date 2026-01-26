@@ -15,6 +15,7 @@ templ StatsPage(
 	groupsStats,
 	favoritesStats,
 	internalStats,
+	personalStats,
 	moderatedStats,
 	popularStats,
 	uppermostStats,
@@ -32,6 +33,7 @@ templ StatsPage(
 				@statsTable("favorites", favoritesStats)
 				@statsTable("moderated", moderatedStats)
 				@statsTable("internal", internalStats)
+				@statsTable("personal", personalStats)
 				@statsTable("system", systemStats)
 			</div>
 		</div>

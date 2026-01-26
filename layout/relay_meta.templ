@@ -157,17 +157,19 @@ templ RelayMetadata(relayId global.RelayID, name, description, icon string, pinn
 					</div>
 					<div x-show="uploadError" x-transition class="text-sm text-red-600 dark:text-red-400 font-medium mt-2" x-text="uploadError"></div>
 				</div>
-				<div>
-					<label class="block text-sm font-medium mb-2 dark:text-stone-300" for={ relayId + "_pinned" }>pinned note</label>
-					<input
-						name={ relayId + "_pinned" }
-						rows="3"
-						placeholder="must be the id of an event that exists in this relay"
-						class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-						x-model="pinned"
-						@blur="saveSettings()"
-					/>
-				</div>
+				if relayId != global.RelayPersonal {
+					<div>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300" for={ relayId + "_pinned" }>pinned note</label>
+						<input
+							name={ relayId + "_pinned" }
+							rows="3"
+							placeholder="must be the id of an event that exists in this relay"
+							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+							x-model="pinned"
+							@blur="saveSettings()"
+						/>
+					</div>
+				}
 			</div>
 			<div x-show="saved" x-transition class="text-sm text-green-600 dark:text-green-400 font-medium">saved!</div>
 		</form>

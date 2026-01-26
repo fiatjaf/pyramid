@@ -67,6 +67,10 @@ type UserSettings struct {
 		RelayMetadata
 	} `json:"internal"`
 
+	Personal struct {
+		RelayMetadata
+	} `json:"personal"`
+
 	Favorites struct {
 		RelayMetadata
 	} `json:"favorites"`
@@ -141,6 +145,8 @@ func (rm RelayMetadata) GetDescription() string {
 	switch rm.base {
 	case "internal":
 		return "the internal relay is only readable and writable by members. it can be used for meta discussions or anything else."
+	case "personal":
+		return "personal storage for each member. each member can only read and write their own events."
 	case "favorites":
 		return "relay members can manually republish notes here and they'll be saved."
 	case "inbox":
@@ -215,11 +221,13 @@ func loadUserSettings() error {
 
 	Settings.Inbox.Enabled = true
 	Settings.Internal.Enabled = true
+	Settings.Personal.Enabled = true
 	Settings.Favorites.Enabled = true
 	Settings.Inbox.HellthreadLimit = 10
 	Settings.Popular.PercentThreshold = 20
 	Settings.Uppermost.PercentThreshold = 33
 	Settings.Internal.HTTPBasePath = "internal"
+	Settings.Personal.HTTPBasePath = "personal"
 	Settings.Favorites.HTTPBasePath = "favorites"
 	Settings.Inbox.HTTPBasePath = "inbox"
 	Settings.Popular.HTTPBasePath = "popular"
@@ -242,6 +250,7 @@ func loadUserSettings() error {
 	// http base paths
 	Settings.Inbox.base = "inbox"
 	Settings.Internal.base = "internal"
+	Settings.Personal.base = "personal"
 	Settings.Favorites.base = "favorites"
 	Settings.Popular.base = "popular"
 	Settings.Uppermost.base = "uppermost"

@@ -1,0 +1,41 @@
+package personal
+
+import (
+	"fiatjaf.com/nostr"
+
+	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
+	"github.com/fiatjaf/pyramid/pyramid"
+)
+
+templ personalPage(loggedUser nostr.PubKey) {
+	@layout.Layout(loggedUser, "personal") {
+		<div class="flex items-center justify-between mb-4">
+			<div class="flex items-center">
+				if !global.Settings.Personal.IsIconDefault() {
+					<img src={ global.Settings.Personal.GetIcon() } class="h-8 w-8 mr-2"/>
+				}
+				<h1 class="text-4xl font-bold font-[family-name:var(--primary-font)]">{ global.Settings.Personal.GetName() }</h1>
+			</div>
+			if global.Settings.Personal.Enabled && pyramid.IsRoot(loggedUser) {
+				@layout.LandlubberButton(global.Settings.Personal.HTTPBasePath)
+			}
+		</div>
+		<div class="space-y-4 text-gray-700 dark:text-gray-300">
+			<p class="text-lg leading-relaxed">{ global.Settings.Personal.GetDescription() }</p>
+			if global.Settings.Personal.Enabled {
+				<a
+					class="mb-4 inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 themed:bg-[var(--accent-color)] unthemed:bg-blue-500 unthemed:hover:bg-blue-600"
+					target="_blank"
+					href={ global.Settings.BrowseURI }
+					x-init="$el.href = $el.href.replace(/({|%7B)url(}|%7D)/, encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
+				>
+					browse personal →
+				</a>
+			}
+			if pyramid.IsRoot(loggedUser) {
+				@layout.SubRelaySettings(global.RelayPersonal, global.Settings.Personal.Enabled, global.Settings.Personal.Name, global.Settings.Personal.Description, global.Settings.Personal.Icon, global.Settings.Personal.Pinned, global.Settings.Personal.HTTPBasePath)
+			}
+		</div>
+	}
+}

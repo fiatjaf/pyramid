@@ -31,6 +31,7 @@ import (
 	"github.com/fiatjaf/pyramid/inbox"
 	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/moderated"
+	"github.com/fiatjaf/pyramid/personal"
 	"github.com/fiatjaf/pyramid/popular"
 	"github.com/fiatjaf/pyramid/pyramid"
 	"github.com/fiatjaf/pyramid/search"
@@ -140,6 +141,7 @@ func main() {
 	favorites.Init()
 	inbox.Init()
 	internal.Init()
+	personal.Init()
 	moderated.Init()
 	popular.Init()
 	uppermost.Init()
@@ -402,6 +404,9 @@ func run(ctx context.Context) error {
 
 	mux.Handle("/"+global.Settings.Internal.HTTPBasePath+"/", internal.Relay)
 	mux.Handle("/"+global.Settings.Internal.HTTPBasePath, internal.Relay)
+
+	mux.Handle("/"+global.Settings.Personal.HTTPBasePath+"/", personal.Relay)
+	mux.Handle("/"+global.Settings.Personal.HTTPBasePath, personal.Relay)
 
 	mux.Handle("/"+global.Settings.Favorites.HTTPBasePath+"/", favorites.Relay)
 	mux.Handle("/"+global.Settings.Favorites.HTTPBasePath, favorites.Relay)

@@ -23,6 +23,7 @@ import (
 	"github.com/fiatjaf/pyramid/inbox"
 	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/moderated"
+	"github.com/fiatjaf/pyramid/personal"
 	"github.com/fiatjaf/pyramid/popular"
 	"github.com/fiatjaf/pyramid/pyramid"
 	"github.com/fiatjaf/pyramid/search"
@@ -255,6 +256,22 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				internal.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
 				delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
 				internal.Init()
+				go restartSoon()
+			case "personal_name":
+				global.Settings.Personal.Name = v[0]
+			case "personal_description":
+				global.Settings.Personal.Description = v[0]
+			case "personal_icon":
+				global.Settings.Personal.Icon = v[0]
+			case "personal_httpBasePath":
+				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
+					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)
+					return
+				}
+				global.Settings.Personal.HTTPBasePath = v[0]
+				personal.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + v[0]
+				delayedRedirectTarget = global.Settings.HTTPScheme() + global.Settings.Domain + "/" + v[0] + "/"
+				personal.Init()
 				go restartSoon()
 			case "popular_name":
 				global.Settings.Popular.Name = v[0]
@@ -496,6 +513,8 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 			global.Settings.Inbox.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		case "internal":
 			global.Settings.Internal.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
+		case "personal":
+			global.Settings.Personal.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		case "popular":
 			global.Settings.Popular.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		case "uppermost":
@@ -574,6 +593,7 @@ func setupDomain(domain string) error {
 	inbox.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Inbox.HTTPBasePath
 	favorites.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Favorites.HTTPBasePath
 	internal.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Internal.HTTPBasePath
+	personal.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Personal.HTTPBasePath
 	moderated.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Moderated.HTTPBasePath
 	popular.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Popular.HTTPBasePath
 	uppermost.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Uppermost.HTTPBasePath
@@ -746,12 +766,13 @@ func statsHandler(w http.ResponseWriter, r *http.Request) {
 	groupsStats, _ := global.IL.Groups.ComputeStats(mmm.StatsOptions{})
 	favoritesStats, _ := global.IL.Favorites.ComputeStats(mmm.StatsOptions{})
 	internalStats, _ := global.IL.Internal.ComputeStats(mmm.StatsOptions{})
+	personalStats, _ := global.IL.Personal.ComputeStats(mmm.StatsOptions{})
 	moderatedStats, _ := global.IL.Moderated.ComputeStats(mmm.StatsOptions{})
 	popularStats, _ := global.IL.Popular.ComputeStats(mmm.StatsOptions{})
 	uppermostStats, _ := global.IL.Uppermost.ComputeStats(mmm.StatsOptions{})
 	inboxStats, _ := global.IL.Inbox.ComputeStats(mmm.StatsOptions{})
 
-	StatsPage(loggedUser, mainStats, systemStats, groupsStats, favoritesStats, internalStats, moderatedStats, popularStats, uppermostStats, inboxStats).Render(r.Context(), w)
+	StatsPage(loggedUser, mainStats, systemStats, groupsStats, favoritesStats, internalStats, personalStats, moderatedStats, popularStats, uppermostStats, inboxStats).Render(r.Context(), w)
 }
 
 func syncHandler(w http.ResponseWriter, r *http.Request) {
