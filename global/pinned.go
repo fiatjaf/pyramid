@@ -4,6 +4,7 @@ import (
 	"context"
 	"iter"
 	"slices"
+	"strconv"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/eventstore/mmm"
@@ -16,6 +17,8 @@ func QueryStoredWithPinned(relayId RelayID) func(ctx context.Context, filter nos
 		var get func() *nostr.Event
 
 		switch relayId {
+		// we don't handle RelayMain here because that is handled in queryMain at core.go
+		//
 		case RelayInternal:
 			store = IL.Internal
 			get = func() *nostr.Event { return PinnedCache.Internal }
@@ -38,16 +41,16 @@ func QueryStoredWithPinned(relayId RelayID) func(ctx context.Context, filter nos
 
 			if pinned != nil &&
 				filter.IDs == nil && filter.Tags == nil && filter.Authors == nil &&
-				filter.Until == 0 && filter.Since < pinned.CreatedAt &&
-				(filter.Kinds == nil || slices.Contains(filter.Kinds, pinned.Kind)) {
-				// display pinned in this case
-				if !yield(*pinned) {
-					return
-				}
+				filter.Until == 0 && filter.Since < pinned.CreatedAt {
 
-				if filter.Limit > 0 {
-					// we've used one limit
-					filter.Limit--
+				if y, ok := PreparedPinned(pinned, filter); ok {
+					if !yield(y) {
+						return
+					}
+					if filter.Limit > 0 {
+						// we've used one limit
+						filter.Limit--
+					}
 				}
 			}
 
@@ -58,6 +61,44 @@ func QueryStoredWithPinned(relayId RelayID) func(ctx context.Context, filter nos
 				}
 			}
 		}
+	}
+}
+
+// if the query allows, we'll wrap the pinned event in a kind:6 repost with "-" tag
+// otherwise we will return it naked.
+// or not return it at all
+func PreparedPinned(pinned *nostr.Event, filter nostr.Filter) (nostr.Event, bool) {
+	if pinned.Kind == 1 && (filter.Kinds == nil || slices.Contains(filter.Kinds, 6)) {
+		repost := nostr.Event{
+			Kind:      6,
+			CreatedAt: nostr.Now() + 600,
+			Tags: nostr.Tags{
+				{"-", ""},
+				{"e", pinned.ID.Hex()},
+			},
+			Content: pinned.String(),
+			PubKey:  Settings.RelayInternalSecretKey.Public(),
+		}
+		repost.Sign(Settings.RelayInternalSecretKey)
+		return repost, true
+	} else if slices.Contains(filter.Kinds, 16) {
+		repost := nostr.Event{
+			Kind:      16,
+			CreatedAt: nostr.Now() + 600,
+			Tags: nostr.Tags{
+				{"-", ""},
+				{"e", pinned.ID.Hex()},
+				{"k", strconv.Itoa(int(pinned.Kind))},
+			},
+			Content: pinned.String(),
+			PubKey:  Settings.RelayInternalSecretKey.Public(),
+		}
+		repost.Sign(Settings.RelayInternalSecretKey)
+		return repost, true
+	} else if slices.Contains(filter.Kinds, pinned.Kind) {
+		return *pinned, true
+	} else {
+		return nostr.Event{}, false
 	}
 }
 

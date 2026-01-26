@@ -194,15 +194,16 @@ func queryMain(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 		// try to get a pinned note first
 		if global.PinnedCache.Main != nil &&
 			filter.IDs == nil && filter.Tags == nil && filter.Authors == nil &&
-			filter.Until == 0 && filter.Since < global.PinnedCache.Main.CreatedAt &&
-			(filter.Kinds == nil || slices.Contains(filter.Kinds, global.PinnedCache.Main.Kind)) {
+			filter.Until == 0 && filter.Since < global.PinnedCache.Main.CreatedAt {
 			// display pinned in this case
-			if !yield(*global.PinnedCache.Main) {
-				return
-			}
-			if filter.Limit > 0 {
-				// we've used one limit
-				filter.Limit--
+			if y, ok := global.PreparedPinned(global.PinnedCache.Main, filter); ok {
+				if !yield(y) {
+					return
+				}
+				if filter.Limit > 0 {
+					// we've used one limit
+					filter.Limit--
+				}
 			}
 		}
 

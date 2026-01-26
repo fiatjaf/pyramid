@@ -96,6 +96,9 @@ func main() {
 	relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain
 	relay.Negentropy = true
 
+	// cache pinned event at startup
+	global.CachePinnedEvent(global.RelayMain)
+
 	// init sdk
 	global.Nostr = sdk.NewSystem()
 	global.Nostr.Store = global.IL.System
