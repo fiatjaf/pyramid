@@ -109,7 +109,7 @@ func setupEnabled() {
 		policies.PreventTooManyIndexableTags(9, []nostr.Kind{3}, nil),
 		policies.PreventTooManyIndexableTags(1200, nil, []nostr.Kind{3}),
 		func(ctx context.Context, evt nostr.Event) (bool, string) {
-			if pyramid.IsMember(evt.PubKey) {
+			if !pyramid.IsMember(evt.PubKey) {
 				return true, "blocked: this event isn't from a relay member"
 			}
 
