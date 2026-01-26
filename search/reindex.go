@@ -85,6 +85,10 @@ func StreamingReindexHTML(w http.ResponseWriter, r *http.Request) {
 	}
 	msg("done")
 
+	msg("re-enabling search")
+	global.Settings.Search.Enable = true
+	msg("done")
+
 	for event := range global.IL.Main.QueryEvents(nostr.Filter{Kinds: indexableKinds}, 10_000_000) {
 		if err := Main.SaveEvent(event); err != nil {
 			msg(fmt.Sprintf("failed to index %s", event))
@@ -100,7 +104,7 @@ func StreamingReindexHTML(w http.ResponseWriter, r *http.Request) {
 		msg("failed to update reindex timestamp")
 	}
 
-	msg("<a href='/settings'>back to settings</a>")
+	msg("<a href='/settings' class='text-blue-600 cursor-pointer'>back to settings</a>")
 
 	// close HTML
 	fmt.Fprint(writer, `
