@@ -35,13 +35,7 @@ templ inviteTreePage(loggedUser nostr.PubKey, nip05Names map[nostr.PubKey]string
 					</button>
 				</form>
 			}
-			<div
-				if global.Settings.HasThemeColors() {
-					class="text-[var(--text-color)]"
-				} else {
-					class="text-gray-700 dark:text-gray-300"
-				}
-			>
+			<div class="themed:text-[var(--text-color)] light:text-gray-700 dark:text-gray-300">
 				@inviteTreeComponent(pyramid.AbsoluteKey, loggedUser, false, nip05Names)
 			</div>
 		</div>
@@ -58,17 +52,11 @@ templ inviteTreeComponent(
 		for pubkey, member := range pyramid.GetChildren(curr) {
 			<li class="ml-6 py-1 group">
 				<div class="flex items-center gap-2">
-					<span
-						if global.Settings.HasThemeColors() {
-							class="text-[var(--base-color)] hover:text-[rgb(from_var(--base-color)_r_g_b_/_40%)]"
-						} else {
-							class="text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400"
-						}
-					>
+					<span class="themed:text-[var(--base-color)] themed:hover:text-[rgb(from_var(--base-color)_r_g_b_/_40%)] light:text-gray-700 dark:text-gray-300 light:hover:text-gray-500 dark:hover:text-gray-400">
 						<div class="relative inline-block">
 							@layout.ProfileLink(pubkey)
 							if member.Removed {
-								<span class="absolute left-0 top-1/2 w-full h-0.5 bg-current -translate-y-1/2"></span>
+								<span class="absolute left-0 top-1/2 w-full h-0.5 themed:bg-[var(--base-color)] light:bg-gray-700 dark:bg-gray-300 -translate-y-1/2"></span>
 							}
 						</div>
 						if pyramid.IsRoot(pubkey) {
