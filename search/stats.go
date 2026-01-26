@@ -4,19 +4,9 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/fiatjaf/pyramid/global"
-)
-
-const (
-	statsFileName = "search_stats.json"
-)
-
-var (
-	statsMutex sync.RWMutex
-	statsFile  string
 )
 
 // SearchStats holds timestamps for various search-related operations
@@ -27,16 +17,11 @@ type SearchStats struct {
 	DocumentCount       int64     `json:"-"`
 }
 
-// initializeStatsFile sets up the stats file path
-func initializeStatsFile() {
-	statsMutex.Lock()
-	defer statsMutex.Unlock()
-	statsFile = filepath.Join(global.S.DataPath, "search", statsFileName)
-}
+func getStatsFilepath() string { return filepath.Join(global.S.DataPath, "search", "ts.json") }
 
-// loadStats loads the search statistics from the JSON file
+// loadStats loads the search statistics from the JSON file (must be called with lock held)
 func loadStats() (*SearchStats, error) {
-	initializeStatsFile()
+	statsFile := getStatsFilepath()
 
 	stats := &SearchStats{}
 
@@ -61,9 +46,9 @@ func loadStats() (*SearchStats, error) {
 	return stats, nil
 }
 
-// saveStats saves the search statistics to the JSON file
-func saveStats(stats *SearchStats) error {
-	initializeStatsFile()
+// saveStatsLocked saves the search statistics to the JSON file (must be called with lock held)
+func saveStatsLocked(stats *SearchStats) error {
+	statsFile := getStatsFilepath()
 
 	// ensure directory exists
 	dir := filepath.Dir(statsFile)
@@ -81,51 +66,39 @@ func saveStats(stats *SearchStats) error {
 
 // UpdateSearchOn updates the timestamp when search is turned on
 func UpdateSearchOn() error {
-	statsMutex.Lock()
-	defer statsMutex.Unlock()
-
 	stats, err := loadStats()
 	if err != nil {
 		return err
 	}
 
 	stats.LastSearchOn = time.Now()
-	return saveStats(stats)
+	return saveStatsLocked(stats)
 }
 
 // UpdateReindex updates the timestamp when reindex is called
 func UpdateReindex() error {
-	statsMutex.Lock()
-	defer statsMutex.Unlock()
-
 	stats, err := loadStats()
 	if err != nil {
 		return err
 	}
 
 	stats.LastReindex = time.Now()
-	return saveStats(stats)
+	return saveStatsLocked(stats)
 }
 
 // UpdateLanguagesChange updates the timestamp when languages are changed
 func UpdateLanguagesChange() error {
-	statsMutex.Lock()
-	defer statsMutex.Unlock()
-
 	stats, err := loadStats()
 	if err != nil {
 		return err
 	}
 
 	stats.LastLanguagesChange = time.Now()
-	return saveStats(stats)
+	return saveStatsLocked(stats)
 }
 
 // GetStats returns the current search statistics, including the current document count
 func GetStats() (*SearchStats, error) {
-	statsMutex.RLock()
-	defer statsMutex.RUnlock()
-
 	stats, err := loadStats()
 	if err != nil {
 		return nil, err

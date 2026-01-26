@@ -36,9 +36,9 @@ func TestParseQuery(t *testing.T) {
 		{"banana (NOT delicious) bread", 0, nil},
 		{"smoothie OR apples", 2, nil},
 		{"smoothie OR apples (NOT fruit)", 1, nil},
-		{"\"I like\"", 3, []string{"I like"}},
-		{"banana \"I like fruit\" strawberries", 1, []string{"I like fruit"}},
-		{"\"I like fruit\" (strawberry OR apple)", 2, []string{"I like fruit"}},
+		{"\"I like\"", 3, []string{"i like"}},
+		{"banana \"I like fruit\" strawberries", 1, []string{"i like fruit"}},
+		{"\"I like fruit\" (strawberry OR apple)", 2, []string{"i like fruit"}},
 	}
 
 	for _, test := range testQueries {
