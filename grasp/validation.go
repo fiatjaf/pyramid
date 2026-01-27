@@ -2,6 +2,7 @@ package grasp
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"fiatjaf.com/nostr"
@@ -11,8 +12,13 @@ import (
 func RejectIncomingEvent(ctx context.Context, event nostr.Event) (reject bool, reason string) {
 	// validate repository-related events
 	switch event.Kind {
-	case 30618, 1621, 1617, 1618:
-		// these kinds must reference an existing repository announcement (kind 30617)
+	case 30618:
+		// must correspond to a repository with an announcement that exists
+		if dTag := event.Tags.Find("d"); dTag == nil || !repositoryExists(fmt.Sprintf("30617:%s:%s", event.PubKey.Hex(), event.Tags.GetD())) {
+			return true, "repository not found: must correspond to existing repository announcement (kind 30617)"
+		}
+	case 1621, 1617, 1618:
+		// these kinds also must reference an existing repository announcement (kind 30617)
 		if aTag := event.Tags.Find("a"); aTag == nil || !repositoryExists(aTag[1]) {
 			return true, "repository not found: must reference an existing repository announcement (kind 30617)"
 		}
