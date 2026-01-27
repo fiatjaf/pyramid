@@ -103,8 +103,15 @@ func GetMaxInvitesFor(pubkey nostr.PubKey) int {
 			return 0
 		}
 
-		if level < len(global.Settings.MaxInvitesAtEachLevel) {
-			return global.Settings.MaxInvitesAtEachLevel[level]
+		// level 0 has unlimited invites
+		if level == 0 {
+			return 999999
+		}
+
+		// array starts from level 1, so use level-1 as index
+		adjustedLevel := level - 1
+		if adjustedLevel < len(global.Settings.MaxInvitesAtEachLevel) {
+			return global.Settings.MaxInvitesAtEachLevel[adjustedLevel]
 		}
 
 		// if level is beyond the array, no invites are allowed

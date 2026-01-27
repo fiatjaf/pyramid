@@ -330,22 +330,22 @@ func TestGetMaxInvitesFor(t *testing.T) {
 	global.Settings.MaxInvitesAtEachLevel = []int{10, 7, 5, 3, 1}
 	global.Settings.MaxInvitesPerPerson = 0
 
-	// root1 is level 0 -> 10 invites
-	require.Equal(t, 10, GetMaxInvitesFor(root1))
-	// userA is level 1 -> 7 invites
-	require.Equal(t, 7, GetMaxInvitesFor(userA))
-	// userB is level 2 -> 5 invites
-	require.Equal(t, 5, GetMaxInvitesFor(userB))
-	// userC is level 3 -> 3 invites
-	require.Equal(t, 3, GetMaxInvitesFor(userC))
-	// userD is level 4 -> 1 invite
-	require.Equal(t, 1, GetMaxInvitesFor(userD))
+	// root1 is level 0 -> unlimited invites
+	require.Equal(t, 999999, GetMaxInvitesFor(root1))
+	// userA is level 1 -> 10 invites (first element in array)
+	require.Equal(t, 10, GetMaxInvitesFor(userA))
+	// userB is level 2 -> 7 invites (second element in array)
+	require.Equal(t, 7, GetMaxInvitesFor(userB))
+	// userC is level 3 -> 5 invites (third element in array)
+	require.Equal(t, 5, GetMaxInvitesFor(userC))
+	// userD is level 4 -> 3 invites (fourth element in array)
+	require.Equal(t, 3, GetMaxInvitesFor(userD))
 
 	// test level beyond array length returns 0
 	userE := nostr.PubKey{'E'}
 	applyAction(ActionInvite, userD, userE)
-	// userE is level 5, array only has 5 elements (0-4)
-	require.Equal(t, 0, GetMaxInvitesFor(userE))
+	// userE is level 5, adjusted level 4, gets 1 invite (5th element in array)
+	require.Equal(t, 1, GetMaxInvitesFor(userE))
 
 	// test AbsoluteKey returns 0 (level -1)
 	require.Equal(t, 0, GetMaxInvitesFor(AbsoluteKey))
