@@ -65,7 +65,7 @@ var (
 	log  = global.Log.With().Str("service", "search").Logger()
 	Main *BleveIndex
 
-	indexableKinds = []nostr.Kind{0, 1, 11, 24, 1111, 30023, 30818}
+	indexableKinds = []nostr.Kind{0, 1, 6, 11, 16, 20, 21, 22, 24, 1111, 30023, 30818}
 	Languages      = []lingua.Language{
 		// each of these translates to a specific bleve analyzer
 		// except for japanese-korean-chinese that all use the same "cjk" analyzer
@@ -258,6 +258,18 @@ func (b *BleveIndex) CountEvents(filter nostr.Filter) (uint32, error) {
 }
 
 func (b *BleveIndex) SaveEvent(evt nostr.Event) error {
+	// for kinds 6 and 16 (reposts), try to parse the inner event from Content
+	// if valid, use the inner event's fields for indexing but keep the outer event's ID
+	docID := evt.ID
+
+	if evt.Kind == 6 || evt.Kind == 16 {
+		var innerEvt nostr.Event
+		if err := json.Unmarshal([]byte(evt.Content), &innerEvt); err != nil || !innerEvt.VerifySignature() {
+			return nil // skip if Content doesn't contain a valid event
+		}
+		evt = innerEvt
+	}
+
 	doc := map[string]any{
 		labelKindField:      strconv.Itoa(int(evt.Kind)),
 		labelAuthorField:    evt.PubKey.Hex()[56:],
@@ -320,8 +332,8 @@ func (b *BleveIndex) SaveEvent(evt nostr.Event) error {
 	// other stuff, non-exact matching
 	doc[labelExtrasField] = extras
 
-	if err := b.index.Index(evt.ID.Hex(), doc); err != nil {
-		return fmt.Errorf("failed to index '%s' document: %w", evt.ID, err)
+	if err := b.index.Index(docID.Hex(), doc); err != nil {
+		return fmt.Errorf("failed to index '%s' document: %w", docID.Hex(), err)
 	}
 
 	return nil
