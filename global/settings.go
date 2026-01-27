@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"fiatjaf.com/nostr"
@@ -36,7 +37,8 @@ type UserSettings struct {
 	// general
 	BrowseURI               string `json:"browse_uri"`
 	LinkURL                 string `json:"link_url"`
-	MaxInvitesPerPerson     int    `json:"max_invites_per_person"`
+	MaxInvitesPerPerson     int    `json:"max_invites_per_person,omitempty"`
+	MaxInvitesAtEachLevel   []int  `json:"max_invites_at_each_level,omitempty"`
 	MaxEventSize            int    `json:"max_event_size"`
 	RequireCurrentTimestamp bool   `json:"require_current_timestamp"`
 	EnableOTS               bool   `json:"enable_ots"`
@@ -198,6 +200,17 @@ func (us UserSettings) HasThemeColors() bool {
 
 func (us UserSettings) GetExternalLink(pointer nostr.Pointer) string {
 	return strings.ReplaceAll(us.LinkURL, "{code}", nip19.EncodePointer(pointer))
+}
+
+func (us UserSettings) GetMaxInvitesDisplay() string {
+	if len(us.MaxInvitesAtEachLevel) > 0 {
+		parts := make([]string, len(us.MaxInvitesAtEachLevel))
+		for i, v := range us.MaxInvitesAtEachLevel {
+			parts[i] = strconv.Itoa(v)
+		}
+		return strings.Join(parts, "/")
+	}
+	return strconv.Itoa(us.MaxInvitesPerPerson)
 }
 
 func getUserSettingsPath() string {

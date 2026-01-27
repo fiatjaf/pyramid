@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -68,14 +69,60 @@ func GetChildren(parent nostr.PubKey) iter.Seq2[nostr.PubKey, Member] {
 	}
 }
 
+func GetLevel(pubkey nostr.PubKey) int {
+	if pubkey == AbsoluteKey {
+		return -1
+	}
+
+	member, ok := Members.Load(pubkey)
+	if !ok {
+		return math.MaxInt
+	}
+
+	minLevel := -1
+	for _, parent := range member.Parents {
+		if parent == AbsoluteKey {
+			return 0
+		}
+		parentLevel := GetLevel(parent)
+		if parentLevel >= 0 {
+			level := parentLevel + 1
+			if minLevel < 0 || level < minLevel {
+				minLevel = level
+			}
+		}
+	}
+	return minLevel
+}
+
+func GetMaxInvitesFor(pubkey nostr.PubKey) int {
+	if len(global.Settings.MaxInvitesAtEachLevel) > 0 {
+		level := GetLevel(pubkey)
+
+		if level < 0 {
+			return 0
+		}
+
+		if level < len(global.Settings.MaxInvitesAtEachLevel) {
+			return global.Settings.MaxInvitesAtEachLevel[level]
+		}
+
+		// if level is beyond the array, no invites are allowed
+		return 0
+	}
+	return global.Settings.MaxInvitesPerPerson
+}
+
 func CanInviteMore(pubkey nostr.PubKey) bool {
-	if IsRoot(pubkey) || pubkey == AbsoluteKey {
+	if pubkey == AbsoluteKey || IsRoot(pubkey) {
 		return true
 	}
 
 	if !IsMember(pubkey) {
 		return false
 	}
+
+	maxInvites := GetMaxInvitesFor(pubkey)
 
 	totalInvited := 0
 	for _, member := range Members.Range {
@@ -84,7 +131,7 @@ func CanInviteMore(pubkey nostr.PubKey) bool {
 		}
 	}
 
-	return totalInvited < global.Settings.MaxInvitesPerPerson
+	return totalInvited < maxInvites
 }
 
 func IsParentOf(parent nostr.PubKey, target nostr.PubKey) bool {
@@ -148,7 +195,8 @@ func AddAction(type_ Action, author nostr.PubKey, target nostr.PubKey) error {
 	switch type_ {
 	case ActionInvite:
 		if !CanInviteMore(author) {
-			return fmt.Errorf("cannot invite more than %d", global.Settings.MaxInvitesPerPerson)
+			maxInvites := GetMaxInvitesFor(author)
+			return fmt.Errorf("cannot invite more than %d", maxInvites)
 		}
 		if IsAncestorOf(target, author) {
 			return fmt.Errorf("can't invite an ancestor")

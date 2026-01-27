@@ -1,10 +1,13 @@
 package pyramid
 
 import (
+	"math"
 	"testing"
 
 	"fiatjaf.com/nostr"
 	"github.com/stretchr/testify/require"
+
+	"github.com/fiatjaf/pyramid/global"
 )
 
 func TestApplyAction(t *testing.T) {
@@ -245,7 +248,109 @@ func TestRemovingOneself(t *testing.T) {
 func getMembersMap() map[nostr.PubKey][]nostr.PubKey {
 	m := make(map[nostr.PubKey][]nostr.PubKey)
 	for k, v := range Members.Range {
-		m[k] = v
+		m[k] = v.Parents
 	}
 	return m
+}
+
+func TestGetLevel(t *testing.T) {
+	root1 := nostr.PubKey{1}
+	root2 := nostr.PubKey{2}
+	userA := nostr.PubKey{'A'}
+	userB := nostr.PubKey{'B'}
+	userC := nostr.PubKey{'C'}
+	userD := nostr.PubKey{'D'}
+
+	AbsoluteKey = nostr.MustPubKeyFromHex("1111111111111111111111111111111111111111111111111111111111111111")
+	Members.Clear()
+
+	// absoluteKey returns -1
+	require.Equal(t, -1, GetLevel(AbsoluteKey))
+
+	// non-member returns math.MaxInt
+	require.Equal(t, math.MaxInt, GetLevel(root1))
+
+	// setup tree: AbsoluteKey -> root1, root2 -> userA, userB -> userC -> userD
+	applyAction(ActionInvite, AbsoluteKey, root1)
+	applyAction(ActionInvite, AbsoluteKey, root2)
+
+	// root users are level 0
+	require.Equal(t, 0, GetLevel(root1))
+	require.Equal(t, 0, GetLevel(root2))
+
+	applyAction(ActionInvite, root1, userA)
+	applyAction(ActionInvite, root2, userB)
+
+	// users invited by roots are level 1
+	require.Equal(t, 1, GetLevel(userA))
+	require.Equal(t, 1, GetLevel(userB))
+
+	applyAction(ActionInvite, userA, userC)
+	applyAction(ActionInvite, userC, userD)
+
+	// level 2 and 3
+	require.Equal(t, 2, GetLevel(userC))
+	require.Equal(t, 3, GetLevel(userD))
+
+	// test multiple parents: userD also invited by root1 (shorter path)
+	applyAction(ActionInvite, root1, userD)
+
+	// userD should now be level 1 (shortest path via root1)
+	require.Equal(t, 1, GetLevel(userD))
+}
+
+func TestGetMaxInvitesFor(t *testing.T) {
+	root1 := nostr.PubKey{1}
+	userA := nostr.PubKey{'A'}
+	userB := nostr.PubKey{'B'}
+	userC := nostr.PubKey{'C'}
+	userD := nostr.PubKey{'D'}
+
+	AbsoluteKey = nostr.MustPubKeyFromHex("2222222222222222222222222222222222222222222222222222222222222222")
+	Members.Clear()
+
+	// setup tree: AbsoluteKey -> root1 -> userA -> userB -> userC -> userD
+	applyAction(ActionInvite, AbsoluteKey, root1)
+	applyAction(ActionInvite, root1, userA)
+	applyAction(ActionInvite, userA, userB)
+	applyAction(ActionInvite, userB, userC)
+	applyAction(ActionInvite, userC, userD)
+
+	// test with MaxInvitesPerPerson (flat limit)
+	global.Settings.MaxInvitesAtEachLevel = nil
+	global.Settings.MaxInvitesPerPerson = 5
+
+	require.Equal(t, 5, GetMaxInvitesFor(root1))
+	require.Equal(t, 5, GetMaxInvitesFor(userA))
+	require.Equal(t, 5, GetMaxInvitesFor(userB))
+	require.Equal(t, 5, GetMaxInvitesFor(userC))
+	require.Equal(t, 5, GetMaxInvitesFor(userD))
+
+	// test with MaxInvitesAtEachLevel (per-level limits)
+	global.Settings.MaxInvitesAtEachLevel = []int{10, 7, 5, 3, 1}
+	global.Settings.MaxInvitesPerPerson = 0
+
+	// root1 is level 0 -> 10 invites
+	require.Equal(t, 10, GetMaxInvitesFor(root1))
+	// userA is level 1 -> 7 invites
+	require.Equal(t, 7, GetMaxInvitesFor(userA))
+	// userB is level 2 -> 5 invites
+	require.Equal(t, 5, GetMaxInvitesFor(userB))
+	// userC is level 3 -> 3 invites
+	require.Equal(t, 3, GetMaxInvitesFor(userC))
+	// userD is level 4 -> 1 invite
+	require.Equal(t, 1, GetMaxInvitesFor(userD))
+
+	// test level beyond array length returns 0
+	userE := nostr.PubKey{'E'}
+	applyAction(ActionInvite, userD, userE)
+	// userE is level 5, array only has 5 elements (0-4)
+	require.Equal(t, 0, GetMaxInvitesFor(userE))
+
+	// test AbsoluteKey returns 0 (level -1)
+	require.Equal(t, 0, GetMaxInvitesFor(AbsoluteKey))
+
+	// test non-member returns 0
+	nonMember := nostr.PubKey{'Z'}
+	require.Equal(t, 0, GetMaxInvitesFor(nonMember))
 }

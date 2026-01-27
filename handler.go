@@ -116,7 +116,22 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				//
 				// general settings
 			case "max_invites_per_person":
-				global.Settings.MaxInvitesPerPerson, _ = strconv.Atoi(v[0])
+				if strings.Contains(v[0], "/") {
+					parts := strings.Split(v[0], "/")
+					levels := make([]int, 0, len(parts))
+					for _, p := range parts {
+						if n, err := strconv.Atoi(strings.TrimSpace(p)); err == nil {
+							levels = append(levels, n)
+						}
+					}
+					if len(levels) > 0 {
+						global.Settings.MaxInvitesAtEachLevel = levels
+						global.Settings.MaxInvitesPerPerson = 0
+					}
+				} else {
+					global.Settings.MaxInvitesPerPerson, _ = strconv.Atoi(v[0])
+					global.Settings.MaxInvitesAtEachLevel = nil
+				}
 			case "max_event_size":
 				global.Settings.MaxEventSize, _ = strconv.Atoi(v[0])
 			case "browse_uri":

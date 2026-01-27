@@ -245,7 +245,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				x-data={ `{
 					showAllowedKinds: `+ fmt.Sprint(len(global.Settings.AllowedKinds) > 0) +`,
 					nip05Enabled: ` + fmt.Sprint(global.Settings.NIP05.Enabled) + `,
-					maxInvitesPerPerson: ` + fmt.Sprint(global.Settings.MaxInvitesPerPerson) + `,
+					maxInvitesPerPerson: ` + global.JSONString(global.Settings.GetMaxInvitesDisplay()) + `,
 					maxEventSize: ` + fmt.Sprint(global.Settings.MaxEventSize) + `,
 					requireCurrentTimestamp: ` + fmt.Sprint(global.Settings.RequireCurrentTimestamp) + `,
 					enableOTS: ` + fmt.Sprint(global.Settings.EnableOTS) + `,
@@ -297,14 +297,17 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					<div>
 						<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="max_invites_per_person">max invites per person</label>
 						<input
-							type="number"
+							type="text"
 							name="max_invites_per_person"
 							id="max_invites_per_person"
-							min="1"
+							placeholder="e.g. 4 or 5/4/3/2/1"
 							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
 							x-model="maxInvitesPerPerson"
 							@blur="saveSettings()"
 						/>
+						<p class="text-xs text-stone-500 dark:text-stone-400 mt-1">
+							use a single number or slash-separated values for each level (e.g. "5/4/3/2/1" means level 0 gets 5 invites, level 1 gets 4, etc.)
+						</p>
 					</div>
 					<div>
 						<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="max_event_size">max event size (in bytes)</label>
