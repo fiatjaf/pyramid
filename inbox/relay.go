@@ -25,6 +25,8 @@ var (
 )
 
 func Init() {
+	Relay = khatru.NewRelay()
+
 	if global.Settings.Inbox.Enabled {
 		// relay enabled
 		setupEnabled()
@@ -35,7 +37,6 @@ func Init() {
 }
 
 func setupDisabled() {
-	Relay = khatru.NewRelay()
 	global.CleanupRelay(Relay)
 
 	mux := http.NewServeMux()
@@ -48,7 +49,6 @@ func setupDisabled() {
 }
 
 func setupEnabled() {
-	Relay = khatru.NewRelay()
 	Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Inbox.HTTPBasePath
 
 	Relay.ManagementAPI.ChangeRelayName = changeRelayNameHandler

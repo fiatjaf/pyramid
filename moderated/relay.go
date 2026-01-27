@@ -22,6 +22,8 @@ var (
 )
 
 func Init() {
+	Relay = khatru.NewRelay()
+
 	if global.Settings.Moderated.Enabled {
 		setupEnabled()
 	} else {
@@ -30,7 +32,6 @@ func Init() {
 }
 
 func setupDisabled() {
-	Relay = khatru.NewRelay()
 	global.CleanupRelay(Relay)
 
 	mux := http.NewServeMux()
@@ -43,8 +44,6 @@ func setupDisabled() {
 }
 
 func setupEnabled() {
-	Relay = khatru.NewRelay()
-
 	Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Moderated.HTTPBasePath
 
 	pk := global.Settings.RelayInternalSecretKey.Public()
