@@ -354,6 +354,7 @@ func main() {
 			RestrictedWrites: true,
 		}
 		info.Software = "https://github.com/fiatjaf/pyramid"
+		info.Version = currentVersion
 		return info
 	}
 
