@@ -340,7 +340,10 @@ func (b *BleveIndex) SaveEvent(evt nostr.Event) error {
 }
 
 func (b *BleveIndex) DeleteEvent(id nostr.ID) error {
-	return b.index.Delete(id.Hex())
+	if b != nil && b.index != nil {
+		return b.index.Delete(id.Hex())
+	}
+	return nil
 }
 
 func (b *BleveIndex) QueryEvents(filter nostr.Filter, maxLimit int) iter.Seq[nostr.Event] {
