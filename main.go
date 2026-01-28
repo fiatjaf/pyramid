@@ -47,6 +47,8 @@ var (
 var static embed.FS
 
 func main() {
+	log.Info().Str("version", currentVersion).Msg("running pyramid")
+
 	if err := global.Init(); err != nil {
 		log.Fatal().Err(err).Msg("couldn't initialize")
 		return
