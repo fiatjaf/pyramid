@@ -299,6 +299,41 @@ func TestGetLevel(t *testing.T) {
 	require.Equal(t, 1, GetLevel(userD))
 }
 
+func TestDuplicateInviteBySamePubkey(t *testing.T) {
+	user1 := nostr.PubKey{1}
+	user2 := nostr.PubKey{2}
+	user3 := nostr.PubKey{3}
+
+	AbsoluteKey = nostr.MustPubKeyFromHex("3333333333333333333333333333333333333333333333333333333333333333")
+	Members.Clear()
+	global.Settings.MaxInvitesAtEachLevel = nil
+	global.Settings.MaxInvitesPerPerson = 10
+	global.S.DataPath = t.TempDir()
+
+	// setup: AbsoluteKey -> user1 -> user2
+	applyAction(ActionInvite, AbsoluteKey, user1)
+	applyAction(ActionInvite, user1, user2)
+
+	// user1 tries to invite user2 again - should fail
+	err := AddAction(ActionInvite, user1, user2)
+	require.Error(t, err)
+	require.Equal(t, "already invited", err.Error())
+
+	// verify user2 still has only one parent
+	member, _ := Members.Load(user2)
+	require.Len(t, member.Parents, 1)
+	require.Equal(t, user1, member.Parents[0])
+
+	// user1 can still invite a different user
+	err = AddAction(ActionInvite, user1, user3)
+	require.NoError(t, err)
+
+	// verify user3 was added
+	member3, _ := Members.Load(user3)
+	require.Len(t, member3.Parents, 1)
+	require.Equal(t, user1, member3.Parents[0])
+}
+
 func TestGetMaxInvitesFor(t *testing.T) {
 	root1 := nostr.PubKey{1}
 	userA := nostr.PubKey{'A'}
