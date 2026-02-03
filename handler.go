@@ -801,7 +801,18 @@ func syncHandler(w http.ResponseWriter, r *http.Request) {
 	download := r.FormValue("download") == "on"
 	upload := r.FormValue("upload") == "on"
 
-	streamingSync(r.Context(), loggedUser, remoteUrl, download, upload, w)
+	// use the pubkey from the form (member page being synced) or fallback to logged user
+	targetUser := loggedUser
+	if pubkeyStr := r.FormValue("pubkey"); pubkeyStr != "" {
+		if target := global.PubKeyFromInput(pubkeyStr); target != nostr.ZeroPK {
+			// verify that the logged user can sync this user's events
+			if target == loggedUser || pyramid.IsRoot(loggedUser) {
+				targetUser = target
+			}
+		}
+	}
+
+	streamingSync(r.Context(), targetUser, remoteUrl, download, upload, w)
 }
 
 func nip05Handler(w http.ResponseWriter, r *http.Request) {

@@ -186,6 +186,7 @@ templ memberPage(loggedUser nostr.PubKey, user nostr.PubKey, nip05 string, mainS
 					action="/u/sync"
 					class="space-y-6 mt-8"
 				>
+					<input type="hidden" name="pubkey" value={ user.Hex() } />
 					<div class="space-y-4">
 						<div>
 							@layout.SubSectionTitle("negentropy sync")
