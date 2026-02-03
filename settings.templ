@@ -351,7 +351,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					</div>
 					{{ actualAllowedKinds := global.Settings.AllowedKinds }}
 					if len(global.Settings.AllowedKinds) == 0 {
-						{{ actualAllowedKinds = supportedKindsDefault }}
+						{{ actualAllowedKinds = global.SupportedKindsDefault }}
 					}
 					<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="allowed kinds">allowed kinds</label>
 					<button

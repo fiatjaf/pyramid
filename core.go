@@ -41,12 +41,7 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 	// check allowed kinds:
 	// allow all ephemeral
 	if !event.Kind.IsEphemeral() {
-		var kinds []nostr.Kind
-		if len(global.Settings.AllowedKinds) > 0 {
-			kinds = global.Settings.AllowedKinds
-		} else {
-			kinds = supportedKindsDefault
-		}
+		kinds := global.GetAllowedKinds()
 		if _, allowed := slices.BinarySearch(kinds, nostr.Kind(event.Kind)); !allowed {
 			return true, fmt.Sprintf("event kind %d not allowed", event.Kind)
 		}
@@ -146,20 +141,6 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 	}
 
 	return true, "not authorized"
-}
-
-// this must be sorted, which we do on main()
-var supportedKindsDefault = []nostr.Kind{
-	0, 1, 3, 5, 6, 7, 8, 9,
-	11, 16, 20, 21, 22, 24, 818, 1040,
-	1063, 1111, 1222, 1244, 1617, 1618, 1619, 1621,
-	1630, 1631, 1632, 1633, 1984, 1985, 7375, 7376,
-	9321, 9735, 9802, 10000, 10001, 10002, 10003, 10004,
-	10005, 10006, 10007, 10009, 10015, 10019, 10030, 10050,
-	10063, 10101, 10102, 10317, 17375, 24133, 30000, 30002,
-	30003, 30004, 30008, 30009, 30015, 30023, 30024, 30030,
-	30078, 30311, 30617, 30618, 30818, 30819, 31922, 31923,
-	31924, 31925, 39701,
 }
 
 func rejectInviteRequestsNonAuthed(ctx context.Context, filter nostr.Filter) (bool, string) {
