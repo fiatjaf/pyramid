@@ -101,7 +101,7 @@ func setupEnabled() {
 		policies.PreventLargeContent(10000),
 		policies.PreventTooManyIndexableTags(9, []nostr.Kind{3}, nil),
 		policies.PreventTooManyIndexableTags(1200, nil, []nostr.Kind{3}),
-		policies.RestrictToSpecifiedKinds(true, 1, 11, 1111, 1444, 1244, 20, 21, 22, 31924, 31925, 31922, 31923, 30818),
+		policies.RestrictToSpecifiedKinds(true, 1, 5, 11, 1111, 1444, 1244, 20, 21, 22, 31924, 31925, 31922, 31923, 30818),
 		policies.OnlyAllowNIP70ProtectedEvents,
 		func(ctx context.Context, evt nostr.Event) (bool, string) {
 			if pyramid.IsMember(evt.PubKey) {

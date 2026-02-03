@@ -96,7 +96,7 @@ func setupEnabled() {
 		policies.PreventLargeContent(10000),
 		policies.PreventTooManyIndexableTags(9, []nostr.Kind{3}, nil),
 		policies.PreventTooManyIndexableTags(1200, nil, []nostr.Kind{3}),
-		policies.RestrictToSpecifiedKinds(true, 1, 11, 1111, 1222, 1244, 30023, 30818, 9802, 20, 21, 22),
+		policies.RestrictToSpecifiedKinds(true, 1, 5, 11, 1111, 1222, 1244, 30023, 30818, 9802, 20, 21, 22),
 		func(ctx context.Context, evt nostr.Event) (bool, string) {
 			if global.Settings.Moderated.MinPoW > 0 {
 				difficulty := nip13.Difficulty(evt.ID)
