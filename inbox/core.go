@@ -73,6 +73,42 @@ func rejectFilter(ctx context.Context, filter nostr.Filter) (bool, string) {
 }
 
 func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
+	// if this is a deletion event, check if it tags events that exist in our stores
+	if evt.Kind == 5 {
+		del := evt
+		for _, tag := range del.Tags {
+			if len(tag) >= 2 && tag[0] == "e" {
+				id, err := nostr.IDFromHex(tag[1])
+				if err != nil {
+					continue // skip invalid event ids
+				}
+
+				// check if this event exists in either store
+				var found nostr.Event
+				for evt := range global.IL.Inbox.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+					found = evt
+					break
+				}
+				if found.ID != nostr.ZeroID {
+					for evt := range global.IL.Secret.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+						found = evt
+						break
+					}
+				}
+				if del.PubKey == found.PubKey ||
+					found.Tags.FindWithValue("p", del.PubKey.Hex()) != nil ||
+					found.Tags.FindWithValue("P", del.PubKey.Hex()) != nil {
+					// at least one tagged event exists in our stores, authored by the deleter
+					// or tagging the deleter -- special case
+					// accept deletion
+					return false, ""
+				}
+			}
+		}
+
+		return true, "target doesn't exist in this relay"
+	}
+
 	// count p-tags and check if they tag pyramid members
 	pTagCount := 0
 	PTagCount := 0

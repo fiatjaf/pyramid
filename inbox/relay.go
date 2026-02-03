@@ -343,25 +343,31 @@ func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
 		log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("inbox banevent called by root")
 	} else {
 		// check if the caller is the author of the event being banned
-		var isAuthor bool
+		var isAuthorOrRecipient bool
 		for evt := range global.IL.Inbox.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
 			if evt.PubKey == caller {
-				isAuthor = true
+				isAuthorOrRecipient = true
 				break
+			} else if evt.Tags.FindWithValue("p", caller.Hex()) != nil ||
+				evt.Tags.FindWithValue("P", caller.Hex()) != nil {
+				isAuthorOrRecipient = true
 			}
 		}
-		if !isAuthor {
+		if !isAuthorOrRecipient {
 			for evt := range global.IL.Secret.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
 				if evt.PubKey == caller {
-					isAuthor = true
+					isAuthorOrRecipient = true
 					break
+				} else if evt.Tags.FindWithValue("p", caller.Hex()) != nil ||
+					evt.Tags.FindWithValue("P", caller.Hex()) != nil {
+					isAuthorOrRecipient = true
 				}
 			}
 		}
-		if !isAuthor {
-			return fmt.Errorf("must be a root user or the event author to ban an event")
+		if !isAuthorOrRecipient {
+			return fmt.Errorf("must be a root user, the event author or the event recipient to ban an event")
 		}
-		log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("inbox banevent called by author")
+		log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("inbox banevent called by author or recipient")
 	}
 
 	// Delete from both database layers
