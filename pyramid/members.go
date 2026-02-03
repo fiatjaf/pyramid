@@ -120,6 +120,16 @@ func GetMaxInvitesFor(pubkey nostr.PubKey) int {
 	return global.Settings.MaxInvitesPerPerson
 }
 
+func GetInviteCount(pubkey nostr.PubKey) int {
+	count := 0
+	for _, member := range Members.Range {
+		if slices.Contains(member.Parents, pubkey) {
+			count++
+		}
+	}
+	return count
+}
+
 func CanInviteMore(pubkey nostr.PubKey) bool {
 	if pubkey == AbsoluteKey || IsRoot(pubkey) {
 		return true
@@ -129,16 +139,7 @@ func CanInviteMore(pubkey nostr.PubKey) bool {
 		return false
 	}
 
-	maxInvites := GetMaxInvitesFor(pubkey)
-
-	totalInvited := 0
-	for _, member := range Members.Range {
-		if slices.Contains(member.Parents, pubkey) {
-			totalInvited++
-		}
-	}
-
-	return totalInvited < maxInvites
+	return GetInviteCount(pubkey) < GetMaxInvitesFor(pubkey)
 }
 
 func IsParentOf(parent nostr.PubKey, target nostr.PubKey) bool {

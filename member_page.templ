@@ -46,14 +46,18 @@ templ memberPage(loggedUser nostr.PubKey, user nostr.PubKey, nip05 string, mainS
 						<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">status:</span>
 						if pyramid.IsRoot(user) {
 							<span class="ml-2 text-sm font-semibold themed:text-[var(--extra-color)] light:text-emerald-600 dark:text-emerald-400">root member</span>
+							<span class="text-sm light:text-stone-500 dark:text-stone-400">(level 0)</span>
 						} else if pyramid.IsMember(user) {
 							<span class="ml-2 text-sm text-green-600 dark:text-green-400">member</span>
+							<span class="text-sm light:text-stone-500 dark:text-stone-400">(level { fmt.Sprintf("%d", pyramid.GetLevel(user)) })</span>
 							<div class="w-full">
 								<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">invited by:</span>
 								<div class="ml-2 space-y-1">
 									for _, inviter := range pyramid.GetInviters(user) {
 										<div class="text-sm">
-											<code class="light:bg-stone-100 dark:bg-stone-800 px-2 rounded">{ inviter.Hex() }</code>
+											<a href={ templ.SafeURL("/u/" + inviter.Hex()) } class="light:bg-stone-100 dark:bg-stone-800 px-2 rounded hover:underline">
+												<nostr-name pubkey={ inviter.Hex() }>{ inviter.Hex() }</nostr-name>
+											</a>
 										</div>
 									}
 								</div>
@@ -62,6 +66,34 @@ templ memberPage(loggedUser nostr.PubKey, user nostr.PubKey, nip05 string, mainS
 							<span class="ml-2 text-sm font-semibold themed:text-[var(--extra-color)] light:text-emerald-600 dark:text-emerald-400">not a member</span>
 						}
 					</div>
+					if pyramid.IsMember(user) {
+						<div class="flex items-center gap-x-2 flex-wrap">
+							<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">invites left:</span>
+							if pyramid.IsRoot(user) {
+								<span class="ml-2 text-sm">unlimited</span>
+							} else {
+								{{ invitesLeft := pyramid.GetMaxInvitesFor(user) - pyramid.GetInviteCount(user) }}
+								<span class="ml-2 text-sm">{ fmt.Sprintf("%d", invitesLeft) }</span>
+							}
+						</div>
+						<div class="flex items-start gap-x-2 flex-wrap">
+							<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">invited members:</span>
+							<div class="ml-2 space-y-1">
+								{{ hasInvitees := false }}
+								for invitee, _ := range pyramid.GetChildren(user) {
+									{{ hasInvitees = true }}
+									<div class="text-sm">
+										<a href={ templ.SafeURL("/u/" + invitee.Hex()) } class="light:bg-stone-100 dark:bg-stone-800 px-2 rounded hover:underline">
+											<nostr-name pubkey={ invitee.Hex() }>{ invitee.Hex() }</nostr-name>
+										</a>
+									</div>
+								}
+								if !hasInvitees {
+									<span class="text-sm light:text-stone-500 dark:text-stone-400">none</span>
+								}
+							</div>
+						</div>
+					}
 				</div>
 			</div>
 			//
