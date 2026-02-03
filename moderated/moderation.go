@@ -133,14 +133,28 @@ func allowEventHandler(ctx context.Context, id nostr.ID, reason string) error {
 }
 
 func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
-	author, ok := khatru.GetAuthed(ctx)
+	caller, ok := khatru.GetAuthed(ctx)
 	if !ok {
 		return fmt.Errorf("not authenticated")
 	}
 
-	if !pyramid.IsMember(author) {
-		return fmt.Errorf("unauthorized")
+	// allow if caller is a member (includes root users)
+	if pyramid.IsMember(caller) {
+		log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("moderated banevent called by member")
+	} else {
+		// check if the caller is the author of the event being banned
+		var isAuthor bool
+		for evt := range global.IL.ModerationQueue.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+			if evt.PubKey == caller {
+				isAuthor = true
+				break
+			}
+		}
+		if !isAuthor {
+			return fmt.Errorf("must be a member or the event author to ban an event")
+		}
+		log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("moderated banevent called by author")
 	}
 
-	return rejectEvent(author, id)
+	return rejectEvent(caller, id)
 }

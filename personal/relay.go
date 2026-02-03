@@ -245,11 +245,23 @@ func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
 		return fmt.Errorf("not authenticated")
 	}
 
-	if !pyramid.IsRoot(caller) {
-		return fmt.Errorf("must be a root user to ban an event")
+	// allow if caller is a root user
+	if pyramid.IsRoot(caller) {
+		log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("personal banevent called by root")
+	} else {
+		// check if the caller is the author of the event being banned
+		var isAuthor bool
+		for evt := range global.IL.Personal.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+			if evt.PubKey == caller {
+				isAuthor = true
+				break
+			}
+		}
+		if !isAuthor {
+			return fmt.Errorf("must be a root user or the event author to ban an event")
+		}
+		log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("personal banevent called by author")
 	}
-
-	log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("personal banevent called")
 
 	return global.IL.Personal.DeleteEvent(id)
 }
