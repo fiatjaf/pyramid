@@ -33,8 +33,10 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-var sftpVFS = SFTPVirtualFileSystem{}
-var sftpListener net.Listener
+var (
+	sftpVFS      = SFTPVirtualFileSystem{}
+	sftpListener net.Listener
+)
 
 func startSFTP() error {
 	config := &ssh.ServerConfig{

@@ -99,13 +99,21 @@ func streamingSync(
 					if _, ok := seen[item]; ok {
 						continue
 					}
-					progress <- fmt.Sprintf("event %s found on %s", item.Hex(), source)
+					select {
+					case progress <- fmt.Sprintf("event %s found on %s", item.Hex(), source):
+					case <-ctx.Done():
+						return
+					}
 					seen[item] = struct{}{}
 
 					batch = append(batch, item)
 					if len(batch) == 50 {
 						for evt := range dir.From.QueryEvents(nostr.Filter{IDs: batch}) {
-							progress <- fmt.Sprintf("publishing %s to %s", evt, target)
+							select {
+							case progress <- fmt.Sprintf("publishing %s to %s", evt, target):
+							case <-ctx.Done():
+								return
+							}
 							dir.To.Publish(ctx, evt)
 						}
 						batch = batch[:0]
@@ -114,7 +122,11 @@ func streamingSync(
 
 				if len(batch) > 0 {
 					for evt := range dir.From.QueryEvents(nostr.Filter{IDs: batch}) {
-						progress <- fmt.Sprintf("publishing %s to %s", evt, target)
+						select {
+						case progress <- fmt.Sprintf("publishing %s to %s", evt, target):
+						case <-ctx.Done():
+							return
+						}
 						dir.To.Publish(ctx, evt)
 					}
 				}

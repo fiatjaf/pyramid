@@ -383,22 +383,25 @@ func restartSoon() {
 }
 
 func start() {
-	var ctx context.Context
-	ctx, cancelStartContext = context.WithCancelCause(context.Background())
+	for {
+		var ctx context.Context
+		ctx, cancelStartContext = context.WithCancelCause(context.Background())
 
-	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
-	defer cancel()
+		ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 
-	if err := run(ctx); err != nil {
-		if context.Cause(ctx) != restarting {
-			log.Debug().Err(err).Msg("exit reason")
-			return
+		err := run(ctx)
+		cause := context.Cause(ctx)
+		cancel()
+
+		if cause == restarting {
+			// start again
+			continue
 		}
-	}
 
-	// restart if it was a restart request
-	if context.Cause(ctx) == restarting {
-		start()
+		if err != nil {
+			log.Debug().Err(err).Msg("exit reason")
+		}
+		return
 	}
 }
 

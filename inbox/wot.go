@@ -74,6 +74,8 @@ func computeAggregatedWoT(ctx context.Context) (WotXorFilter, error) {
 		go func() {
 			if err := sem.Acquire(ctx, 1); err != nil {
 				log.Error().Err(err).Msg("failed to acquire semaphore on wot building")
+				all.Done()
+				return
 			}
 
 			go func() {
