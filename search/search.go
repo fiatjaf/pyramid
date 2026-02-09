@@ -65,7 +65,7 @@ var (
 	log  = global.Log.With().Str("service", "search").Logger()
 	Main *BleveIndex
 
-	indexableKinds = []nostr.Kind{0, 1, 6, 11, 16, 20, 21, 22, 24, 1111, 30023, 30818}
+	indexableKinds = []nostr.Kind{0, 1, 6, 11, 16, 20, 21, 22, 24, 1111, 9802, 30023, 30818}
 	Languages      = []lingua.Language{
 		// each of these translates to a specific bleve analyzer
 		// except for japanese-korean-chinese that all use the same "cjk" analyzer
@@ -262,12 +262,43 @@ func (b *BleveIndex) SaveEvent(evt nostr.Event) error {
 	// if valid, use the inner event's fields for indexing but keep the outer event's ID
 	docID := evt.ID
 
-	if evt.Kind == 6 || evt.Kind == 16 {
+	var references []string
+	var extras string
+
+	switch evt.Kind {
+	case 6, 16:
 		var innerEvt nostr.Event
 		if err := json.Unmarshal([]byte(evt.Content), &innerEvt); err != nil || !innerEvt.VerifySignature() {
 			return nil // skip if Content doesn't contain a valid event
 		}
 		evt = innerEvt
+	case 0:
+		var pm sdk.ProfileMetadata
+		if err := json.Unmarshal([]byte(evt.Content), &pm); err == nil {
+			evt.Content = pm.Name + "\n" + pm.DisplayName + "\n" + pm.About
+			references = append(references, pm.NIP05)
+		}
+	case 9802:
+		for _, tag := range evt.Tags {
+			if len(tag) < 2 {
+				continue
+			}
+			switch tag[0] {
+			case "comment":
+				evt.Content += "\n\n" + tag[1]
+				references = append(references)
+			case "e":
+				if ptr, err := nostr.EventPointerFromTag(tag); err == nil {
+					references = append(references, ptr.AsTagReference())
+				}
+			case "a":
+				if ptr, err := nostr.EntityPointerFromTag(tag); err == nil {
+					references = append(references, ptr.AsTagReference())
+				}
+			case "r":
+				references = append(references, tag[1])
+			}
+		}
 	}
 
 	doc := map[string]any{
@@ -278,17 +309,6 @@ func (b *BleveIndex) SaveEvent(evt nostr.Event) error {
 
 	content := strings.Builder{}
 	content.Grow(len(evt.Content))
-
-	var references []string
-	var extras string
-
-	if evt.Kind == 0 {
-		var pm sdk.ProfileMetadata
-		if err := json.Unmarshal([]byte(evt.Content), &pm); err == nil {
-			evt.Content = pm.Name + " " + pm.DisplayName + " " + pm.About
-			references = append(references, pm.NIP05)
-		}
-	}
 
 	for block := range nip27.Parse(evt.Content) {
 		if block.Pointer == nil {
