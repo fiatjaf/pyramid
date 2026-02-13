@@ -225,9 +225,6 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 		default:
 			return true, "unexpected money kind"
 		}
-
-		// upon getting a valid money event we reset the paywall cache for that person
-		global.ResetPaywallCache(receiver, evt.PubKey)
 	}
 
 	// ensure this comes from someone in the relay combined extended network

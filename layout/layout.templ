@@ -108,8 +108,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							<button
 								@click="open = !open"
 								class={ "cursor-pointer rounded-lg px-4 py-2 font-medium flex items-center gap-1 themed:text-[var(--text-color)] themed:hover:bg-[rgb(from_var(--text-color)_r_g_b_/10%)] light:hover:bg-stone-100 dark:hover:bg-stone-700",
-                                    templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", currentPage == "groups" || currentPage == "grasp" || currentPage == "blossom"),
-                                    templ.KV("hidden", !(global.Settings.Groups.Enabled || global.Settings.Grasp.Enabled || global.Settings.Blossom.Enabled || pyramid.IsRoot(loggedUser))) }
+                                    templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", currentPage == "groups" || currentPage == "grasp" || currentPage == "blossom" || currentPage == "paywall"),
+                                    templ.KV("hidden", !(global.Settings.Groups.Enabled || global.Settings.Grasp.Enabled || global.Settings.Blossom.Enabled || global.Settings.Paywall.Enabled || pyramid.IsRoot(loggedUser))) }
 							>
 								switch currentPage {
 									case "groups":
@@ -117,6 +117,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 									case "grasp":
 										grasp
 									case "blossom":
+										blossom
+									case "paywall":
 										blossom
 									default:
 										services
@@ -140,9 +142,14 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 										grasp
 									}
 								}
-								if global.Settings.Blossom.Enabled || pyramid.IsRoot(loggedUser) {
+								if global.Settings.Paywall.Enabled || pyramid.IsRoot(loggedUser) {
 									@NavLink("/blossom/", currentPage == "blossom") {
 										blossom
+									}
+								}
+								if global.Settings.Paywall.Enabled || pyramid.IsRoot(loggedUser) {
+									@NavLink("/paywall/", currentPage == "paywall") {
+										paywall
 									}
 								}
 							</div>
@@ -188,29 +195,30 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								for _, page := range []global.RelayID{global.RelayInternal, global.RelayInbox, global.RelayModerated, global.RelayFavorites, global.RelayPopular, global.RelayUppermost, global.RelayPersonal} {
 									{{ var path string }}
 									{{ var enabled bool }}
-									{{switch page {
-case global.RelayInternal:
-	path = global.Settings.Internal.HTTPBasePath
-	enabled = global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)
-case global.RelayPersonal:
-	path = global.Settings.Personal.HTTPBasePath
-	enabled = global.Settings.Personal.Enabled && pyramid.IsMember(loggedUser)
-case global.RelayInbox:
-	path = global.Settings.Inbox.HTTPBasePath
-	enabled = global.Settings.Inbox.Enabled
-case global.RelayModerated:
-	path = global.Settings.Moderated.HTTPBasePath
-	enabled = global.Settings.Moderated.Enabled
-case global.RelayFavorites:
-	path = global.Settings.Favorites.HTTPBasePath
-	enabled = global.Settings.Favorites.Enabled
-case global.RelayPopular:
-	path = global.Settings.Popular.HTTPBasePath
-	enabled = global.Settings.Popular.Enabled
-case global.RelayUppermost:
-	path = global.Settings.Uppermost.HTTPBasePath
-	enabled = global.Settings.Uppermost.Enabled
-}
+									{{
+										switch page {
+										case global.RelayInternal:
+											path = global.Settings.Internal.HTTPBasePath
+											enabled = global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)
+										case global.RelayPersonal:
+											path = global.Settings.Personal.HTTPBasePath
+											enabled = global.Settings.Personal.Enabled && pyramid.IsMember(loggedUser)
+										case global.RelayInbox:
+											path = global.Settings.Inbox.HTTPBasePath
+											enabled = global.Settings.Inbox.Enabled
+										case global.RelayModerated:
+											path = global.Settings.Moderated.HTTPBasePath
+											enabled = global.Settings.Moderated.Enabled
+										case global.RelayFavorites:
+											path = global.Settings.Favorites.HTTPBasePath
+											enabled = global.Settings.Favorites.Enabled
+										case global.RelayPopular:
+											path = global.Settings.Popular.HTTPBasePath
+											enabled = global.Settings.Popular.Enabled
+										case global.RelayUppermost:
+											path = global.Settings.Uppermost.HTTPBasePath
+											enabled = global.Settings.Uppermost.Enabled
+										}
 									}}
 									if enabled || pyramid.IsRoot(loggedUser) {
 										@NavLink("/"+path+"/", currentPage == page.String()) {

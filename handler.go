@@ -173,16 +173,8 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				if err := search.UpdateLanguagesChange(); err != nil {
 					log.Warn().Err(err).Msg("failed to update languages change timestamp")
 				}
-			case "paywall_tag":
-				global.Settings.Paywall.Tag = v[0]
-			case "paywall_amount":
-				if amt, err := strconv.ParseUint(v[0], 10, 64); err == nil {
-					global.Settings.Paywall.AmountSats = uint(amt)
-				}
-			case "paywall_period":
-				if days, err := strconv.ParseUint(v[0], 10, 64); err == nil {
-					global.Settings.Paywall.PeriodDays = uint(days)
-				}
+			case "paywall_enabled":
+				global.Settings.Paywall.Enabled = v[0] == "on"
 				//
 				// nip-05 settings
 			case "nip05_enabled":

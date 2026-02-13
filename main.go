@@ -32,6 +32,7 @@ import (
 	"github.com/fiatjaf/pyramid/inbox"
 	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/moderated"
+	"github.com/fiatjaf/pyramid/paywall"
 	"github.com/fiatjaf/pyramid/personal"
 	"github.com/fiatjaf/pyramid/popular"
 	"github.com/fiatjaf/pyramid/pyramid"
@@ -94,6 +95,15 @@ func main() {
 		return
 	}
 
+	// Initialize paywall maps for all existing members if paywall is enabled
+	if global.Settings.Paywall.Enabled {
+		go func() {
+			for member := range pyramid.Members.Range {
+				paywall.RecomputeUserPaywall(context.Background(), member)
+			}
+		}()
+	}
+
 	// init main relay
 	relay = khatru.NewRelay()
 	relay.Info.Name = "main" // for debugging purposes
@@ -148,6 +158,7 @@ func main() {
 	moderated.Init()
 	popular.Init()
 	uppermost.Init()
+	paywall.Init(relay)
 
 	initScheduledRelay()
 
@@ -286,6 +297,10 @@ func main() {
 			processReactions(ctx, event)
 		case 0, 3, 10019:
 			global.IL.System.SaveEvent(event)
+		case 1163:
+			// NIP-63 paywall event - already handled in basicRejectionLogic
+			// recompute user paywall to ensure consistency
+			paywall.RecomputeUserPaywall(context.Background(), event.PubKey)
 		}
 
 		// trigger opentimestamping of selected event kinds
@@ -294,6 +309,12 @@ func main() {
 			case 1, 11, 1111, 1222, 1244, 20, 21, 22, 24, 9802:
 				go triggerOTS(ctx, event)
 			}
+		}
+	}
+
+	relay.OnEventDeleted = func(ctx context.Context, deleted nostr.Event) {
+		if deleted.Kind == 1163 {
+			paywall.RecomputeUserPaywall(ctx, deleted.PubKey)
 		}
 	}
 
@@ -341,6 +362,9 @@ func main() {
 		}
 		if global.Settings.AcceptScheduledEvents {
 			info.SupportedNIPs = append(info.SupportedNIPs, 16)
+		}
+		if global.Settings.Paywall.Enabled {
+			info.SupportedNIPs = append(info.SupportedNIPs, 63)
 		}
 
 		pk := global.Settings.RelayInternalSecretKey.Public()
@@ -438,6 +462,9 @@ func run(ctx context.Context) error {
 
 	mux.Handle("/"+global.Settings.Moderated.HTTPBasePath+"/", moderated.Relay)
 	mux.Handle("/"+global.Settings.Moderated.HTTPBasePath, moderated.Relay)
+
+	mux.Handle("/paywall/", paywall.Handler)
+	mux.Handle("/paywall", paywall.Handler)
 
 	mux.Handle("/scheduled/", scheduled)
 	mux.Handle("/scheduled", scheduled)

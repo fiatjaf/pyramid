@@ -9,6 +9,7 @@ import (
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/nip86"
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/paywall"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
@@ -98,6 +99,13 @@ func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
 			return fmt.Errorf("must be a root user or the event author to ban an event")
 		}
 		log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("management banevent called by author")
+	}
+
+	// check if this is a kind 1163 event and recompute paywall if needed
+	for evt := range global.IL.Main.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+		if evt.Kind == 1163 {
+			go paywall.RecomputeUserPaywall(context.Background(), evt.PubKey)
+		}
 	}
 
 	return deleteFromMain(id)

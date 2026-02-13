@@ -5,7 +5,7 @@ go 1.25
 require (
 	fiatjaf.com/nostr v0.0.0-20260128022534-d87066c9b9d2
 	github.com/FastFilter/xorfilter v0.2.1
-	github.com/a-h/templ v0.3.960
+	github.com/a-h/templ v0.3.977
 	github.com/bep/debounce v1.2.1
 	github.com/blevesearch/bleve/v2 v2.4.4
 	github.com/go-analyze/charts v0.5.21
@@ -100,3 +100,5 @@ require (
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace fiatjaf.com/nostr => ../nostrlib

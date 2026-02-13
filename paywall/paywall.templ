@@ -1,0 +1,88 @@
+package paywall
+
+import (
+	"time"
+
+	"fiatjaf.com/nostr"
+
+	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
+	"github.com/fiatjaf/pyramid/pyramid"
+)
+
+templ paywallPage(loggedUser nostr.PubKey) {
+	@layout.Layout(loggedUser, "paywall") {
+		<div class="max-w-3xl mx-auto">
+			<h1 class="text-4xl font-bold mb-4 font-[family-name:var(--primary-font)]">paywall</h1>
+			<div class="space-y-4 text-gray-700 dark:text-gray-300">
+				<p class="text-lg leading-relaxed">
+					NIP-63 paywall management for relay members.
+				</p>
+			</div>
+			if pyramid.IsMember(loggedUser) {
+				<div class="mt-8">
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">latest paywalled events</h3>
+					<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
+						<thead class="bg-stone-50 dark:bg-stone-800">
+							<tr>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">date</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">kind</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">content</th>
+							</tr>
+						</thead>
+						<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
+							for evt := range global.IL.Main.QueryEvents(nostr.Filter{Authors: []nostr.PubKey{loggedUser}}, 1000) {
+								if evt.Tags.Has("nip63") {
+									<tr>
+										<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+											<a href={ "/e/" + evt.ID.Hex() } target="_blank" class="hover:underline">
+												if evt.CreatedAt > nostr.Now()-60 {
+													<span class="text-emerald-800">just now</span>
+												} else {
+													<span>{ evt.CreatedAt.Time().Format(time.DateTime) }</span>
+												}
+											</a>
+										</td>
+										<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400 max-w-xs truncate">
+											{ evt.Kind.Num() }
+										</td>
+										<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400 max-w-xs truncate">
+											if len(evt.Content) <= 100 {
+												{ global.JSONString(evt.Content) }
+											} else {
+												{ global.JSONString(evt.Content[0:97]) }...
+											}
+										</td>
+									</tr>
+								}
+							}
+						</tbody>
+					</table>
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200 mt-8">viewers</h3>
+					<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
+						<thead class="bg-stone-50 dark:bg-stone-800">
+							<tr>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">user</th>
+							</tr>
+						</thead>
+						<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
+							<tr>
+								<td class="px-4 py-3 text-sm">
+									@layout.ProfileLink(loggedUser)
+								</td>
+							</tr>
+							{{ viewers, _ := userPaywallMap.Load(loggedUser) }}
+							for viewer := range viewers {
+								<tr>
+									<td class="px-4 py-3 text-sm">
+										@layout.ProfileLink(viewer)
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</div>
+	}
+}

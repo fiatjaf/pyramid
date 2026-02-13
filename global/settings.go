@@ -49,9 +49,7 @@ type UserSettings struct {
 	} `json:"search"`
 
 	Paywall struct {
-		Tag        string `json:"tag"`
-		AmountSats uint   `json:"amount_sats"`
-		PeriodDays uint   `json:"period_days"`
+		Enabled bool `json:"enable"`
 	} `json:"paywall"`
 
 	NIP05 struct {
