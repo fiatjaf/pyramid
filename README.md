@@ -46,6 +46,7 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
   - each relay listens in its own HTTP path and can be treated as completely independent
     - some are useful for members, others are useful for externals, others are like services an inner group of a community can provide to its external members
     - storage is shared in a single memory-mapped file for very fast access and automatic disk-saving deduplication, but indexes are independent so there is no risk of mixing events
+    - pin a note to the top of any relay's feed for announcements, visible within compatible clients
   - _main_: the basic pyramid relay functionality
     - listens at the top-level path
     - only members can publish
@@ -59,6 +60,7 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
   - _popular_: notes from external users automatically curated by relay members based on reactions and interactions
   - _uppermost_: only the notes most loved by a higher percentage of relay members
   - _moderated_: a multi-use relay open to the public, but for which pyramid members have to approve each post manually
+  - _personal_: a relay in which only each member can read their own notes, i.e. a personal note-taking service
   - _groups_: a relay that also listens at the top-level path, but provides moderated group functionality
     - members can create groups and they become admins of such groups
     - non-pyramid members can join these groups, provided that their admins allow
@@ -73,7 +75,9 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
 - **extensive optional configurations**
   - almost everything is configurable from the UI
   - from relay metadata to numeric settings, for both the main relay and for all sub-relays
+  - allow or disallow event kinds for custom operation
   - even the path under which each sub-relay listens can be (dangerously) changed
+  - owners can enable full NIP-50 search and automatic NIP-03 OpenTimeStamping
   - smart defaults allow you to get started easily and learn later
   - some settings can be configured using standard relay management tools
   - everything kept in a JSON file that can be edited manually
@@ -82,12 +86,33 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
 
 - **easy theming options**
   - default looks with dark/light toggle by default
-  - but as the relay owner you can opt out of that and pick some crazy colors
-  - theme colors are forced upon whoever is visiting the webpages
+  - the relay owner can opt out of that and pick some crazy colors and fonts
+  - themed appearances are presented to whoever is visiting the webpages
 
 <div align="center"><img width="600" src="https://github.com/user-attachments/assets/f6986613-faa7-4857-a447-ad4ed2d8a8ef" /></div>
 <div align="center"><img width="600" src="https://github.com/user-attachments/assets/a618f2ce-96b2-4e2d-a4b9-ad2876aedd41" /></div>
 <div align="center"><img width="600" src="https://github.com/user-attachments/assets/ae238bcf-6908-49af-adad-52455871b074" /></div>
+
+## services
+
+- **statistics**
+  - each member can view their own event count by kind, with a chart displaying usage trends on their account page
+  - usage statistics for the main relay and all subrelays are viewable to members on a dedicated tab stats tab
+
+- **community-linked NIP-05 nostr user addresses**
+  - each member can claim their own user address by visiting the homepage
+ 
+- **NIP-34 GRASP support**
+
+- **negentropy sync**
+  - fetch missing events from any remote relay
+  - publish missing events to any remote relay
+
+- **blossom media server**
+  - available only for members
+  - relay owner can set predetermind upload limits per member
+  - relay members can view and delete their own media
+  - relay owner can manage blobs through the included ftp(stfp) server
 
 - **paywall functionality**
   - a special hashtag, amount (in satoshis) and period (in days) can be configured
