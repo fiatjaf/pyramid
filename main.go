@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"embed"
 	"errors"
 	"iter"
@@ -489,7 +490,19 @@ func run(ctx context.Context) error {
 				return ctx
 			},
 		}
-		httpsServer.TLSConfig = manager.TLSConfig()
+		tlsConfig := manager.TLSConfig()
+		origGetCert := tlsConfig.GetCertificate
+		tlsConfig.GetCertificate = func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+			if hello.ServerName == "" {
+				// When SNI is missing, use the configured domain.
+				// Since Pyramid serves a single domain, there is no
+				// ambiguity — we can safely serve its certificate.
+				// See https://github.com/fiatjaf/pyramid/issues/14
+				hello.ServerName = global.Settings.Domain
+			}
+			return origGetCert(hello)
+		}
+		httpsServer.TLSConfig = tlsConfig
 
 		g.Go(func() error { return httpsServer.ListenAndServeTLS("", "") })
 		log.Info().Msg("running on https://" + global.S.Host + ":443 and http://" + global.S.Host + ":80")
