@@ -606,7 +606,9 @@ func setupDomain(domain string) error {
 	uppermost.Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Uppermost.HTTPBasePath
 
 	blossom.BlobIndex.ServiceURL = global.Settings.HTTPScheme() + global.Settings.Domain
-	blossom.Server.ServiceURL = blossom.BlobIndex.ServiceURL
+	if blossom.Server != nil {
+		blossom.Server.ServiceURL = blossom.BlobIndex.ServiceURL
+	}
 
 	go restartSoon()
 	return nil
