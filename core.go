@@ -260,7 +260,7 @@ func queryMain(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 			authed := khatru.GetAllAuthed(ctx)
 
 			for evt := range global.IL.Main.QueryEvents(filter, 500) {
-				if nip70.IsProtected(evt) && evt.Tags.Has("nip63") {
+				if evt.Tags.Has("nip63") {
 					// this is a paywalled event, check if reader can read
 					for _, pk := range authed {
 						if paywall.CanRead(evt.PubKey, pk) {
@@ -268,6 +268,13 @@ func queryMain(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 								return
 							}
 							break
+						}
+					}
+				} else if evt.Kind == 1163 {
+					// hide paywall reader lists except from their author
+					if khatru.IsAuthed(ctx, evt.PubKey) {
+						if !yield(evt) {
+							return
 						}
 					}
 				} else {
