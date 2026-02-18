@@ -40,8 +40,12 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 	}
 
 	// check allowed kinds:
-	// allow all ephemeral
-	if !event.Kind.IsEphemeral() {
+	switch {
+	case event.Kind.IsEphemeral():
+		// allow all ephemeral
+	case event.Kind == 1163 && global.Settings.Paywall.Enabled:
+		// allow 1163 if paywall is enabled
+	default:
 		kinds := global.GetAllowedKinds()
 		if _, allowed := slices.BinarySearch(kinds, nostr.Kind(event.Kind)); !allowed {
 			return true, fmt.Sprintf("event kind %d not allowed", event.Kind)
@@ -58,8 +62,6 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		if !pyramid.IsMember(event.PubKey) {
 			return true, "not authorized: only relay members can publish kind 1163 events"
 		}
-		// recompute user paywall after accepting this event
-		go paywall.RecomputeUserPaywall(context.Background(), event.PubKey)
 		return false, ""
 	case 9735:
 		// we accept outgoing zaps if they include a zap receipt from a member

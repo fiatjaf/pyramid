@@ -95,7 +95,7 @@ func main() {
 		return
 	}
 
-	// Initialize paywall maps for all existing members if paywall is enabled
+	// initialize paywall maps for all existing members if paywall is enabled
 	if global.Settings.Paywall.Enabled {
 		go func() {
 			for member := range pyramid.Members.Range {
@@ -213,6 +213,11 @@ func main() {
 		func(ctx context.Context, id nostr.ID) error {
 			return global.IL.Main.DeleteEvent(id)
 		},
+		func(ctx context.Context, evt nostr.Event) {
+			if relay.OnEventDeleted != nil {
+				relay.OnEventDeleted(ctx, evt)
+			}
+		},
 	)
 
 	relay.OnRequest = policies.SeqRequest(
@@ -276,9 +281,10 @@ func main() {
 			// normal logic
 			return policies.SeqEvent(
 				policies.PreventTooManyIndexableTags(9, []nostr.Kind{3}, nil),
-				policies.PreventTooManyIndexableTags(1200, nil, []nostr.Kind{3}),
+				policies.PreventTooManyIndexableTags(1400, nil, []nostr.Kind{3}),
 				policies.RejectUnprefixedNostrReferences,
 				grasp.RejectIncomingEvent,
+				policies.PreventNormalDuplicates(global.IL.Main.QueryEvents),
 				basicRejectionLogic,
 			)(ctx, event)
 		}

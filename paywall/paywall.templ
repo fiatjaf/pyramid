@@ -81,6 +81,65 @@ templ paywallPage(loggedUser nostr.PubKey) {
 							}
 						</tbody>
 					</table>
+					<div
+						class="mt-8"
+						x-data={ `{
+							selectedPubkey: '',
+							adding: false,
+							baseURL: window.location.href.split('/').slice(0, 3).join('/'),
+							async addViewer() {
+								if (!this.selectedPubkey) {
+									alert('select a user first');
+									return;
+								}
+
+								this.adding = true;
+								try {
+									const event = await window.nostr.signEvent({
+										created_at: Math.round(Date.now() / 1000),
+										kind: 1163,
+										tags: [['p', this.selectedPubkey]],
+										content: 'inserted from ' + window.location.href
+									});
+
+									const [pub] = window.nostrSharedPool.publish([this.baseURL], event);
+                                    await pub
+									alert('viewer added successfully!');
+									window.location.reload();
+								} catch (error) {
+									console.error('error adding viewer:', error);
+									alert('failed to add viewer: ' + String(error));
+								} finally {
+									this.adding = false;
+								}
+							}
+						}` }
+					>
+						<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">add viewer</h3>
+						<div class="flex items-center gap-4">
+							<div class="flex-1">
+								<nostr-user-search
+									@selected={ "selectedPubkey = $event.detail.pubkey" }
+									placeholder="search or paste npub..."
+									class="part-[input]:w-full part-[input]:px-3 part-[input]:py-2 part-[input]:border part-[input]:border-stone-300 part-[input]:dark:border-stone-600 part-[input]:rounded-lg part-[input]:bg-white part-[input]:dark:bg-stone-800 part-[input]:text-stone-900 part-[input]:dark:text-stone-100 part-[input]:focus:outline-none part-[input]:focus:ring-2 part-[input]:focus:ring-stone-500 part-[results]:z-10 part-[item]:px-3 part-[item]:py-2 part-[item]:cursor-pointer part-[item]:hover:bg-stone-100 part-[item]:dark:hover:bg-stone-700 part-[item]:text-stone-700 part-[item]:dark:text-stone-300 part-[picture]:w-10 part-[picture]:h-10 part-[picture]:rounded-full part-[name]:font-semibold part-[name]:text-stone-900 part-[name]:dark:text-stone-100"
+									limit="5"
+								></nostr-user-search>
+							</div>
+							<template x-if="selectedPubkey">
+								<div class="flex items-center gap-2 mt-2">
+									<nostr-picture :pubkey="selectedPubkey" class="part-[img]:w-8 part-[img]:h-8 part-[img]:rounded-full"></nostr-picture>
+									<nostr-name :pubkey="selectedPubkey"></nostr-name>
+								</div>
+							</template>
+							<button
+								type="button"
+								class="cursor-pointer px-4 py-2 rounded themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] themed:text-white light:bg-stone-200 light:hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+								:disabled="adding || !selectedPubkey"
+								@click.prevent="addViewer()"
+								x-text="adding ? 'adding...' : 'add'"
+							></button>
+						</div>
+					</div>
 				</div>
 			}
 		</div>
