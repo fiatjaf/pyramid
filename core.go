@@ -39,6 +39,15 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		}
 	}
 
+	// if a member has referenced a list on his paywall settings we'll accept that
+	if global.Settings.Paywall.Enabled {
+		if event.Kind.IsReplaceable() || event.Kind.IsAddressable() {
+			if is := paywall.IsReferenced(event); is {
+				return false, ""
+			}
+		}
+	}
+
 	// check allowed kinds:
 	switch {
 	case event.Kind.IsEphemeral():
@@ -541,4 +550,17 @@ func queryNormal(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event]
 
 	// otherwise only query the main db
 	return queryMain(ctx, filter)
+}
+
+func handleDeleted(ctx context.Context, deleted nostr.Event) {
+	if deleted.Kind == 1163 {
+		paywall.RecomputeMemberPaywall(ctx, deleted.PubKey)
+		return
+	}
+
+	if deleted.Kind.IsReplaceable() || deleted.Kind.IsAddressable() {
+		for by := range paywall.ReferencedBy(deleted) {
+			paywall.RecomputeMemberPaywall(ctx, by)
+		}
+	}
 }

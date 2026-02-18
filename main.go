@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"embed"
 	"errors"
+	"fmt"
 	"iter"
 	"net"
 	"net/http"
@@ -99,7 +100,7 @@ func main() {
 	if global.Settings.Paywall.Enabled {
 		go func() {
 			for member := range pyramid.Members.Range {
-				paywall.RecomputeUserPaywall(context.Background(), member)
+				paywall.RecomputeMemberPaywall(context.Background(), member)
 			}
 		}()
 	}
@@ -306,7 +307,15 @@ func main() {
 		case 1163:
 			// NIP-63 paywall event - already handled in basicRejectionLogic
 			// recompute user paywall to ensure consistency
-			paywall.RecomputeUserPaywall(context.Background(), event.PubKey)
+			paywall.RecomputeMemberPaywall(ctx, event.PubKey)
+		}
+
+		// any replaceable event can potentially be referenced by a paywall
+		fmt.Println("saved", event)
+		if event.Kind.IsReplaceable() || event.Kind.IsAddressable() {
+			for by := range paywall.ReferencedBy(event) {
+				paywall.RecomputeMemberPaywall(ctx, by)
+			}
 		}
 
 		// trigger opentimestamping of selected event kinds
@@ -318,11 +327,7 @@ func main() {
 		}
 	}
 
-	relay.OnEventDeleted = func(ctx context.Context, deleted nostr.Event) {
-		if deleted.Kind == 1163 {
-			paywall.RecomputeUserPaywall(ctx, deleted.PubKey)
-		}
-	}
+	relay.OnEventDeleted = handleDeleted
 
 	relay.OnEphemeralEvent = func(ctx context.Context, event nostr.Event) {
 		switch event.Kind {

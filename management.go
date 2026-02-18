@@ -9,7 +9,6 @@ import (
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/nip86"
 	"github.com/fiatjaf/pyramid/global"
-	"github.com/fiatjaf/pyramid/paywall"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
@@ -101,14 +100,20 @@ func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
 		log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("management banevent called by author")
 	}
 
-	// check if this is a kind 1163 event and recompute paywall if needed
+	var deleted nostr.Event
 	for evt := range global.IL.Main.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
-		if evt.Kind == 1163 {
-			go paywall.RecomputeUserPaywall(context.Background(), evt.PubKey)
-		}
+		deleted = evt
 	}
 
-	return deleteFromMain(id)
+	if deleted.PubKey != nostr.ZeroPK {
+		if err := deleteFromMain(id); err != nil {
+			return err
+		}
+
+		handleDeleted(ctx, deleted)
+	}
+
+	return nil
 }
 
 func changeRelayNameHandler(ctx context.Context, name string) error {
