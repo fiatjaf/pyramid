@@ -108,14 +108,15 @@ type BleveIndex struct {
 }
 
 func Init() error {
-	Main = &BleveIndex{
+	bleveIndex := &BleveIndex{
 		Path:          filepath.Join(global.S.DataPath, "search/main"),
 		RawEventStore: global.IL.Main,
 	}
-	if err := Main.Init(); err != nil {
+	if err := bleveIndex.Init(); err != nil {
 		return fmt.Errorf("failed to init search database: %w", err)
 	}
 
+	Main = bleveIndex
 	BuildLanguageDetector()
 
 	return nil

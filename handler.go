@@ -147,8 +147,18 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			case "enable_search":
 				wasEnabled := global.Settings.Search.Enable
 				global.Settings.Search.Enable = v[0] == "on"
-				// update timestamp if search is being turned on (was off, now on)
+
+				// close search and disable
+				if wasEnabled && !global.Settings.Search.Enable {
+					search.Main.Close()
+				}
+
+				// initialize search index if search is being turned on (was off, now on)
 				if !wasEnabled && global.Settings.Search.Enable {
+					if err := search.Init(); err != nil {
+						log.Error().Err(err).Msg("failed to initialize search")
+						global.Settings.Search.Enable = false
+					}
 					if err := search.UpdateSearchOn(); err != nil {
 						log.Warn().Err(err).Msg("failed to update search on timestamp")
 					}
