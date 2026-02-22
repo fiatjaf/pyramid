@@ -96,15 +96,6 @@ func main() {
 		return
 	}
 
-	// initialize paywall maps for all existing members if paywall is enabled
-	if global.Settings.Paywall.Enabled {
-		go func() {
-			for member := range pyramid.Members.Range {
-				paywall.RecomputeMemberPaywall(context.Background(), member)
-			}
-		}()
-	}
-
 	// init main relay
 	relay = khatru.NewRelay()
 	relay.Info.Name = "main" // for debugging purposes
@@ -152,6 +143,7 @@ func main() {
 	grasp.Init(relay)
 	groups.Init(relay)
 	blossom.Init(relay)
+	paywall.Init(relay)
 	favorites.Init()
 	inbox.Init()
 	internal.Init()
@@ -159,7 +151,6 @@ func main() {
 	moderated.Init()
 	popular.Init()
 	uppermost.Init()
-	paywall.Init(relay)
 
 	initScheduledRelay()
 
