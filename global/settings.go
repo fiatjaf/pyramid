@@ -83,7 +83,10 @@ type UserSettings struct {
 	} `json:"inbox"`
 
 	Groups struct {
-		Enabled bool `json:"enabled"`
+		Enabled          bool   `json:"enabled"`
+		LivekitServerURL string `json:"livekit_server_url"`
+		LivekitAPIKey    string `json:"livekit_apikey"`
+		LivekitAPISecret string `json:"livekit_apisecret"`
 	} `json:"groups"`
 
 	Grasp struct {

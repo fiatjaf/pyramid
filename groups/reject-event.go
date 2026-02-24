@@ -118,6 +118,11 @@ func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (rejec
 		group.mu.RUnlock()
 	}
 
+	// check if group disallows text events
+	if group.NoText && !nip29.ModerationEventKinds.Includes(event.Kind) {
+		return true, "blocked: this group does not allow text events"
+	}
+
 	// prevent republishing events that were just deleted
 	if slices.Contains(s.deletedCache[:], event.ID) {
 		return true, "blocked: this was deleted"
