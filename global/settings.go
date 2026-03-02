@@ -15,6 +15,7 @@ import (
 type UserSettings struct {
 	// relay metadata
 	Domain           string   `json:"domain"`
+	AlternateDomains []string `json:"alternate_domains,omitempty"`
 	RelayName        string   `json:"relay_name"`
 	RelayDescription string   `json:"relay_description"`
 	RelayContact     string   `json:"relay_contact"`
@@ -186,6 +187,18 @@ func (us UserSettings) HTTPScheme() string {
 
 func (us UserSettings) WSScheme() string {
 	return "ws" + us.HTTPScheme()[4:]
+}
+
+func (us UserSettings) IsValidDomain(domain string) bool {
+	if domain == us.Domain {
+		return true
+	}
+	for _, d := range us.AlternateDomains {
+		if domain == d {
+			return true
+		}
+	}
+	return false
 }
 
 func (us UserSettings) HasThemeColors() bool {
