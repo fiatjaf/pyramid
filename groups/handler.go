@@ -8,6 +8,7 @@ import (
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
+	"github.com/rs/cors"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
@@ -85,7 +86,7 @@ func setupEnabled() {
 		homeGroupsPage(loggedUser).Render(r.Context(), w)
 	})
 
-	Handler.mux.HandleFunc("GET /.well-known/nip29/livekit/{groupId}", livekitAuthHandler)
+	Handler.mux.Handle("/.well-known/nip29/livekit/{groupId}", cors.AllowAll().Handler(http.HandlerFunc(livekitAuthHandler)))
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {
@@ -149,6 +150,11 @@ func wipeGroupHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func livekitAuthHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	groupId := r.PathValue("groupId")
 	if groupId == "" {
 		http.Error(w, "group id required", 400)
