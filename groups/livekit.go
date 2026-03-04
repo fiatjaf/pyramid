@@ -38,7 +38,7 @@ func (group *Group) ensureLiveKitRoom() error {
 	livekitRoomsMu.RUnlock()
 
 	// try to create the room via LiveKit REST API
-	url := fmt.Sprintf("%s/twirp/livekit.RoomService/CreateRoom", group.Livekit)
+	url := fmt.Sprintf("%s/twirp/livekit.RoomService/CreateRoom", global.Settings.Groups.LivekitServerURL)
 
 	reqBody, _ := json.Marshal(map[string]interface{}{
 		"name": group.Address.ID,
@@ -58,7 +58,7 @@ func (group *Group) ensureLiveKitRoom() error {
 	}
 	defer resp.Body.Close()
 
-	// Room might already exist (409) or be created (200), both are fine
+	// room might already exist (409) or be created (200), both are fine
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusConflict {
 		livekitRoomsMu.Lock()
 		livekitRooms[group.Address.ID] = true

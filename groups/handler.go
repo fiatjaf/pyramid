@@ -86,7 +86,25 @@ func setupEnabled() {
 		homeGroupsPage(loggedUser).Render(r.Context(), w)
 	})
 
+	if hasLivekitSupport() {
+		Handler.mux.Handle("/.well-known/nip29/livekit", cors.AllowAll().Handler(http.HandlerFunc(livekitStatusHandler)))
+	}
 	Handler.mux.Handle("/.well-known/nip29/livekit/{groupId}", cors.AllowAll().Handler(http.HandlerFunc(livekitAuthHandler)))
+}
+
+func hasLivekitSupport() bool {
+	return strings.TrimSpace(global.Settings.Groups.LivekitServerURL) != "" &&
+		strings.TrimSpace(global.Settings.Groups.LivekitAPIKey) != "" &&
+		strings.TrimSpace(global.Settings.Groups.LivekitAPISecret) != ""
+}
+
+func livekitStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {
@@ -208,8 +226,9 @@ func livekitAuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !group.AnyOfTheseIsAMember([]nostr.PubKey{event.PubKey}) {
-		http.Error(w, "not a group member", 403)
+	if !(group.Restricted && pyramid.IsMember(event.PubKey)) &&
+		!group.AnyOfTheseIsAMember([]nostr.PubKey{event.PubKey}) {
+		http.Error(w, "not allowed to access livekit for this group", 403)
 		return
 	}
 
