@@ -452,6 +452,7 @@ func run(ctx context.Context) error {
 
 	mux.Handle("/groups/", groups.Handler)
 	mux.Handle("/groups", groups.Handler)
+	mux.Handle("/.well-known/nip29/", groups.Handler)
 
 	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath+"/", inbox.Relay)
 	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath, inbox.Relay)

@@ -17,6 +17,7 @@ require (
 	github.com/pemistahl/lingua-go v1.4.0
 	github.com/pkg/sftp v1.13.10
 	github.com/puzpuzpuz/xsync/v3 v3.5.1
+	github.com/rs/cors v1.11.1
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.48.0
@@ -127,7 +128,6 @@ require (
 	github.com/pion/webrtc/v4 v4.2.7 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/redis/go-redis/v9 v9.17.3 // indirect
-	github.com/rs/cors v1.11.1 // indirect
 	github.com/savsgio/gotils v0.0.0-20250408102913-196191ec6287 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/templexxx/cpu v0.0.1 // indirect

@@ -86,25 +86,18 @@ func setupEnabled() {
 		homeGroupsPage(loggedUser).Render(r.Context(), w)
 	})
 
-	if hasLivekitSupport() {
-		Handler.mux.Handle("/.well-known/nip29/livekit", cors.AllowAll().Handler(http.HandlerFunc(livekitStatusHandler)))
-	}
+	Handler.mux.Handle("/.well-known/nip29/livekit", cors.AllowAll().Handler(http.HandlerFunc(livekitStatusHandler)))
 	Handler.mux.Handle("/.well-known/nip29/livekit/{groupId}", cors.AllowAll().Handler(http.HandlerFunc(livekitAuthHandler)))
 }
 
-func hasLivekitSupport() bool {
-	return strings.TrimSpace(global.Settings.Groups.LivekitServerURL) != "" &&
-		strings.TrimSpace(global.Settings.Groups.LivekitAPIKey) != "" &&
-		strings.TrimSpace(global.Settings.Groups.LivekitAPISecret) != ""
-}
-
 func livekitStatusHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet && r.Method != http.MethodHead {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
+	if global.Settings.Groups.LivekitServerURL != "" &&
+		global.Settings.Groups.LivekitAPIKey != "" &&
+		global.Settings.Groups.LivekitAPISecret != "" {
+		w.WriteHeader(http.StatusNoContent)
+	} else {
+		w.WriteHeader(404)
 	}
-
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {
