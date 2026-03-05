@@ -64,6 +64,22 @@ templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Even
 							☐
 						}
 					</div>
+					<div class="flex items-center gap-2">
+						<span class="text-sm text-stone-600 dark:text-stone-400">livekit:</span>
+						if group.Livekit {
+							☑
+						} else {
+							☐
+						}
+					</div>
+					<div class="flex items-center gap-2">
+						<span class="text-sm text-stone-600 dark:text-stone-400">no-text:</span>
+						if group.NoText {
+							☑
+						} else {
+							☐
+						}
+					</div>
 				</div>
 				// admins section
 				<div>

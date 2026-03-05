@@ -14,14 +14,16 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "groups") {
 		<div
 			class="max-w-3xl mx-auto"
-			x-data={ `{
-				groupName: "",
-				description: "",
-				imageUrl: "",
-				closed: false,
-				unrestricted: true,
-				private: false,
-				creating: false,
+				x-data={ `{
+					groupName: "",
+					description: "",
+					imageUrl: "",
+					closed: false,
+					unrestricted: true,
+					private: false,
+					livekit: false,
+					noText: false,
+					creating: false,
 				groupsRelayURL: window.location.href
 					.replace("http", "ws")
 					.split("/")
@@ -64,7 +66,9 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 								...(this.imageUrl ? [["picture", this.imageUrl]] : []),
 								...(this.closed ? [["closed"]] : []),
 								...(this.unrestricted ? [] : [["restricted"]]),
-								...(this.private ? [["private"], ["hidden"]] : [])
+								...(this.private ? [["private"], ["hidden"]] : []),
+								...(this.livekit ? [["livekit"]] : []),
+								...(this.noText ? [["no-text"]] : [])
 							],
 							content: ""
 						}))
@@ -160,6 +164,8 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">closed</th>
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">hidden</th>
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">private</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">livekit</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">no-text</th>
 									</tr>
 								</thead>
 								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
@@ -229,14 +235,28 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 														☐
 													}
 												</td>
-												<td class="px-4 py-3 text-sm text-center">
-													if group.Private {
-														☑
-													} else {
-														☐
-													}
-												</td>
-											</tr>
+											<td class="px-4 py-3 text-sm text-center">
+												if group.Private {
+													☑
+												} else {
+													☐
+												}
+											</td>
+											<td class="px-4 py-3 text-sm text-center">
+												if group.Livekit {
+													☑
+												} else {
+													☐
+												}
+											</td>
+											<td class="px-4 py-3 text-sm text-center">
+												if group.NoText {
+													☑
+												} else {
+													☐
+												}
+											</td>
+										</tr>
 										}
 									}
 								</tbody>
@@ -260,6 +280,8 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">closed</th>
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">hidden</th>
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">private</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">livekit</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">no-text</th>
 									</tr>
 								</thead>
 								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
@@ -322,14 +344,28 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 														☐
 													}
 												</td>
-												<td class="px-4 py-3 text-sm text-center">
-													if group.Private {
-														☑
-													} else {
-														☐
-													}
-												</td>
-											</tr>
+											<td class="px-4 py-3 text-sm text-center">
+												if group.Private {
+													☑
+												} else {
+													☐
+												}
+											</td>
+											<td class="px-4 py-3 text-sm text-center">
+												if group.Livekit {
+													☑
+												} else {
+													☐
+												}
+											</td>
+											<td class="px-4 py-3 text-sm text-center">
+												if group.NoText {
+													☑
+												} else {
+													☐
+												}
+											</td>
+										</tr>
 										}
 									}
 								</tbody>
@@ -421,6 +457,30 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 									/>
 									<label for="group_private" class="ml-2 text-sm text-stone-700 dark:text-stone-300">
 										private (only members can read)
+									</label>
+								</div>
+								<div class="flex items-center">
+									<input
+										type="checkbox"
+										id="group_livekit"
+										name="livekit"
+										x-model="livekit"
+										class="h-4 w-4 rounded border-stone-300 text-stone-600 focus:ring-stone-500"
+									/>
+									<label for="group_livekit" class="ml-2 text-sm text-stone-700 dark:text-stone-300">
+										livekit (enable voice/video room)
+									</label>
+								</div>
+								<div class="flex items-center">
+									<input
+										type="checkbox"
+										id="group_no_text"
+										name="no_text"
+										x-model="noText"
+										class="h-4 w-4 rounded border-stone-300 text-stone-600 focus:ring-stone-500"
+									/>
+									<label for="group_no_text" class="ml-2 text-sm text-stone-700 dark:text-stone-300">
+										no-text (only moderation events)
 									</label>
 								</div>
 							</div>
