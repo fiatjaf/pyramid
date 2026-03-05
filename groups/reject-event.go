@@ -25,6 +25,12 @@ func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (rejec
 		return true, "moderation action is too old (older than 1 minute ago)"
 	}
 
+	// metadata events are emitted by the relay itself after applying moderation actions.
+	// external clients must not publish them directly.
+	if nip29.MetadataEventKinds.Includes(event.Kind) {
+		return true, "restricted: group metadata events are generated internally"
+	}
+
 	htag := event.Tags.Find("h")
 	if htag == nil {
 		// events always need an "h" tag
