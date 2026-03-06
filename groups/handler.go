@@ -219,7 +219,7 @@ func livekitAuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !(group.Restricted && pyramid.IsMember(event.PubKey)) &&
+	if (group.Restricted || !pyramid.IsMember(event.PubKey)) &&
 		!group.AnyOfTheseIsAMember([]nostr.PubKey{event.PubKey}) {
 		http.Error(w, "not allowed to access livekit for this group", 403)
 		return

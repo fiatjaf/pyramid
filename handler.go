@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -145,7 +146,11 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			case "accept_scheduled_events":
 				global.Settings.AcceptScheduledEvents = v[0] == "on"
 			case "livekit_server_url":
-				global.Settings.Groups.LivekitServerURL = v[0]
+				u, err := url.Parse(v[0])
+				if err == nil && (u.Scheme == "http" || u.Scheme == "https" || u.Scheme == "ws" || u.Scheme == "wss") {
+					u.Scheme = strings.Replace(u.Scheme, "http", "ws", 1)
+					global.Settings.Groups.LivekitServerURL = u.String()
+				}
 			case "livekit_api_key":
 				global.Settings.Groups.LivekitAPIKey = v[0]
 			case "livekit_api_secret":

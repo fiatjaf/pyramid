@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 
 	"fiatjaf.com/nostr"
@@ -38,13 +40,10 @@ func (group *Group) ensureLiveKitRoom() error {
 	livekitRoomsMu.RUnlock()
 
 	// try to create the room via LiveKit REST API
-	url := fmt.Sprintf("%s/twirp/livekit.RoomService/CreateRoom", global.Settings.Groups.LivekitServerURL)
-
-	reqBody, _ := json.Marshal(map[string]interface{}{
-		"name": group.Address.ID,
-	})
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBody))
+	u, _ := url.Parse(fmt.Sprintf("%s/twirp/livekit.RoomService/CreateRoom", global.Settings.Groups.LivekitServerURL))
+	u.Scheme = strings.Replace(u.Scheme, "ws", "http", 1)
+	reqBody, _ := json.Marshal(map[string]any{"name": group.Address.ID})
+	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(reqBody))
 	if err != nil {
 		return err
 	}
