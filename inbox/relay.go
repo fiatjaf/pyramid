@@ -138,7 +138,7 @@ func setupEnabled() {
 		policies.EventPubKeyRateLimiter(1, 2*time.Minute, 15),
 		rejectEvent,
 	)
-	Relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
+
 	Relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		info.Name = global.Settings.Inbox.GetName()
 		info.Description = global.Settings.Inbox.GetDescription()

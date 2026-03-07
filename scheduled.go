@@ -57,7 +57,6 @@ func initScheduledRelay() {
 		},
 	)
 
-	scheduled.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
 	scheduled.OnEvent = func(ctx context.Context, event nostr.Event) (reject bool, msg string) {
 		return true, "send your notes to the main relay with a future timestamp"
 	}

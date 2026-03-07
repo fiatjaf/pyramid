@@ -90,8 +90,6 @@ func setupEnabled() {
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
 	)
 
-	Relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
-
 	Relay.OnEvent = policies.SeqEvent(
 		policies.PreventLargeContent(10000),
 		policies.PreventTooManyIndexableTags(9, []nostr.Kind{3}, nil),

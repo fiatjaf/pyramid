@@ -81,8 +81,6 @@ func setupEnabled() {
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
 	)
 
-	Relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
-
 	Relay.OnEvent = func(ctx context.Context, evt nostr.Event) (bool, string) {
 		return true, "restricted: read-only relay"
 	}

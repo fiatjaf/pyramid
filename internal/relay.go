@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
@@ -94,8 +93,6 @@ func setupEnabled() {
 			return true, "restricted: you're not a relay member"
 		},
 	)
-
-	Relay.RejectConnection = policies.ConnectionRateLimiter(1, time.Minute*5, 20)
 
 	Relay.OnEvent = policies.SeqEvent(
 		policies.PreventLargeContent(10000),
