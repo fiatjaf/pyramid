@@ -301,7 +301,6 @@ func main() {
 		}
 
 		// any replaceable event can potentially be referenced by a paywall
-		fmt.Println("saved", event)
 		if event.Kind.IsReplaceable() || event.Kind.IsAddressable() {
 			for by := range paywall.ReferencedBy(event) {
 				paywall.RecomputeMemberPaywall(ctx, by)
