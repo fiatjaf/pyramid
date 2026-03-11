@@ -130,6 +130,7 @@ require (
 	github.com/redis/go-redis/v9 v9.17.3 // indirect
 	github.com/savsgio/gotils v0.0.0-20250408102913-196191ec6287 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/templexxx/cpu v0.0.1 // indirect
 	github.com/templexxx/xhex v0.0.0-20200614015412-aed53437177b // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect

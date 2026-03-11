@@ -14,7 +14,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "groups") {
 		<div
 			class="max-w-3xl mx-auto"
-				x-data={ `{
+			x-data={ `{
 					groupName: "",
 					description: "",
 					imageUrl: "",
@@ -235,28 +235,28 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 														☐
 													}
 												</td>
-											<td class="px-4 py-3 text-sm text-center">
-												if group.Private {
-													☑
-												} else {
-													☐
-												}
-											</td>
-											<td class="px-4 py-3 text-sm text-center">
-												if group.Livekit {
-													☑
-												} else {
-													☐
-												}
-											</td>
-											<td class="px-4 py-3 text-sm text-center">
-												if group.NoText {
-													☑
-												} else {
-													☐
-												}
-											</td>
-										</tr>
+												<td class="px-4 py-3 text-sm text-center">
+													if group.Private {
+														☑
+													} else {
+														☐
+													}
+												</td>
+												<td class="px-4 py-3 text-sm text-center">
+													if group.Livekit {
+														☑
+													} else {
+														☐
+													}
+												</td>
+												<td class="px-4 py-3 text-sm text-center">
+													if group.NoText {
+														☑
+													} else {
+														☐
+													}
+												</td>
+											</tr>
 										}
 									}
 								</tbody>
@@ -344,28 +344,28 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 														☐
 													}
 												</td>
-											<td class="px-4 py-3 text-sm text-center">
-												if group.Private {
-													☑
-												} else {
-													☐
-												}
-											</td>
-											<td class="px-4 py-3 text-sm text-center">
-												if group.Livekit {
-													☑
-												} else {
-													☐
-												}
-											</td>
-											<td class="px-4 py-3 text-sm text-center">
-												if group.NoText {
-													☑
-												} else {
-													☐
-												}
-											</td>
-										</tr>
+												<td class="px-4 py-3 text-sm text-center">
+													if group.Private {
+														☑
+													} else {
+														☐
+													}
+												</td>
+												<td class="px-4 py-3 text-sm text-center">
+													if group.Livekit {
+														☑
+													} else {
+														☐
+													}
+												</td>
+												<td class="px-4 py-3 text-sm text-center">
+													if group.NoText {
+														☑
+													} else {
+														☐
+													}
+												</td>
+											</tr>
 										}
 									}
 								</tbody>
@@ -510,6 +510,73 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 					} else {
 						<details>
 							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">LiveKit settings</summary>
+							<div class="space-y-3 my-4 rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900/60 p-4">
+								if EmbeddedLivekitAvailable() {
+									<p class="text-sm text-stone-600 dark:text-stone-400">
+										if EmbeddedLivekitRunning() {
+											embedded LiveKit is running
+										} else {
+											embedded LiveKit is stopped
+										}
+									</p>
+								}
+								if err := EmbeddedLivekitError(); err != "" {
+									<p class="text-sm text-red-600 dark:text-red-400">{ err }</p>
+								}
+								if EmbeddedLivekitRunning() {
+									<form method="POST" action="/groups/livekit/stop">
+										<button
+											type="submit"
+											class="cursor-pointer px-4 py-2 rounded bg-red-100 hover:bg-red-200 dark:bg-red-950/50 dark:hover:bg-red-900/70 text-red-700 dark:text-red-300 font-medium"
+										>
+											stop embedded livekit server
+										</button>
+									</form>
+									<p class="text-xs text-stone-500 dark:text-stone-400">
+										{ "point livekit." + global.Settings.Domain + " and turn." + global.Settings.Domain + " DNS records to this same pyramid IP before clients try to connect." }
+									</p>
+								} else if EmbeddedLivekitAvailable() {
+									<form method="POST" action="/groups/livekit/start">
+										<button
+											type="submit"
+											class="cursor-pointer px-4 py-2 rounded bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/70 text-emerald-700 dark:text-emerald-300 font-medium"
+										>
+											start embedded livekit server
+										</button>
+									</form>
+								}
+								if EmbeddedLivekitAvailable() {
+									<p class="text-xs text-stone-500 dark:text-stone-400">
+										{ "this downloads the latest matching LiveKit release into livekit-bin, generates fresh credentials, serves it from livekit." + global.Settings.Domain + ", exposes TURN on turn." + global.Settings.Domain + ", and updates the fields below." }
+									</p>
+									<div class="grid gap-3 sm:grid-cols-2">
+										<div>
+											<label for="embedded_livekit_host" class="block text-xs font-medium text-stone-700 dark:text-stone-300 mb-1">
+												livekit host
+											</label>
+											<input
+												type="text"
+												id="embedded_livekit_host"
+												readonly
+												value={ "livekit." + global.Settings.Domain }
+												class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-stone-100 dark:bg-stone-800/80 text-stone-900 dark:text-stone-100"
+											/>
+										</div>
+										<div>
+											<label for="embedded_turn_host" class="block text-xs font-medium text-stone-700 dark:text-stone-300 mb-1">
+												turn host
+											</label>
+											<input
+												type="text"
+												id="embedded_turn_host"
+												readonly
+												value={ "turn." + global.Settings.Domain }
+												class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-stone-100 dark:bg-stone-800/80 text-stone-900 dark:text-stone-100"
+											/>
+										</div>
+									</div>
+								}
+							</div>
 							<form method="POST" action="/settings" class="space-y-4 my-4">
 								<div>
 									<label for="livekit_server_url" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">

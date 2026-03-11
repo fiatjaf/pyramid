@@ -53,6 +53,8 @@ func setupEnabled() {
 	Handler.mux = http.NewServeMux()
 
 	Handler.mux.HandleFunc("POST /groups/disable", disableHandler)
+	Handler.mux.HandleFunc("POST /groups/livekit/start", startEmbeddedLivekitHandler)
+	Handler.mux.HandleFunc("POST /groups/livekit/stop", stopEmbeddedLivekitHandler)
 	Handler.mux.HandleFunc("POST /groups/wipe/{groupId}", wipeGroupHandler)
 	Handler.mux.HandleFunc("/groups/{groupId}", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
@@ -88,9 +90,22 @@ func setupEnabled() {
 
 	Handler.mux.Handle("/.well-known/nip29/livekit", cors.AllowAll().Handler(http.HandlerFunc(livekitStatusHandler)))
 	Handler.mux.Handle("/.well-known/nip29/livekit/{groupId}", cors.AllowAll().Handler(http.HandlerFunc(livekitAuthHandler)))
+
+	if LiveKitEmbedded && EmbeddedLivekitAvailable() {
+		go func() {
+			if err := StartEmbeddedLivekit(); err != nil {
+				log.Error().Err(err).Msg("failed to restore embedded livekit")
+			}
+		}()
+	}
 }
 
 func livekitStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if LiveKitEmbedded && !EmbeddedLivekitRunning() {
+		w.WriteHeader(404)
+		return
+	}
+
 	if global.Settings.Groups.LivekitServerURL != "" &&
 		global.Settings.Groups.LivekitAPIKey != "" &&
 		global.Settings.Groups.LivekitAPISecret != "" {
@@ -128,6 +143,12 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	global.Settings.Groups.Enabled = false
+	if LiveKitEmbedded {
+		if err := StopEmbeddedLivekit(); err != nil {
+			http.Error(w, "failed to stop embedded livekit: "+err.Error(), 500)
+			return
+		}
+	}
 
 	if err := global.SaveUserSettings(); err != nil {
 		http.Error(w, "failed to save settings: "+err.Error(), 500)
@@ -135,6 +156,40 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setupDisabled()
+	http.Redirect(w, r, "/groups/", 302)
+}
+
+func startEmbeddedLivekitHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+	if !EmbeddedLivekitAvailable() {
+		http.Error(w, "embedded livekit requires pyramid to serve HTTPS on ports 443/80 with a configured domain", 400)
+		return
+	}
+
+	if err := StartEmbeddedLivekit(); err != nil {
+		http.Error(w, "failed to start embedded livekit: "+err.Error(), 500)
+		return
+	}
+
+	http.Redirect(w, r, "/groups/", 302)
+}
+
+func stopEmbeddedLivekitHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	if err := StopEmbeddedLivekit(); err != nil {
+		http.Error(w, "failed to stop embedded livekit: "+err.Error(), 500)
+		return
+	}
+
 	http.Redirect(w, r, "/groups/", 302)
 }
 

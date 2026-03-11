@@ -21,6 +21,7 @@ import (
 	"github.com/fiatjaf/pyramid/blossom"
 	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/groups"
 	"github.com/fiatjaf/pyramid/inbox"
 	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/moderated"
@@ -146,6 +147,12 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			case "accept_scheduled_events":
 				global.Settings.AcceptScheduledEvents = v[0] == "on"
 			case "livekit_server_url":
+				if groups.LiveKitEmbedded {
+					if err := groups.StopEmbeddedLivekit(); err != nil {
+						http.Error(w, "failed to stop embedded livekit: "+err.Error(), 500)
+						return
+					}
+				}
 				u, err := url.Parse(v[0])
 				if err == nil && (u.Scheme == "http" || u.Scheme == "https" || u.Scheme == "ws" || u.Scheme == "wss") {
 					u.Scheme = strings.Replace(u.Scheme, "http", "ws", 1)
