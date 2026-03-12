@@ -22,7 +22,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 					unrestricted: true,
 					private: false,
 					livekit: false,
-					noText: false,
+					avOnly: false,
 					creating: false,
 				groupsRelayURL: window.location.href
 					.replace("http", "ws")
@@ -68,7 +68,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 								...(this.unrestricted ? [] : [["restricted"]]),
 								...(this.private ? [["private"], ["hidden"]] : []),
 								...(this.livekit ? [["livekit"]] : []),
-								...(this.noText ? [["no-text"]] : [])
+								...(this.avOnly ? [["supported_kinds"]] : [])
 							],
 							content: ""
 						}))
@@ -165,7 +165,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">hidden</th>
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">private</th>
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">livekit</th>
-										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">no-text</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">AV only</th>
 									</tr>
 								</thead>
 								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
@@ -243,14 +243,15 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 													}
 												</td>
 												<td class="px-4 py-3 text-sm text-center">
-													if group.Livekit {
+													if group.LiveKit {
 														☑
 													} else {
 														☐
 													}
 												</td>
 												<td class="px-4 py-3 text-sm text-center">
-													if group.NoText {
+													{{ avOnly := group.SupportedKinds != nil && len(group.SupportedKinds) == 0 }}
+													if avOnly {
 														☑
 													} else {
 														☐
@@ -281,7 +282,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">hidden</th>
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">private</th>
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">livekit</th>
-										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">no-text</th>
+										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">AV only</th>
 									</tr>
 								</thead>
 								<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
@@ -352,14 +353,15 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 													}
 												</td>
 												<td class="px-4 py-3 text-sm text-center">
-													if group.Livekit {
+													if group.LiveKit {
 														☑
 													} else {
 														☐
 													}
 												</td>
 												<td class="px-4 py-3 text-sm text-center">
-													if group.NoText {
+													{{ avOnly := group.SupportedKinds != nil && len(group.SupportedKinds) == 0 }}
+													if avOnly {
 														☑
 													} else {
 														☐
@@ -474,13 +476,13 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 								<div class="flex items-center">
 									<input
 										type="checkbox"
-										id="group_no_text"
-										name="no_text"
-										x-model="noText"
+										id="group_av_only"
+										name="av_only"
+										x-model="avOnly"
 										class="h-4 w-4 rounded border-stone-300 text-stone-600 focus:ring-stone-500"
 									/>
-									<label for="group_no_text" class="ml-2 text-sm text-stone-700 dark:text-stone-300">
-										no-text (only moderation events)
+									<label for="group_av_only" class="ml-2 text-sm text-stone-700 dark:text-stone-300">
+										AV only (audio/video only)
 									</label>
 								</div>
 							</div>
@@ -511,19 +513,19 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 						<details>
 							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">LiveKit settings</summary>
 							<div class="space-y-3 my-4 rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900/60 p-4">
-								if EmbeddedLivekitAvailable() {
+								if EmbeddedLiveKitAvailable() {
 									<p class="text-sm text-stone-600 dark:text-stone-400">
-										if EmbeddedLivekitRunning() {
+										if EmbeddedLiveKitRunning() {
 											embedded LiveKit is running
 										} else {
 											embedded LiveKit is stopped
 										}
 									</p>
 								}
-								if err := EmbeddedLivekitError(); err != "" {
+								if err := EmbeddedLiveKitError(); err != "" {
 									<p class="text-sm text-red-600 dark:text-red-400">{ err }</p>
 								}
-								if EmbeddedLivekitRunning() {
+								if EmbeddedLiveKitRunning() {
 									<form method="POST" action="/groups/livekit/stop">
 										<button
 											type="submit"
@@ -535,7 +537,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 									<p class="text-xs text-stone-500 dark:text-stone-400">
 										{ "point livekit." + global.Settings.Domain + " and turn." + global.Settings.Domain + " DNS records to this same pyramid IP before clients try to connect." }
 									</p>
-								} else if EmbeddedLivekitAvailable() {
+								} else if EmbeddedLiveKitAvailable() {
 									<form method="POST" action="/groups/livekit/start">
 										<button
 											type="submit"
@@ -545,7 +547,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 										</button>
 									</form>
 								}
-								if EmbeddedLivekitAvailable() {
+								if EmbeddedLiveKitAvailable() {
 									<p class="text-xs text-stone-500 dark:text-stone-400">
 										{ "this downloads the latest matching LiveKit release into livekit-bin, generates fresh credentials, serves it from livekit." + global.Settings.Domain + ", exposes TURN on turn." + global.Settings.Domain + ", and updates the fields below." }
 									</p>
@@ -586,7 +588,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 										type="url"
 										id="livekit_server_url"
 										name="livekit_server_url"
-										value={ global.Settings.Groups.LivekitServerURL }
+										value={ global.Settings.Groups.LiveKitServerURL }
 										placeholder="wss://your-livekit-server.com"
 										class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
 									/>
@@ -599,7 +601,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 										type="text"
 										id="livekit_api_key"
 										name="livekit_api_key"
-										value={ global.Settings.Groups.LivekitAPIKey }
+										value={ global.Settings.Groups.LiveKitAPIKey }
 										placeholder="your-api-key"
 										class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
 									/>
@@ -612,7 +614,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 										type="text"
 										id="livekit_api_secret"
 										name="livekit_api_secret"
-										value={ global.Settings.Groups.LivekitAPISecret }
+										value={ global.Settings.Groups.LiveKitAPISecret }
 										placeholder="your-api-secret"
 										class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
 									/>

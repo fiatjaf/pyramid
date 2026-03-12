@@ -22,13 +22,14 @@ import (
 	"time"
 
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/pyramid"
 )
 
 var LiveKitEmbedded bool
 
-const embeddedLivekitBinaryPath = "livekit-server"
+const embeddedLiveKitBinaryPath = "livekit-server"
 
-var embeddedLivekit = struct {
+var embeddedLiveKit = struct {
 	mu      sync.RWMutex
 	cmd     *exec.Cmd
 	running bool
@@ -47,6 +48,40 @@ var embeddedLivekit = struct {
 	},
 }
 
+func stopEmbeddedLiveKitHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	if err := StopEmbeddedLiveKit(); err != nil {
+		http.Error(w, "failed to stop embedded livekit: "+err.Error(), 500)
+		return
+	}
+
+	http.Redirect(w, r, "/groups/", 302)
+}
+
+func startEmbeddedLiveKitHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+	if !EmbeddedLiveKitAvailable() {
+		http.Error(w, "embedded livekit requires pyramid to serve HTTPS on ports 443/80 with a configured domain", 400)
+		return
+	}
+
+	if err := StartEmbeddedLiveKit(); err != nil {
+		http.Error(w, "failed to start embedded livekit: "+err.Error(), 500)
+		return
+	}
+
+	http.Redirect(w, r, "/groups/", 302)
+}
+
 type livekitRelease struct {
 	TagName string `json:"tag_name"`
 	Assets  []struct {
@@ -56,48 +91,48 @@ type livekitRelease struct {
 	} `json:"assets"`
 }
 
-func EmbeddedLivekitRunning() bool {
-	embeddedLivekit.mu.RLock()
-	defer embeddedLivekit.mu.RUnlock()
-	return embeddedLivekit.running
+func EmbeddedLiveKitRunning() bool {
+	embeddedLiveKit.mu.RLock()
+	defer embeddedLiveKit.mu.RUnlock()
+	return embeddedLiveKit.running
 }
 
-func EmbeddedLivekitError() string {
-	embeddedLivekit.mu.RLock()
-	defer embeddedLivekit.mu.RUnlock()
-	return embeddedLivekit.error
+func EmbeddedLiveKitError() string {
+	embeddedLiveKit.mu.RLock()
+	defer embeddedLiveKit.mu.RUnlock()
+	return embeddedLiveKit.error
 }
 
-func EmbeddedLivekitAvailable() bool {
+func EmbeddedLiveKitAvailable() bool {
 	return global.S.Port == "443" && global.Settings.Domain != ""
 }
 
-func StartEmbeddedLivekit() error {
-	embeddedLivekit.mu.Lock()
-	defer embeddedLivekit.mu.Unlock()
+func StartEmbeddedLiveKit() error {
+	embeddedLiveKit.mu.Lock()
+	defer embeddedLiveKit.mu.Unlock()
 
-	if embeddedLivekit.running {
+	if embeddedLiveKit.running {
 		return nil
 	}
-	if !EmbeddedLivekitAvailable() {
+	if !EmbeddedLiveKitAvailable() {
 		err := fmt.Errorf("embedded livekit requires the relay to run on ports 443/80 with a configured domain")
-		embeddedLivekit.error = err.Error()
+		embeddedLiveKit.error = err.Error()
 		return err
 	}
 	if global.Settings.Domain == "" {
 		err := fmt.Errorf("set the relay domain before starting embedded livekit")
-		embeddedLivekit.error = err.Error()
+		embeddedLiveKit.error = err.Error()
 		return err
 	}
 
-	release, err := fetchLatestLivekitRelease()
+	release, err := fetchLatestLiveKitRelease()
 	if err != nil {
-		embeddedLivekit.error = err.Error()
+		embeddedLiveKit.error = err.Error()
 		return err
 	}
 
-	if err := ensureLivekitBinary(release); err != nil {
-		embeddedLivekit.error = err.Error()
+	if err := ensureLiveKitBinary(release); err != nil {
+		embeddedLiveKit.error = err.Error()
 		return err
 	}
 
@@ -118,10 +153,10 @@ keys:
   '` + apiKey + `': '` + apiSecret + `'
 `
 
-	cmd := exec.Command("./"+embeddedLivekitBinaryPath, "--config-body", config)
+	cmd := exec.Command("./"+embeddedLiveKitBinaryPath, "--config-body", config)
 	logFile, err := os.OpenFile(filepath.Join(global.S.DataPath, "livekit.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
-		embeddedLivekit.error = err.Error()
+		embeddedLiveKit.error = err.Error()
 		return err
 	}
 	cmd.Stdout = logFile
@@ -129,7 +164,7 @@ keys:
 
 	if err := cmd.Start(); err != nil {
 		logFile.Close()
-		embeddedLivekit.error = err.Error()
+		embeddedLiveKit.error = err.Error()
 		return err
 	}
 
@@ -138,14 +173,14 @@ keys:
 		err := cmd.Wait()
 		logFile.Close()
 
-		embeddedLivekit.mu.Lock()
-		defer embeddedLivekit.mu.Unlock()
+		embeddedLiveKit.mu.Lock()
+		defer embeddedLiveKit.mu.Unlock()
 
-		if embeddedLivekit.cmd == cmd {
-			embeddedLivekit.cmd = nil
-			embeddedLivekit.running = false
+		if embeddedLiveKit.cmd == cmd {
+			embeddedLiveKit.cmd = nil
+			embeddedLiveKit.running = false
 			if err != nil {
-				embeddedLivekit.error = err.Error()
+				embeddedLiveKit.error = err.Error()
 				log.Error().Err(err).Msg("embedded livekit server exited")
 			}
 		}
@@ -157,66 +192,66 @@ keys:
 		if err == nil {
 			err = fmt.Errorf("embedded livekit exited immediately")
 		}
-		embeddedLivekit.error = err.Error()
+		embeddedLiveKit.error = err.Error()
 		return err
 	case <-time.After(1500 * time.Millisecond):
 	}
 
 	LiveKitEmbedded = true
-	global.Settings.Groups.LivekitServerURL = global.Settings.WSScheme() + "livekit." + global.Settings.Domain
-	global.Settings.Groups.LivekitAPIKey = apiKey
-	global.Settings.Groups.LivekitAPISecret = apiSecret
+	global.Settings.Groups.LiveKitServerURL = global.Settings.WSScheme() + "livekit." + global.Settings.Domain
+	global.Settings.Groups.LiveKitAPIKey = apiKey
+	global.Settings.Groups.LiveKitAPISecret = apiSecret
 	if err := global.SaveUserSettings(); err != nil {
 		_ = terminateProcess(cmd.Process)
-		embeddedLivekit.error = err.Error()
+		embeddedLiveKit.error = err.Error()
 		return err
 	}
 
-	embeddedLivekit.cmd = cmd
-	embeddedLivekit.running = true
-	embeddedLivekit.version = release.TagName
-	embeddedLivekit.error = ""
+	embeddedLiveKit.cmd = cmd
+	embeddedLiveKit.running = true
+	embeddedLiveKit.version = release.TagName
+	embeddedLiveKit.error = ""
 	log.Info().Str("version", release.TagName).Int("pid", cmd.Process.Pid).Msg("started embedded livekit server")
 	return nil
 }
 
-func StopEmbeddedLivekit() error {
-	embeddedLivekit.mu.Lock()
-	defer embeddedLivekit.mu.Unlock()
+func StopEmbeddedLiveKit() error {
+	embeddedLiveKit.mu.Lock()
+	defer embeddedLiveKit.mu.Unlock()
 
-	if embeddedLivekit.cmd != nil && embeddedLivekit.cmd.Process != nil {
-		if err := terminateProcess(embeddedLivekit.cmd.Process); err != nil {
-			embeddedLivekit.error = err.Error()
+	if embeddedLiveKit.cmd != nil && embeddedLiveKit.cmd.Process != nil {
+		if err := terminateProcess(embeddedLiveKit.cmd.Process); err != nil {
+			embeddedLiveKit.error = err.Error()
 			return err
 		}
 	}
 
-	embeddedLivekit.cmd = nil
-	embeddedLivekit.running = false
+	embeddedLiveKit.cmd = nil
+	embeddedLiveKit.running = false
 
 	LiveKitEmbedded = false
-	global.Settings.Groups.LivekitServerURL = ""
-	global.Settings.Groups.LivekitAPIKey = ""
-	global.Settings.Groups.LivekitAPISecret = ""
+	global.Settings.Groups.LiveKitServerURL = ""
+	global.Settings.Groups.LiveKitAPIKey = ""
+	global.Settings.Groups.LiveKitAPISecret = ""
 	if err := global.SaveUserSettings(); err != nil {
-		embeddedLivekit.error = err.Error()
+		embeddedLiveKit.error = err.Error()
 		return err
 	}
 
-	embeddedLivekit.error = ""
+	embeddedLiveKit.error = ""
 	log.Info().Msg("stopped embedded livekit server")
 	return nil
 }
 
-func LivekitProxyHandler(w http.ResponseWriter, r *http.Request) {
-	if !EmbeddedLivekitRunning() {
+func LiveKitProxyHandler(w http.ResponseWriter, r *http.Request) {
+	if !EmbeddedLiveKitRunning() {
 		http.Error(w, "embedded livekit server is not running", http.StatusServiceUnavailable)
 		return
 	}
-	embeddedLivekit.proxy.ServeHTTP(w, r)
+	embeddedLiveKit.proxy.ServeHTTP(w, r)
 }
 
-func fetchLatestLivekitRelease() (livekitRelease, error) {
+func fetchLatestLiveKitRelease() (livekitRelease, error) {
 	client := &http.Client{Timeout: 15 * time.Second}
 	resp, err := client.Get("https://api.github.com/repos/livekit/livekit/releases/latest")
 	if err != nil {
@@ -236,14 +271,14 @@ func fetchLatestLivekitRelease() (livekitRelease, error) {
 	return release, nil
 }
 
-func ensureLivekitBinary(release livekitRelease) error {
+func ensureLiveKitBinary(release livekitRelease) error {
 	assetURL, shasum, err := livekitAssetForRuntime(release)
 	if err != nil {
 		return err
 	}
 
 	// inspect checksum to see if we have to download a new binary
-	if file, err := os.Open(embeddedLivekitBinaryPath); err == nil {
+	if file, err := os.Open(embeddedLiveKitBinaryPath); err == nil {
 		defer file.Close()
 		hash := sha256.New()
 		if _, err := io.Copy(hash, file); err == nil {
@@ -293,7 +328,7 @@ func ensureLivekitBinary(release livekitRelease) error {
 			continue
 		}
 
-		tempPath := embeddedLivekitBinaryPath + ".tmp"
+		tempPath := embeddedLiveKitBinaryPath + ".tmp"
 		file, err := os.Create(tempPath)
 		if err != nil {
 			return fmt.Errorf("create embedded livekit binary: %w", err)
@@ -311,7 +346,7 @@ func ensureLivekitBinary(release livekitRelease) error {
 			os.Remove(tempPath)
 			return fmt.Errorf("chmod embedded livekit binary: %w", err)
 		}
-		if err := os.Rename(tempPath, embeddedLivekitBinaryPath); err != nil {
+		if err := os.Rename(tempPath, embeddedLiveKitBinaryPath); err != nil {
 			os.Remove(tempPath)
 			return fmt.Errorf("replace embedded livekit binary: %w", err)
 		}
@@ -373,13 +408,13 @@ func terminateProcess(process *os.Process) error {
 	return nil
 }
 
-func ShutdownEmbeddedLivekit() {
+func ShutdownEmbeddedLiveKit() {
 	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	defer cancel()
 
 	done := make(chan struct{})
 	go func() {
-		_ = StopEmbeddedLivekit()
+		_ = StopEmbeddedLiveKit()
 		close(done)
 	}()
 

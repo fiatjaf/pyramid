@@ -100,10 +100,10 @@ nextgroup:
 			evt := events[i]
 			act, err := nip29.PrepareModerationAction(evt)
 			if err != nil {
-				return err
+				log.Warn().Err(err).Stringer("event", evt).Stringer("group", group).Msg("invalid moderation action")
+			} else {
+				act.Apply(&group.Group)
 			}
-
-			act.Apply(&group.Group)
 		}
 
 		// load the last 50 event ids for "previous" tag checking

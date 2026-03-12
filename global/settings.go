@@ -84,9 +84,9 @@ type UserSettings struct {
 
 	Groups struct {
 		Enabled          bool   `json:"enabled"`
-		LivekitServerURL string `json:"livekit_server_url"`
-		LivekitAPIKey    string `json:"livekit_apikey"`
-		LivekitAPISecret string `json:"livekit_apisecret"`
+		LiveKitServerURL string `json:"livekit_server_url"`
+		LiveKitAPIKey    string `json:"livekit_apikey"`
+		LiveKitAPISecret string `json:"livekit_apisecret"`
 	} `json:"groups"`
 
 	Grasp struct {

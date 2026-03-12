@@ -125,8 +125,9 @@ func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (rejec
 	}
 
 	// check if group disallows text events
-	if group.NoText && !nip29.ModerationEventKinds.Includes(event.Kind) {
-		return true, "blocked: this group does not allow text events"
+	if group.SupportedKinds != nil && len(group.SupportedKinds) == 0 &&
+		!nip29.ModerationEventKinds.Includes(event.Kind) {
+		return true, "blocked: this group is AV only"
 	}
 
 	// prevent republishing events that were just deleted

@@ -148,7 +148,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.AcceptScheduledEvents = v[0] == "on"
 			case "livekit_server_url":
 				if groups.LiveKitEmbedded {
-					if err := groups.StopEmbeddedLivekit(); err != nil {
+					if err := groups.StopEmbeddedLiveKit(); err != nil {
 						http.Error(w, "failed to stop embedded livekit: "+err.Error(), 500)
 						return
 					}
@@ -156,12 +156,12 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				u, err := url.Parse(v[0])
 				if err == nil && (u.Scheme == "http" || u.Scheme == "https" || u.Scheme == "ws" || u.Scheme == "wss") {
 					u.Scheme = strings.Replace(u.Scheme, "http", "ws", 1)
-					global.Settings.Groups.LivekitServerURL = u.String()
+					global.Settings.Groups.LiveKitServerURL = u.String()
 				}
 			case "livekit_api_key":
-				global.Settings.Groups.LivekitAPIKey = v[0]
+				global.Settings.Groups.LiveKitAPIKey = v[0]
 			case "livekit_api_secret":
-				global.Settings.Groups.LivekitAPISecret = v[0]
+				global.Settings.Groups.LiveKitAPISecret = v[0]
 			case "enable_search":
 				wasEnabled := global.Settings.Search.Enable
 				global.Settings.Search.Enable = v[0] == "on"

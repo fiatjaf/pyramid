@@ -63,7 +63,7 @@ func main() {
 			return
 		}
 	}
-	defer groups.ShutdownEmbeddedLivekit()
+	defer groups.ShutdownEmbeddedLiveKit()
 	defer global.End()
 	defer search.End()
 
@@ -486,8 +486,8 @@ func run(ctx context.Context) error {
 		host = strings.ToLower(host)
 
 		// proxy to livekit server via subdomain
-		if groups.EmbeddedLivekitAvailable() && host == strings.ToLower("livekit."+global.Settings.Domain) {
-			groups.LivekitProxyHandler(w, r)
+		if groups.EmbeddedLiveKitAvailable() && host == strings.ToLower("livekit."+global.Settings.Domain) {
+			groups.LiveKitProxyHandler(w, r)
 			return
 		}
 
@@ -560,7 +560,7 @@ func run(ctx context.Context) error {
 		}
 
 		livekitServer := &http.Server{
-			Handler: http.HandlerFunc(groups.LivekitProxyHandler),
+			Handler: http.HandlerFunc(groups.LiveKitProxyHandler),
 			BaseContext: func(_ net.Listener) context.Context {
 				return ctx
 			},
@@ -599,7 +599,7 @@ func run(ctx context.Context) error {
 
 					switch serverName {
 					case "turn." + strings.ToLower(global.Settings.Domain):
-						if !groups.EmbeddedLivekitRunning() {
+						if !groups.EmbeddedLiveKitRunning() {
 							tlsConn.Close()
 							return
 						}
