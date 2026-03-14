@@ -128,6 +128,7 @@ func main() {
 	relay.Router().HandleFunc("/u/sync", syncHandler)
 	relay.Router().HandleFunc("/stats", statsHandler)
 	relay.Router().HandleFunc("/update", updateHandler)
+	relay.Router().HandleFunc("/restart", restartHandler)
 	relay.Router().HandleFunc("/icon/{relayId}", iconHandler)
 	relay.Router().HandleFunc("/forum/", forumHandler)
 	relay.Router().HandleFunc("/.well-known/nostr.json", nip05Handler)

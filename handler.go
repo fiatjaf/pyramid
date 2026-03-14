@@ -734,6 +734,22 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func restartHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", 405)
+		return
+	}
+
+	go restartSoon()
+	fmt.Fprint(w, "restarting")
+}
+
 func forumHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `<!doctype html>
 <html>

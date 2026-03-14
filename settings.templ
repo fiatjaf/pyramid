@@ -716,6 +716,108 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					saved!
 				</div>
 			</form>
+			{{ systemStats := getSystemStats() }}
+			<!-- System Section -->
+			<div
+				class="mt-8"
+				x-data={ `{
+					restarting: false,
+					restartResult: '',
+					async restartServer() {
+						this.restarting = true;
+						this.restartResult = '';
+						try {
+							const response = await fetch('/restart', { method: 'POST' });
+							if (response.ok) {
+								this.restartResult = 'restart triggered. the page will refresh in 5 seconds.';
+								setTimeout(() => location.reload(), 5000);
+								return;
+							}
+							const result = await response.text();
+							this.restartResult = 'restart failed: ' + result;
+						} catch (error) {
+							if (error.message === 'Failed to fetch') {
+								this.restartResult = 'restart triggered. the page will refresh in 5 seconds.';
+								setTimeout(() => location.reload(), 5000);
+								return;
+							}
+							this.restartResult = 'restart failed: ' + error.message;
+						} finally {
+							this.restarting = false;
+						}
+					}
+				}` }
+			>
+				@layout.SubSectionTitle("system")
+				{{ cpuCount := len(systemStats.CPUUsages) }}
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4">
+						<div class="text-sm font-medium text-stone-700 dark:text-stone-300">cpu usage</div>
+						if cpuCount <= 1 {
+							<div class="mt-1 text-lg text-stone-900 dark:text-stone-100">total: { systemStats.CPUUsage }</div>
+							<div class="text-xs text-stone-500 dark:text-stone-400">pyramid: { systemStats.CPUProcess }</div>
+						} else {
+							<div class="mt-1 text-sm text-stone-600 dark:text-stone-400">total: { systemStats.CPUUsage }</div>
+							<div class="text-xs text-stone-500 dark:text-stone-400">pyramid: { systemStats.CPUProcess }</div>
+							<div class="mt-3 overflow-x-auto">
+								<table class="w-full text-sm">
+									<thead>
+										<tr class="text-left text-stone-500 dark:text-stone-400">
+											<th class="py-1">cpu</th>
+											<th class="py-1 text-right">usage</th>
+										</tr>
+									</thead>
+									<tbody>
+										for i, usage := range systemStats.CPUUsages {
+											<tr class="border-t border-stone-100 dark:border-stone-700">
+												<td class="py-1 text-stone-600 dark:text-stone-300">cpu { i }</td>
+												<td class="py-1 text-right text-stone-900 dark:text-stone-100">{ fmt.Sprintf("%.1f%%", usage) }</td>
+											</tr>
+										}
+									</tbody>
+								</table>
+							</div>
+						}
+					</div>
+					<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4">
+						<div class="text-sm font-medium text-stone-700 dark:text-stone-300">memory usage</div>
+						<div class="mt-1 text-lg text-stone-900 dark:text-stone-100">total: { systemStats.Memory }</div>
+						<div class="text-xs text-stone-500 dark:text-stone-400">pyramid: { systemStats.MemoryProcess }</div>
+					</div>
+					<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4">
+						<div class="text-sm font-medium text-stone-700 dark:text-stone-300">server</div>
+						<div class="mt-1 text-stone-900 dark:text-stone-400">domain: { global.Settings.Domain }</div>
+						<div class="mt-1 text-stone-900 dark:text-stone-100">host: <span class="font-mono">{ global.S.Host }</span></div>
+						<div class="mt-1 text-stone-900 dark:text-stone-100">port: <span class="font-mono">{ global.S.Port }</span></div>
+						if global.S.Port == "443" {
+							<div class="text-sm text-stone-600 dark:text-stone-400">managing TLS certificates</div>
+						}
+					</div>
+					<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4">
+						<div class="text-sm font-medium text-stone-700 dark:text-stone-300">data usage</div>
+						<div class="mt-1 text-lg text-stone-900 dark:text-stone-100">disk used: { systemStats.DiskUsed } / { systemStats.DiskTotal } ({ systemStats.DiskUsedPct })</div>
+						<div class="text-sm text-stone-600 dark:text-stone-400">pyramid: { systemStats.DataSize } ({ global.S.DataPath })</div>
+					</div>
+				</div>
+				<div class="mt-4">
+					<button
+						type="button"
+						@click="confirm('this will restart the pyramid server. continue?') ? restartServer() : null"
+						:disabled="restarting"
+						class="cursor-pointer inline-block px-4 py-2 rounded bg-stone-700 hover:bg-stone-800 disabled:bg-stone-400 text-white font-medium"
+					>
+						<span x-show="!restarting">restart pyramid</span>
+						<span x-show="restarting">restarting...</span>
+					</button>
+					<div
+						x-show="restartResult"
+						x-transition
+						class="mt-2 text-sm"
+						:class="restartResult.includes('failed') ? 'text-red-600 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-300'"
+						x-text="restartResult"
+					></div>
+				</div>
+			</div>
 			<!-- update Section -->
 			<div
 				class="mt-8"
