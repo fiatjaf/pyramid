@@ -146,6 +146,9 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.EnableOTS = v[0] == "on"
 			case "accept_scheduled_events":
 				global.Settings.AcceptScheduledEvents = v[0] == "on"
+			case "custom_update_source":
+				customUpdateSource = v[0]
+				fetchLatestVersion()
 			case "livekit_server_url":
 				if groups.LiveKitEmbedded {
 					if err := groups.StopEmbeddedLiveKit(); err != nil {
@@ -702,6 +705,22 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodPost {
+		if customUpdateSource != "" {
+			version, err := resolveCustomUpdateSource(customUpdateSource)
+			if err != nil {
+				http.Error(w, "failed to resolve custom update source: "+err.Error(), 400)
+				return
+			}
+			latestVersion = version
+		} else {
+			version, err := fetchLatestFromGitHub("fiatjaf/pyramid")
+			if err != nil {
+				http.Error(w, "failed to fetch latest version: "+err.Error(), 500)
+				return
+			}
+			latestVersion = version
+		}
+
 		// if the update is successful the process will restart so this function will never return
 		if err := performUpdateInPlace(); err != nil {
 			log.Error().Err(err).Msg("update failed")

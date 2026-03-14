@@ -720,11 +720,18 @@ templ settingsPage(loggedUser nostr.PubKey) {
 			<div
 				class="mt-8"
 				x-data={ `{
-					updating: false,
-					updateResult: '',
-					async performUpdate() {
-						this.updating = true;
-						this.updateResult = '';
+				customUpdateSource: ` + global.JSONString(customUpdateSource) + `,
+				updating: false,
+				updateResult: '',
+				setCustomUpdateSource() {
+					const nextSource = prompt('paste a github repo, github release, or direct url', this.customUpdateSource || '')
+					if (nextSource === null) return
+					this.customUpdateSource = nextSource.trim()
+					setTimeout(() => this.$refs.customUpdateForm.submit(), 500)
+				},
+				async performUpdate() {
+					this.updating = true;
+					this.updateResult = '';
 						try {
 							const response = await fetch('/update', {
 								method: 'POST',
@@ -750,27 +757,52 @@ templ settingsPage(loggedUser nostr.PubKey) {
 							this.updateResult = 'fetch call failed: ' + error.message;
 						} finally {
 							this.updating = false;
-						}
-					},
-					versionToNumber (versionName) {
-						if (versionName.startsWith('v')) versionName = versionName.slice(1)
-						return versionName.split('.').map((n, i) => parseInt(n) * 10**(10-i*3)).reduce((acc, n) => acc + n, 0)
 					}
-				}` }
+				},
+				versionToNumber (versionName) {
+					if (versionName.startsWith('v')) versionName = versionName.slice(1)
+					return versionName.split('.').map((n, i) => parseInt(n) * 10**(10-i*3)).reduce((acc, n) => acc + n, 0)
+				}
+			}` }
 			>
 				@layout.SubSectionTitle("update")
+				<form method="POST" action="/settings" x-ref="customUpdateForm">
+					<input type="hidden" name="custom_update_source" x-model="customUpdateSource"/>
+				</form>
 				<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
 					<div>current version: <span class="text-stone-600 dark:text-stone-400" x-ref="currentVersion">{ currentVersion }</span></div>
-					<div>latest version: <span class="text-stone-600 dark:text-stone-400" x-ref="latestVersion"><a class="hover:font-medium underline underline-offset-4" href={ templ.SafeURL("https://github.com/fiatjaf/pyramid/releases/tag/" + latestVersion.name) } target="_blank">{ latestVersion.name }</a></span></div>
+					<div>
+						if customUpdateSource != "" {
+							custom version: <span class="text-stone-600 dark:text-stone-400" x-ref="latestVersion"><a class="hover:font-medium underline underline-offset-4" href={ templ.SafeURL(customUpdateSource) } target="_blank">{ latestVersion.name }</a></span>
+						} else {
+							latest version: <span class="text-stone-600 dark:text-stone-400" x-ref="latestVersion"><a class="hover:font-medium underline underline-offset-4" href={ templ.SafeURL("https://github.com/fiatjaf/pyramid/releases/tag/" + latestVersion.name) } target="_blank">{ latestVersion.name }</a></span>
+						}
+						<button
+							type="button"
+							@click="setCustomUpdateSource()"
+							class="ml-2 inline-flex items-center justify-center text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
+							aria-label="set custom update source"
+							title="set custom update source"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5">
+								<path d="M13.586 3.586a2 2 0 0 1 2.828 2.828l-9.5 9.5a1 1 0 0 1-.39.242l-3.5 1.25a.5.5 0 0 1-.64-.64l1.25-3.5a1 1 0 0 1 .242-.39l9.5-9.5Z"></path>
+								<path d="M12.172 5 15 7.828"></path>
+							</svg>
+						</button>
+					</div>
 				</p>
 				<div class="mt-2">
 					<button
 						type="button"
-						@click="confirm('this will download the new binary from github, replace the current one and restart the server, are you ok to continue?') ? performUpdate() : null"
-						:disabled="$refs.latestVersion.innerText === '' || versionToNumber($refs.latestVersion.innerText) <= versionToNumber($refs.currentVersion.innerText) || updating"
+						@click="confirm('this will download the new binary, replace the current one and restart the server, are you ok to continue?') ? performUpdate() : null"
+						:disabled="$refs.latestVersion.innerText === '' || (!customUpdateSource && versionToNumber($refs.latestVersion.innerText) <= versionToNumber($refs.currentVersion.innerText)) || updating"
 						class="cursor-pointer inline-block px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-400 text-white font-medium"
 					>
-						<span x-show="!updating">update pyramid</span>
+						if customUpdateSource != "" {
+							<span x-show="!updating">update to custom version</span>
+						} else {
+							<span x-show="!updating">update pyramid</span>
+						}
 						<span x-show="updating">updating...</span>
 					</button>
 					<div
