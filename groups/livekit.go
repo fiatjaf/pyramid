@@ -5,9 +5,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
-	"slices"
 	"strings"
 	"sync"
 
@@ -28,6 +28,12 @@ var (
 type TokenSourceResponse struct {
 	ServerURL        string `json:"server_url"`
 	ParticipantToken string `json:"participant_token"`
+}
+
+type liveKitListParticipantsResponse struct {
+	Participants []struct {
+		Identity string `json:"identity"`
+	} `json:"participants"`
 }
 
 func livekitAuthHandler(w http.ResponseWriter, r *http.Request) {
@@ -155,32 +161,29 @@ func livekitWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer w.WriteHeader(http.StatusNoContent)
+
 	switch event.Event {
 	case webhook.EventParticipantJoined, webhook.EventParticipantLeft:
-		participant := event.GetParticipant()
-		if participant == nil || len(participant.Identity) < 64 {
-			http.Error(w, "missing participant", http.StatusBadRequest)
-			return
-		}
-
-		pubkey, err := nostr.PubKeyFromHex(participant.Identity[0:64])
+		participants, err := group.listLiveKitParticipants()
 		if err != nil {
-			log.Warn().Err(err).Str("room", groupId).Msg("invalid nostr pubkey in livekit webhook")
-			w.WriteHeader(http.StatusNoContent)
+			log.Warn().Err(err).Msg("failed to refresh livekit participants")
 			return
-		}
+		} else {
+			group.mu.Lock()
+			group.LiveKitParticipants = participants
+			group.LastLiveKitParticipantsUpdate = nostr.Now()
+			evt := group.ToLiveKitParticipantsEvent()
+			group.mu.Unlock()
 
-		connected := event.Event == webhook.EventParticipantJoined
-		if err := State.updateLiveKitParticipants(group, pubkey, participant.GetIdentity(), connected); err != nil {
-			http.Error(w, "failed to update livekit participants: "+err.Error(), http.StatusInternalServerError)
+			evt.Sign(State.secretKey)
+			State.DB.ReplaceEvent(evt)
+			State.broadcast(evt)
 			return
 		}
 	default:
-		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func (group *Group) ensureLiveKitRoom() error {
@@ -226,6 +229,53 @@ func (group *Group) ensureLiveKitRoom() error {
 	return fmt.Errorf("failed to create room: %s", resp.Status)
 }
 
+func (group *Group) listLiveKitParticipants() ([]nostr.PubKey, error) {
+	u, _ := url.Parse(fmt.Sprintf("%s/twirp/livekit.RoomService/ListParticipants", global.Settings.Groups.LiveKitServerURL))
+	u.Scheme = strings.Replace(u.Scheme, "ws", "http", 1)
+	reqBody, _ := json.Marshal(map[string]any{"room": group.Address.ID})
+	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(reqBody))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+group.generateLiveKitServerToken())
+
+	resp, err := livekitHTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to list participants: %s (%s)", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	var response liveKitListParticipantsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, err
+	}
+
+	participants := make([]nostr.PubKey, 0, len(response.Participants))
+	for _, participant := range response.Participants {
+		if len(participant.Identity) < 64 {
+			log.Warn().Str("room", group.Address.ID).Msg("invalid livekit participant identity length")
+			continue
+		}
+
+		pubkey, err := nostr.PubKeyFromHex(participant.Identity[0:64])
+		if err != nil {
+			log.Warn().Err(err).Str("room", group.Address.ID).Msg("invalid nostr pubkey in livekit participant list")
+			continue
+		}
+
+		participants = nostr.AppendUnique(participants, pubkey)
+	}
+
+	return participants, nil
+}
+
 func (group *Group) generateLiveKitServerToken() string {
 	at := auth.NewAccessToken(global.Settings.Groups.LiveKitAPIKey, global.Settings.Groups.LiveKitAPISecret)
 	at.SetVideoGrant(
@@ -252,37 +302,4 @@ func (group *Group) generateLiveKitToken(pubkey nostr.PubKey) string {
 	at.SetIdentity(pubkey.Hex() + ":" + randomToken(2))
 	jwt, _ := at.ToJWT()
 	return jwt
-}
-
-func (s *GroupsState) updateLiveKitParticipants(
-	group *Group,
-	pubkey nostr.PubKey,
-	identity string,
-	connected bool,
-) error {
-	group.mu.Lock()
-	if connected {
-		// append unique
-		if !slices.Contains(group.LiveKitParticipants, pubkey) {
-			group.LiveKitParticipants = append(group.LiveKitParticipants, pubkey)
-		}
-	} else {
-		// swap-delete
-		if idx := slices.Index(group.LiveKitParticipants, pubkey); idx != -1 {
-			group.LiveKitParticipants[idx] = group.LiveKitParticipants[len(group.LiveKitParticipants)-1]
-			group.LiveKitParticipants = group.LiveKitParticipants[0 : len(group.LiveKitParticipants)-1]
-		}
-	}
-	group.LastLiveKitParticipantsUpdate = nostr.Now()
-	evt := group.ToLiveKitParticipantsEvent()
-	group.mu.Unlock()
-
-	if err := evt.Sign(s.secretKey); err != nil {
-		return err
-	}
-	if err := s.DB.ReplaceEvent(evt); err != nil {
-		return err
-	}
-	s.broadcast(evt)
-	return nil
 }
