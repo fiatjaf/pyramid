@@ -201,6 +201,19 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				if err := search.UpdateLanguagesChange(); err != nil {
 					log.Warn().Err(err).Msg("failed to update languages change timestamp")
 				}
+			case "root_member_pubkey":
+				if v[0] == "" {
+					continue
+				}
+				target := global.PubKeyFromInput(v[0])
+				if target == nostr.ZeroPK {
+					http.Error(w, "invalid public key", 400)
+					return
+				}
+				if err := pyramid.AddAction(pyramid.ActionInvite, pyramid.AbsoluteKey, target); err != nil {
+					http.Error(w, "failed to add root user: "+err.Error(), 500)
+					return
+				}
 				//
 				// nip-05 settings
 			case "nip05_enabled":

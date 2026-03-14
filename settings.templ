@@ -611,6 +611,33 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					</form>
 				</div>
 			</div>
+			<!-- Add Root Member Section -->
+			<form
+				method="POST"
+				action="/settings"
+				class="space-y-4 mt-8"
+				onsubmit="return confirm('this will invite a new root member with full administrative privileges. continue?');"
+			>
+				@layout.SubSectionTitle("add new root member")
+				<p class="text-sm text-stone-600 dark:text-stone-400">
+					root users have as much power as you. proceed with maximum caution.
+				</p>
+				<div class="flex flex-wrap gap-3 items-center">
+					<input
+						type="text"
+						name="root_member_pubkey"
+						placeholder="npub1... or hex pubkey"
+						required
+						class="flex-1 min-w-[220px] px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 font-mono text-sm"
+					/>
+					<button
+						type="submit"
+						class="cursor-pointer px-4 py-2 rounded bg-stone-700 hover:bg-stone-800 dark:bg-stone-600 dark:hover:bg-stone-500 text-white font-medium"
+					>
+						invite root member
+					</button>
+				</div>
+			</form>
 			<!-- FTP Server Settings Section -->
 			<form
 				method="POST"
@@ -689,7 +716,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					saved!
 				</div>
 			</form>
-<!-- update Section -->
+			<!-- update Section -->
 			<div
 				class="mt-8"
 				x-data={ `{
