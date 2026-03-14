@@ -120,6 +120,23 @@ func GetMaxInvitesFor(pubkey nostr.PubKey) int {
 	return global.Settings.MaxInvitesPerPerson
 }
 
+func GetMaxBlossomUploadSizeFor(pubkey nostr.PubKey) int {
+	if len(global.Settings.Blossom.MaxUserUploadSizeAtEachLevel) > 0 {
+		level := GetLevel(pubkey)
+		if level < 1 {
+			return 0
+		}
+
+		adjustedLevel := level - 1
+		if adjustedLevel < len(global.Settings.Blossom.MaxUserUploadSizeAtEachLevel) {
+			return global.Settings.Blossom.MaxUserUploadSizeAtEachLevel[adjustedLevel]
+		}
+		return global.Settings.Blossom.MaxUserUploadSizeAtEachLevel[len(global.Settings.Blossom.MaxUserUploadSizeAtEachLevel)-1]
+	}
+
+	return global.Settings.Blossom.MaxUserUploadSize
+}
+
 func GetInviteCount(pubkey nostr.PubKey) int {
 	count := 0
 	for _, member := range Members.Range {

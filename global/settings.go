@@ -95,8 +95,9 @@ type UserSettings struct {
 	} `json:"grasp"`
 
 	Blossom struct {
-		Enabled           bool `json:"enabled"`
-		MaxUserUploadSize int  `json:"max_user_upload_size,omitempty"` // in megabytes, 0 means unlimited
+		Enabled                      bool  `json:"enabled"`
+		MaxUserUploadSize            int   `json:"max_user_upload_size,omitempty"` // in megabytes, 0 means unlimited
+		MaxUserUploadSizeAtEachLevel []int `json:"max_user_upload_size_at_each_level,omitempty"`
 	} `json:"blossom"`
 
 	Popular struct {
@@ -213,6 +214,17 @@ func (us UserSettings) GetMaxInvitesDisplay() string {
 		return strings.Join(parts, "/")
 	}
 	return strconv.Itoa(us.MaxInvitesPerPerson)
+}
+
+func (us UserSettings) GetMaxUserUploadSizeDisplay() string {
+	if len(us.Blossom.MaxUserUploadSizeAtEachLevel) > 0 {
+		parts := make([]string, len(us.Blossom.MaxUserUploadSizeAtEachLevel))
+		for i, v := range us.Blossom.MaxUserUploadSizeAtEachLevel {
+			parts[i] = strconv.Itoa(v)
+		}
+		return strings.Join(parts, "/")
+	}
+	return strconv.Itoa(us.Blossom.MaxUserUploadSize)
 }
 
 func getUserSettingsPath() string {

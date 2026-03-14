@@ -407,8 +407,21 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			case "ftp_password":
 				global.Settings.FTP.Password = v[0]
 			case "blossom_max_user_upload_size":
-				if maxSizeMB, err := strconv.Atoi(v[0]); err == nil {
-					global.Settings.Blossom.MaxUserUploadSize = maxSizeMB
+				if strings.Contains(v[0], "/") {
+					parts := strings.Split(v[0], "/")
+					levels := make([]int, 0, len(parts))
+					for _, p := range parts {
+						if n, err := strconv.Atoi(strings.TrimSpace(p)); err == nil {
+							levels = append(levels, n)
+						}
+					}
+					if len(levels) > 0 {
+						global.Settings.Blossom.MaxUserUploadSizeAtEachLevel = levels
+						global.Settings.Blossom.MaxUserUploadSize = 0
+					}
+				} else {
+					global.Settings.Blossom.MaxUserUploadSize, _ = strconv.Atoi(v[0])
+					global.Settings.Blossom.MaxUserUploadSizeAtEachLevel = nil
 				}
 			}
 		}

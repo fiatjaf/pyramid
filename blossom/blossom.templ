@@ -257,8 +257,8 @@ templ blossomPage(loggedUser nostr.PubKey) {
 							action="/settings"
 							class="space-y-4"
 							x-data={ `{
-								maxUserUploadSize: ` + fmt.Sprint(global.Settings.Blossom.MaxUserUploadSize) + `,
 								saved: false,
+								maxUserUploadSize: ` + global.JSONString(global.Settings.GetMaxUserUploadSizeDisplay()) + `,
 								async saveSettings() {
 									const response = await fetch(this.$refs.form.action, {
 										method: 'POST',
@@ -274,17 +274,19 @@ templ blossomPage(loggedUser nostr.PubKey) {
 						>
 							<div>
 								<label class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-									max total upload per user (in megabytes, zero means unlimited)
+									max total upload per user (in megabytes)
 								</label>
 								<input
-									type="number"
+									type="text"
 									name="blossom_max_user_upload_size"
 									x-model="maxUserUploadSize"
-									min="0"
-									step="0.1"
+									placeholder="e.g. 200 or 100/50/25"
 									@blur="saveSettings()"
 									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-md bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
 								/>
+								<p class="text-xs text-stone-500 dark:text-stone-400 mt-2">
+									use a single number (0 = unlimited) or slash-separated values per pyramid level (e.g. "100/50/25")
+								</p>
 							</div>
 							<div
 								x-show="saved"
