@@ -409,6 +409,7 @@ var (
 
 func restartSoon() {
 	log.Info().Msg("restarting in 1 second")
+	groups.ShutdownEmbeddedLiveKit()
 	time.Sleep(time.Second * 1)
 	cancelStartContext(restarting)
 }

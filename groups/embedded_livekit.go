@@ -198,12 +198,18 @@ keys:
 	}
 
 	LiveKitEmbedded = true
+	global.Settings.Groups.EmbeddedLiveKitEnabled = true
 	global.Settings.Groups.LiveKitServerURL = global.Settings.WSScheme() + "livekit." + global.Settings.Domain
 	global.Settings.Groups.LiveKitAPIKey = apiKey
 	global.Settings.Groups.LiveKitAPISecret = apiSecret
 	if err := global.SaveUserSettings(); err != nil {
 		_ = terminateProcess(cmd.Process)
 		embeddedLiveKit.error = err.Error()
+		LiveKitEmbedded = false
+		global.Settings.Groups.EmbeddedLiveKitEnabled = false
+		global.Settings.Groups.LiveKitServerURL = ""
+		global.Settings.Groups.LiveKitAPIKey = ""
+		global.Settings.Groups.LiveKitAPISecret = ""
 		return err
 	}
 
@@ -216,6 +222,10 @@ keys:
 }
 
 func StopEmbeddedLiveKit() error {
+	return stopEmbeddedLiveKit(true)
+}
+
+func stopEmbeddedLiveKit(clearSettings bool) error {
 	embeddedLiveKit.mu.Lock()
 	defer embeddedLiveKit.mu.Unlock()
 
@@ -229,13 +239,16 @@ func StopEmbeddedLiveKit() error {
 	embeddedLiveKit.cmd = nil
 	embeddedLiveKit.running = false
 
-	LiveKitEmbedded = false
-	global.Settings.Groups.LiveKitServerURL = ""
-	global.Settings.Groups.LiveKitAPIKey = ""
-	global.Settings.Groups.LiveKitAPISecret = ""
-	if err := global.SaveUserSettings(); err != nil {
-		embeddedLiveKit.error = err.Error()
-		return err
+	if clearSettings {
+		LiveKitEmbedded = false
+		global.Settings.Groups.EmbeddedLiveKitEnabled = false
+		global.Settings.Groups.LiveKitServerURL = ""
+		global.Settings.Groups.LiveKitAPIKey = ""
+		global.Settings.Groups.LiveKitAPISecret = ""
+		if err := global.SaveUserSettings(); err != nil {
+			embeddedLiveKit.error = err.Error()
+			return err
+		}
 	}
 
 	embeddedLiveKit.error = ""
@@ -414,7 +427,7 @@ func ShutdownEmbeddedLiveKit() {
 
 	done := make(chan struct{})
 	go func() {
-		_ = StopEmbeddedLiveKit()
+		_ = stopEmbeddedLiveKit(false)
 		close(done)
 	}()
 

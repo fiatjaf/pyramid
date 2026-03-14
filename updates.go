@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/groups"
 	"github.com/fiatjaf/pyramid/search"
 )
 
@@ -152,6 +153,7 @@ func performUpdateInPlace() error {
 
 	// execute the new binary, replacing current process
 	// this call does not return if successful, therefore we must perform a graceful deinitialization of all things
+	groups.ShutdownEmbeddedLiveKit()
 	cancelStartContext(updating)
 	global.End()
 	search.End()

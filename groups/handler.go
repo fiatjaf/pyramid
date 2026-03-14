@@ -2,6 +2,7 @@ package groups
 
 import (
 	"net/http"
+	"time"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
@@ -20,7 +21,6 @@ var (
 
 func Init(relay *khatru.Relay) {
 	hostRelay = relay
-
 	if !global.Settings.Groups.Enabled {
 		// relay disabled
 		setupDisabled()
@@ -89,8 +89,9 @@ func setupEnabled() {
 	Handler.mux.Handle("/.well-known/nip29/livekit", cors.AllowAll().Handler(http.HandlerFunc(livekitStatusHandler)))
 	Handler.mux.Handle("/.well-known/nip29/livekit/{groupId}", cors.AllowAll().Handler(http.HandlerFunc(livekitAuthHandler)))
 
-	if LiveKitEmbedded && EmbeddedLiveKitAvailable() {
+	if global.Settings.Groups.EmbeddedLiveKitEnabled && EmbeddedLiveKitAvailable() {
 		go func() {
+			time.Sleep(10 * time.Second)
 			if err := StartEmbeddedLiveKit(); err != nil {
 				log.Error().Err(err).Msg("failed to restore embedded livekit")
 			}
