@@ -3,9 +3,9 @@ module github.com/fiatjaf/pyramid
 go 1.25
 
 require (
-	fiatjaf.com/nostr v0.0.0-20260306014620-163e59e1f19c
+	fiatjaf.com/nostr v0.0.0-20260314085316-2cec1c943486
 	github.com/FastFilter/xorfilter v0.2.1
-	github.com/a-h/templ v0.3.977
+	github.com/a-h/templ v0.3.1001
 	github.com/bep/debounce v1.2.1
 	github.com/blevesearch/bleve/v2 v2.4.4
 	github.com/go-analyze/charts v0.5.21
@@ -29,7 +29,6 @@ require (
 	buf.build/go/protovalidate v1.1.0 // indirect
 	buf.build/go/protoyaml v0.6.0 // indirect
 	cel.dev/expr v0.25.1 // indirect
-	fiatjaf.com/lib v0.3.6 // indirect
 	github.com/ImVexed/fasturl v0.0.0-20230304231329-4e41488060f3 // indirect
 	github.com/PowerDNS/lmdb-go v1.9.3 // indirect
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
@@ -169,5 +168,3 @@ require (
 )
 
 replace github.com/livekit/livekit-server => github.com/livekit/livekit-server v1.9.11
-
-replace fiatjaf.com/nostr => ../nostrlib
