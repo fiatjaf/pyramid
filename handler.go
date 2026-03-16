@@ -845,7 +845,15 @@ func memberPageHandler(w http.ResponseWriter, r *http.Request) {
 		mainStats, _ = global.IL.Main.ComputeStats(mmm.StatsOptions{OnlyPubKey: user})
 	}
 
-	memberPage(loggedUser, user, nip05, mainStats).Render(r.Context(), w)
+	// compute blossom used storage
+	var blossomUsed int
+	if global.Settings.Blossom.Enabled {
+		for blob := range blossom.BlobIndex.List(r.Context(), user) {
+			blossomUsed += blob.Size
+		}
+	}
+
+	memberPage(loggedUser, user, nip05, mainStats, blossomUsed).Render(r.Context(), w)
 }
 
 func statsHandler(w http.ResponseWriter, r *http.Request) {

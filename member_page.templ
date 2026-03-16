@@ -11,7 +11,7 @@ import (
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
-templ memberPage(loggedUser nostr.PubKey, user nostr.PubKey, nip05 string, mainStats mmm.EventStats) {
+templ memberPage(loggedUser nostr.PubKey, user nostr.PubKey, nip05 string, mainStats mmm.EventStats, blossomUsed int) {
 	@layout.Layout(loggedUser, "member page") {
 		<div class="max-w-4xl mx-auto">
 			<!-- Account Info Section -->
@@ -67,6 +67,16 @@ templ memberPage(loggedUser nostr.PubKey, user nostr.PubKey, nip05 string, mainS
 						}
 					</div>
 					if pyramid.IsMember(user) {
+						if global.Settings.Blossom.Enabled {
+							<div class="flex items-center gap-x-2 flex-wrap">
+								<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">blossom storage:</span>
+								if pyramid.IsRoot(user) || pyramid.GetMaxBlossomUploadSizeFor(user) == 0 {
+									<span class="ml-2 text-sm">{ fmt.Sprintf("%.1f MB used", float64(blossomUsed)/(1024*1024)) } / unlimited</span>
+								} else {
+									<span class="ml-2 text-sm">{ fmt.Sprintf("%.1f / %d MB", float64(blossomUsed)/(1024*1024), pyramid.GetMaxBlossomUploadSizeFor(user)) }</span>
+								}
+							</div>
+						}
 						<div class="flex items-center gap-x-2 flex-wrap">
 							<span class="text-sm font-medium light:text-stone-600 dark:text-stone-400">invites left:</span>
 							if pyramid.IsRoot(user) {
@@ -186,7 +196,7 @@ templ memberPage(loggedUser nostr.PubKey, user nostr.PubKey, nip05 string, mainS
 					action="/u/sync"
 					class="space-y-6 mt-8"
 				>
-					<input type="hidden" name="pubkey" value={ user.Hex() } />
+					<input type="hidden" name="pubkey" value={ user.Hex() }/>
 					<div class="space-y-4">
 						<div>
 							@layout.SubSectionTitle("negentropy sync")
