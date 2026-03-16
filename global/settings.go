@@ -238,7 +238,7 @@ func loadUserSettings() error {
 		LinkURL:                 "nostr:{code}",
 		MaxInvitesPerPerson:     4,
 		MaxEventSize:            10000,
-		RequireCurrentTimestamp: true,
+		RequireCurrentTimestamp: false,
 		EnableOTS:               true,
 		BlockedIPs:              []string{},
 		AcceptScheduledEvents:   true,
