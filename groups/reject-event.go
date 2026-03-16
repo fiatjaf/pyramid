@@ -124,12 +124,6 @@ func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (rejec
 		group.mu.RUnlock()
 	}
 
-	// check if group disallows text events
-	if group.SupportedKinds != nil && len(group.SupportedKinds) == 0 &&
-		!nip29.ModerationEventKinds.Includes(event.Kind) {
-		return true, "blocked: this group is AV only"
-	}
-
 	// prevent republishing events that were just deleted
 	if slices.Contains(s.deletedCache[:], event.ID) {
 		return true, "blocked: this was deleted"
@@ -237,6 +231,18 @@ func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (rejec
 			if !isPrimaryRole {
 				return true, "can't delete group"
 			}
+		}
+	}
+
+	// check if group supports only specific kinds (if nil we support everything)
+	if group.SupportedKinds != nil {
+		if len(group.SupportedKinds) == 0 && group.LiveKit {
+			// special case, return a nicer message
+			return true, "blocked: this is a live audio/video group only"
+		}
+
+		if !slices.Contains(group.SupportedKinds, event.Kind) {
+			return true, "blocked: kind not supported by this group"
 		}
 	}
 
