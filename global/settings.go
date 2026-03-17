@@ -80,6 +80,7 @@ type UserSettings struct {
 		SpecificallyBlocked []nostr.PubKey `json:"specifically_blocked"`
 		HellthreadLimit     int            `json:"hellthread_limit"`
 		MinDMPoW            int            `json:"min_dm_pow"`
+		RequireAuthForDM    string         `json:"require_auth_for_dm,omitempty"` // "", "always", "when_no_pow"
 	} `json:"inbox"`
 
 	Groups struct {

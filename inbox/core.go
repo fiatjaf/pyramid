@@ -161,14 +161,36 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 
 	if slices.Contains(secretKinds, evt.Kind) {
 		// here are DM messages, they come from random pubkeys
+		// we may require either PoW, AUTH (and WoT check), at least one of the two, or both, or nothing
+
+		var powRejection string
 		if global.Settings.Inbox.MinDMPoW > 0 {
-			if pow := nip13.Difficulty(evt.ID); pow < global.Settings.Inbox.MinDMPoW {
-				return true, fmt.Sprintf("pow: insufficient pow, got %d, needed %d",
+			if pow := nip13.CommittedDifficulty(evt); pow < global.Settings.Inbox.MinDMPoW {
+				powRejection = fmt.Sprintf("pow: insufficient pow, got %d, needed %d",
 					pow, global.Settings.Inbox.MinDMPoW)
 			}
 		}
 
-		return false, ""
+		if global.Settings.Inbox.RequireAuthForDM == "always" ||
+			(global.Settings.Inbox.RequireAuthForDM == "when_no_pow" && global.Settings.Inbox.MinDMPoW == 0) ||
+			(global.Settings.Inbox.RequireAuthForDM == "when_no_pow" && powRejection != "") {
+
+			for _, pk := range khatru.GetAllAuthed(ctx) {
+				// at least one authenticated pubkey is in the wot
+				if aggregatedWoT.Contains(pk) {
+					return false, ""
+				}
+			}
+
+			// AUTH was required and failed
+			return true, "auth-required: must authenticate to send DMs to this relay"
+		} else if powRejection != "" {
+			// AUTH wasn't required, pow failed
+			return true, powRejection
+		} else {
+			// pow check succeeded or wasn't required and AUTH wasn't required either
+			return false, ""
+		}
 	}
 
 	// here are normal mentions

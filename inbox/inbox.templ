@@ -132,15 +132,15 @@ templ inboxPage(loggedUser nostr.PubKey) {
 				</div>
 			}
 			{{
-					blocked := make([]string, len(global.Settings.Inbox.SpecificallyBlocked))
-					for i, pk := range global.Settings.Inbox.SpecificallyBlocked {
-						blocked[i] = pk.Hex()
-					}
-					var quoted []string
-					for _, b := range blocked {
-						quoted = append(quoted, fmt.Sprintf("'%s'", b))
-					}
-					quoted = append(quoted, "\"\"")
+				blocked := make([]string, len(global.Settings.Inbox.SpecificallyBlocked))
+				for i, pk := range global.Settings.Inbox.SpecificallyBlocked {
+					blocked[i] = pk.Hex()
+				}
+				var quoted []string
+				for _, b := range blocked {
+					quoted = append(quoted, fmt.Sprintf("'%s'", b))
+				}
+				quoted = append(quoted, "\"\"")
 			}}
 			if pyramid.IsRoot(loggedUser) {
 				@layout.SubRelaySettings(global.RelayInbox, global.Settings.Inbox.Enabled, global.Settings.Inbox.Name, global.Settings.Inbox.Description, global.Settings.Inbox.Icon, global.Settings.Inbox.Pinned, global.Settings.Inbox.HTTPBasePath) {
@@ -179,17 +179,57 @@ templ inboxPage(loggedUser nostr.PubKey) {
 									@blur="saveSettings()"
 								/>
 							</div>
-							<div>
-								<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="inbox_min_dm_pow">minimum DM proof-of-work (bits, 0 to disable)</label>
-								<input
-									type="number"
-									name="inbox_min_dm_pow"
-									min="0"
-									max="32"
-									class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-4"
-									x-model="minDMPoW"
-									@blur="saveSettings()"
-								/>
+							<div class="flex  gap-4">
+								<div>
+									<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="inbox_min_dm_pow">minimum DM proof-of-work (bits, 0 to disable)</label>
+									<input
+										type="number"
+										name="inbox_min_dm_pow"
+										min="0"
+										max="32"
+										class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-2"
+										x-model="minDMPoW"
+										@blur="saveSettings()"
+									/>
+								</div>
+								<div>
+									<div class="flex flex-col gap-1 mb-4">
+										<span class="block text-sm font-medium mb-2 dark:text-stone-300" for="inbox_min_dm_pow">require AUTH for DMs (for web-of-trust check)</span>
+										<label class="flex items-center gap-2 cursor-pointer">
+											<input
+												type="radio"
+												name="inbox_require_auth_for_dm"
+												value=""
+												class="w-4 h-4"
+												checked={ global.Settings.Inbox.RequireAuthForDM == "" }
+												@change="saveSettings()"
+											/>
+											<span class="text-sm dark:text-stone-300">never</span>
+										</label>
+										<label class="flex items-center gap-2 cursor-pointer">
+											<input
+												type="radio"
+												name="inbox_require_auth_for_dm"
+												value="always"
+												class="w-4 h-4"
+												checked={ global.Settings.Inbox.RequireAuthForDM == "always" }
+												@change="saveSettings()"
+											/>
+											<span class="text-sm dark:text-stone-300">always</span>
+										</label>
+										<label class="flex items-center gap-2 cursor-pointer">
+											<input
+												type="radio"
+												name="inbox_require_auth_for_dm"
+												value="when_no_pow"
+												class="w-4 h-4"
+												checked={ global.Settings.Inbox.RequireAuthForDM == "when_no_pow" }
+												@change="saveSettings()"
+											/>
+											<span class="text-sm dark:text-stone-300">when proof-of-work not provided</span>
+										</label>
+									</div>
+								</div>
 							</div>
 							<div>
 								<label class="block text-sm font-medium mb-2 dark:text-stone-300">specifically blocked pubkeys</label>

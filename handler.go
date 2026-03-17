@@ -373,6 +373,10 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Inbox.HellthreadLimit, _ = strconv.Atoi(v[0])
 			case "inbox_min_dm_pow":
 				global.Settings.Inbox.MinDMPoW, _ = strconv.Atoi(v[0])
+			case "inbox_require_auth_for_dm":
+				if v[0] == "always" || v[0] == "when_no_pow" || v[0] == "" {
+					global.Settings.Inbox.RequireAuthForDM = v[0]
+				}
 			case "inbox_specifically_blocked":
 				var blocked []nostr.PubKey
 				for _, s := range v {
