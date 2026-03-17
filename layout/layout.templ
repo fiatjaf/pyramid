@@ -302,13 +302,13 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							if (parts.length === 2) return parts.pop().split(';').shift();
 						},
 						setCookie(name, value) {
-							document.cookie = `${name}=${value}; path=/`;
+							document.cookie = `${name}=${value}; path=/; max-age=34560000`;
 						},
 						clearCookie(name) {
 							document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 						},
-					async handleAuth(event) {
-						const isLogin = event.target.innerText.toLowerCase() === 'login';
+						async handleAuth(event) {
+							const isLogin = event.target.innerText.toLowerCase() === 'login';
 							if (isLogin) {
 								try {
 									const event = await window.nostr.signEvent({
