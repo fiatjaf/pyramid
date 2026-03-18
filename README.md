@@ -101,7 +101,7 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
 
 - **community-linked NIP-05 nostr user addresses**
   - each member can claim their own user address by visiting the homepage
- 
+
 - **NIP-34 GRASP support**
 
 - **negentropy sync**
@@ -122,4 +122,4 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
 
 ## community
 
-join the group of users at `pyramid.fiatjaf.com'Tnq7x2ZTgrPZWFrC` ([grimoire](https://grimoire.rocks/run?cmd=chat pyramid.fiatjaf.com')) to talk about your experience or complain about things.
+join the group of users at `pyramid.fiatjaf.com'Tnq7x2ZTgrPZWFrC` ([grimoire](https://grimoire.rocks/run?cmd=chat+pyramid.fiatjaf.com)) to talk about your experience or complain about things.
