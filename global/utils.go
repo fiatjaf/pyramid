@@ -22,7 +22,7 @@ func GetLoggedUser(r *http.Request) (nostr.PubKey, bool) {
 		if evtj, err := base64.StdEncoding.DecodeString(cookie.Value); err == nil {
 			var evt nostr.Event
 			if err := json.Unmarshal(evtj, &evt); err == nil {
-				if tag := evt.Tags.Find("domain"); tag != nil && tag[1] == Settings.Domain {
+				if tag := evt.Tags.Find("domain"); tag != nil && Settings.IsValidDomain(tag[1]) {
 					if evt.VerifySignature() {
 						return evt.PubKey, true
 					}
