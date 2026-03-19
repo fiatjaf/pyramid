@@ -278,7 +278,7 @@ func main() {
 		} else {
 			// normal logic
 			return policies.SeqEvent(
-				policies.PreventTooManyIndexableTags(9, []nostr.Kind{3}, nil),
+				policies.PreventTooManyIndexableTags(15, []nostr.Kind{3}, nil),
 				policies.PreventTooManyIndexableTags(1400, nil, []nostr.Kind{3}),
 				policies.RejectUnprefixedNostrReferences,
 				grasp.RejectIncomingEvent,
