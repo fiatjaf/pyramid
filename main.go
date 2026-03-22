@@ -80,17 +80,6 @@ func main() {
 		}
 	}()
 
-	// start periodic checking of opentimestamps proofs
-	go func() {
-		time.Sleep(time.Minute * 3)
-		if err := initOTS(); err == nil {
-			for {
-				checkOTS(context.Background())
-				time.Sleep(time.Hour * 4)
-			}
-		}
-	}()
-
 	pyramid.AbsoluteKey = global.Settings.RelayInternalSecretKey.Public()
 
 	if err := pyramid.LoadManagement(); err != nil {
@@ -314,13 +303,6 @@ func main() {
 			}
 		}
 
-		// trigger opentimestamping of selected event kinds
-		if global.Settings.EnableOTS {
-			switch event.Kind {
-			case 1, 11, 1111, 1222, 1244, 20, 21, 22, 24, 9802:
-				go triggerOTS(ctx, event)
-			}
-		}
 	}
 
 	relay.OnEventDeleted = handleDeleted

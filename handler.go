@@ -142,8 +142,6 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.LinkURL = v[0]
 			case "require_current_timestamp":
 				global.Settings.RequireCurrentTimestamp = v[0] == "on"
-			case "enable_ots":
-				global.Settings.EnableOTS = v[0] == "on"
 			case "accept_scheduled_events":
 				global.Settings.AcceptScheduledEvents = v[0] == "on"
 			case "custom_update_source":

@@ -41,7 +41,6 @@ type UserSettings struct {
 	MaxInvitesAtEachLevel   []int  `json:"max_invites_at_each_level,omitempty"`
 	MaxEventSize            int    `json:"max_event_size"`
 	RequireCurrentTimestamp bool   `json:"require_current_timestamp"`
-	EnableOTS               bool   `json:"enable_ots"`
 	AcceptScheduledEvents   bool   `json:"accept_scheduled_events"`
 	Search                  struct {
 		Enable    bool     `json:"enable"`
@@ -240,7 +239,6 @@ func loadUserSettings() error {
 		MaxInvitesPerPerson:     4,
 		MaxEventSize:            10000,
 		RequireCurrentTimestamp: false,
-		EnableOTS:               true,
 		BlockedIPs:              []string{},
 		AcceptScheduledEvents:   true,
 	}

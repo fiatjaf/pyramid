@@ -247,11 +247,10 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					nip05Enabled: ` + fmt.Sprint(global.Settings.NIP05.Enabled) + `,
 					maxInvitesPerPerson: ` + global.JSONString(global.Settings.GetMaxInvitesDisplay()) + `,
 					maxEventSize: ` + fmt.Sprint(global.Settings.MaxEventSize) + `,
-					requireCurrentTimestamp: ` + fmt.Sprint(global.Settings.RequireCurrentTimestamp) + `,
-					enableOTS: ` + fmt.Sprint(global.Settings.EnableOTS) + `,
-					acceptScheduledEvents: ` + fmt.Sprint(global.Settings.AcceptScheduledEvents) + `,
-					browseUri: ` + global.JSONString(global.Settings.BrowseURI) + `,
-					linkUrl: ` + global.JSONString(global.Settings.LinkURL) + `,
+				requireCurrentTimestamp: ` + fmt.Sprint(global.Settings.RequireCurrentTimestamp) + `,
+				acceptScheduledEvents: ` + fmt.Sprint(global.Settings.AcceptScheduledEvents) + `,
+				browseUri: ` + global.JSONString(global.Settings.BrowseURI) + `,
+				linkUrl: ` + global.JSONString(global.Settings.LinkURL) + `,
 					saved: false,
 					async saveSettings() {
 						const response = await fetch(this.$refs.form.action, {
@@ -320,20 +319,6 @@ templ settingsPage(loggedUser nostr.PubKey) {
 							x-model="maxEventSize"
 							@blur="saveSettings()"
 						/>
-					</div>
-					<div class="flex items-center">
-						<input
-							type="checkbox"
-							name="enable_ots"
-							id="enable_ots"
-							class="w-4 h-6 rounded border-stone-300 dark:border-stone-600"
-							x-model="enableOTS"
-							@change="saveSettings()"
-						/>
-						<label for="enable_ots" class="ml-2 text-sm dark:text-stone-300">
-							automatically NIP-03 <a class="underline underline-offset-4 hover:font-medium" href="https://opentimestamps.org/" target="_blank">OpenTimestamp</a> every event published here (only certain kinds eligible)
-						</label>
-						<input type="hidden" name="enable_ots" value="off"/>
 					</div>
 					<div class="flex items-center">
 						<input

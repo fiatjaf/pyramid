@@ -14,7 +14,6 @@ require (
 	github.com/liamg/magic v0.0.1
 	github.com/livekit/protocol v1.43.5-0.20260114074149-a8bb8204ce69
 	github.com/mailru/easyjson v0.9.0
-	github.com/nbd-wtf/opentimestamps v0.4.0
 	github.com/pemistahl/lingua-go v1.4.0
 	github.com/pkg/sftp v1.13.10
 	github.com/puzpuzpuz/xsync/v3 v3.5.1
@@ -62,9 +61,6 @@ require (
 	github.com/btcsuite/btcd/btcec/v2 v2.3.5 // indirect
 	github.com/btcsuite/btcd/btcutil v1.1.5 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0 // indirect
-	github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f // indirect
-	github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd // indirect
-	github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coder/websocket v1.8.13 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -92,7 +88,6 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/cel-go v0.27.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
