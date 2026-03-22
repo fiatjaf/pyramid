@@ -123,6 +123,14 @@ func checkOTS(ctx context.Context) {
 		}
 		createdAt := binary.BigEndian.Uint32(createdAtBytes)
 
+		var targetPubKey nostr.PubKey
+		if id, err := nostr.IDFromHex(idHex); err == nil {
+			for targetEvent := range global.IL.Main.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+				targetPubKey = targetEvent.PubKey
+				break
+			}
+		}
+
 		// the contents of the file are the weird ots binary format
 		b, err := os.ReadFile(filepath.Join(otsPendingDir, entry.Name()))
 		if err != nil {
@@ -148,12 +156,17 @@ func checkOTS(ctx context.Context) {
 		otsb := otsfile.SerializeToFile()
 
 		// sign and publish the OTS event
+		tags := nostr.Tags{
+			{"e", idHex, global.Settings.WSScheme() + global.Settings.Domain},
+			{"k", strconv.Itoa(int(kind))},
+		}
+		if targetPubKey != nostr.ZeroPK {
+			tags = append(tags, []string{"p", targetPubKey.Hex()})
+		}
+
 		evt := nostr.Event{
-			Kind: 1040,
-			Tags: nostr.Tags{
-				{"e", idHex, global.Settings.WSScheme() + global.Settings.Domain},
-				{"k", strconv.Itoa(int(kind))},
-			},
+			Kind:      1040,
+			Tags:      tags,
 			Content:   base64.StdEncoding.EncodeToString(otsb),
 			CreatedAt: nostr.Timestamp(createdAt),
 		}
