@@ -177,18 +177,21 @@ func (b *BleveIndex) Init() error {
 		mapping.DefaultMapping.Dynamic = false
 		doc := bleveMapping.NewDocumentStaticMapping()
 
+		seenLanguages := make([]string, 0, len(Languages))
 		for _, lang := range Languages {
 			var analyzerLangCode string
+
 			switch lang {
-			case lingua.Japanese:
+			case lingua.Japanese, lingua.Chinese, lingua.Korean:
 				analyzerLangCode = "cjk"
-			case lingua.Chinese, lingua.Korean:
-				// skip, these will also use the cjk analyzer, so we don't have to declare again
-				continue
 			default:
-				// for all other languages the analyzer is the lang 2-letter code
 				analyzerLangCode = strings.ToLower(lang.IsoCode639_1().String())
 			}
+
+			if slices.Contains(seenLanguages, analyzerLangCode) {
+				continue
+			}
+			seenLanguages = append(seenLanguages, analyzerLangCode)
 
 			contentField := bleveMapping.NewTextFieldMapping()
 			contentField.Analyzer = analyzerLangCode
