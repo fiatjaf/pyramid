@@ -1,0 +1,138 @@
+package imgproxy
+
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"fiatjaf.com/nostr"
+
+	"encoding/base64"
+	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
+	"github.com/fiatjaf/pyramid/pyramid"
+)
+
+templ imgproxyPage(loggedUser nostr.PubKey, running bool, errMsg string) {
+	@layout.Layout(loggedUser, "imgproxy") {
+		<div class="max-w-3xl mx-auto">
+			<h1 class="text-4xl font-bold mb-4 font-[family-name:var(--primary-font)]">imgproxy</h1>
+			<div class="space-y-4 text-gray-700 dark:text-gray-300">
+				<p class="text-lg leading-relaxed">
+					an on-demand image processing server.
+				</p>
+			</div>
+			<div class="mt-8">
+				<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">status</h3>
+				<div class="space-y-2 text-sm text-stone-600 dark:text-stone-400">
+					if global.Settings.Imgproxy.Enabled {
+						if running {
+							<div>running</div>
+						} else {
+							<div>starting</div>
+						}
+					} else {
+						<div>disabled</div>
+					}
+					if errMsg != "" {
+						<div class="text-red-600 dark:text-red-400">error: { errMsg }</div>
+					}
+				</div>
+			</div>
+			if global.Settings.Imgproxy.Enabled && running {
+				<div class="mt-8">
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">access</h3>
+					<div class="text-sm text-stone-600 dark:text-stone-400 space-y-2">
+						<div>send requests to <span class="font-mono">{ global.Settings.HTTPScheme() + global.Settings.Domain + "/imgproxy/" }</span></div>
+						if global.Settings.Imgproxy.Key == "" {
+							<div class="text-amber-600 dark:text-amber-400">insecure mode: anyone can abuse this server</div>
+						}
+					</div>
+				</div>
+				<div class="mt-8">
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">example signed URL</h3>
+					<div class="text-sm space-y-2 text-stone-600 dark:text-stone-400">
+						<div class="font-mono text-xs break-all bg-stone-100 dark:bg-stone-800 p-3 rounded select-all">
+							{ global.Settings.HTTPScheme() + global.Settings.Domain + "/imgproxy" + prepareURL("rs:fill:300", "https://picsum.photos/id/803/536/354.jpg") }
+						</div>
+					</div>
+				</div>
+			}
+			if pyramid.IsRoot(loggedUser) {
+				<div class="mt-24">
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">configuration</h3>
+					if !global.Settings.Imgproxy.Enabled {
+						<form method="POST" action="/imgproxy/enable">
+							<button
+								type="submit"
+								class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+							>
+								enable
+							</button>
+						</form>
+					} else {
+						<details>
+							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">disable imgproxy</summary>
+							<form class="my-4" method="POST" action="/imgproxy/disable">
+								<button
+									type="submit"
+									class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+								>
+									disable
+								</button>
+							</form>
+						</details>
+					}
+					if global.Settings.Imgproxy.Enabled {
+						<details>
+							<summary class="cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">key & salt</summary>
+							<form method="POST" action="/imgproxy/keys" class="mt-4 space-y-4 max-w-lg">
+								<div>
+									<label class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">IMGPROXY_KEY</label>
+									<input
+										type="text"
+										name="key"
+										value={ global.Settings.Imgproxy.Key }
+										class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-stone-500"
+									/>
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">IMGPROXY_SALT</label>
+									<input
+										type="text"
+										name="salt"
+										value={ global.Settings.Imgproxy.Salt }
+										class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-stone-500"
+									/>
+								</div>
+								<button
+									type="submit"
+									class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+								>
+									save
+								</button>
+							</form>
+						</details>
+					}
+				</div>
+			}
+		</div>
+	}
+}
+
+func prepareURL(options, sourceURL string) string {
+	path := "/" + options + "/" + base64.RawURLEncoding.EncodeToString([]byte(sourceURL)) + ".png"
+	if global.Settings.Imgproxy.Key == "" {
+		return "/insecure/" + path
+	}
+
+	key, err := hex.DecodeString(global.Settings.Imgproxy.Key)
+	if err != nil {
+		return ""
+	}
+	mac := hmac.New(sha256.New, key)
+	mac.Write([]byte(global.Settings.Imgproxy.Salt))
+	mac.Write([]byte(path))
+	signature := hex.EncodeToString(mac.Sum(nil))
+
+	return "/" + signature + path
+}

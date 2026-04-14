@@ -47,7 +47,6 @@ func setupEnabled() {
 	db := global.IL.Internal
 
 	Relay.ServiceURL = global.Settings.Internal.GetServiceURL()
-
 	Relay.ManagementAPI.ChangeRelayName = changeRelayNameHandler
 	Relay.ManagementAPI.ChangeRelayDescription = changeRelayDescriptionHandler
 	Relay.ManagementAPI.ChangeRelayIcon = changeRelayIconHandler

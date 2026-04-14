@@ -125,6 +125,12 @@ type UserSettings struct {
 		Salt    string `json:"salt"`
 	} `json:"stream"`
 
+	Imgproxy struct {
+		Enabled bool   `json:"enabled"`
+		Key     string `json:"key,omitempty"`
+		Salt    string `json:"salt,omitempty"`
+	} `json:"imgproxy"`
+
 	Popular struct {
 		RelayMetadata
 		PercentThreshold int `json:"percent_threshold"`
@@ -331,6 +337,9 @@ func loadUserSettings() error {
 	// Operator settings
 	Settings.Operator.Enabled = false
 	Settings.Operator.HTTPBasePath = "po"
+
+	// Imgproxy settings
+	Settings.Imgproxy.Enabled = false
 
 	// theme defaults
 	Settings.Theme.TextColor = "#ffffff"

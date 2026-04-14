@@ -31,6 +31,7 @@ import (
 	"github.com/fiatjaf/pyramid/global/relays"
 	"github.com/fiatjaf/pyramid/grasp"
 	"github.com/fiatjaf/pyramid/groups"
+	"github.com/fiatjaf/pyramid/imgproxy"
 	"github.com/fiatjaf/pyramid/inbox"
 	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/moderated"
@@ -170,6 +171,7 @@ func main() {
 	paywall.Init(relay)
 	stream.Init(relay)
 	operator.Init(relay)
+	imgproxy.Init()
 	favorites.Init()
 	inbox.Init()
 	nsite.Init()
@@ -477,6 +479,9 @@ func run(ctx context.Context) error {
 
 	mux.Handle("/stream/", stream.Handler)
 	mux.Handle("/stream", stream.Handler)
+
+	mux.Handle("/imgproxy/", imgproxy.Handler)
+	mux.Handle("/imgproxy", imgproxy.Handler)
 
 	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath+"/", inbox.Relay)
 	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath, inbox.Relay)
