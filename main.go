@@ -184,14 +184,16 @@ func main() {
 			return saveToMain(event)
 		}
 	}
-	relay.ReplaceEvent = func(ctx context.Context, event nostr.Event) ([]nostr.Event, error) {
+	relay.ReplaceEvent = func(ctx context.Context, event nostr.Event) error {
+		var err error
 		if event.Tags.Find("h") != nil {
 			// nip29 logic
-			return global.IL.Groups.ReplaceEvent(event)
+			_, err = global.IL.Groups.ReplaceEvent(event)
 		} else {
 			// normal logic
-			return replaceOnMain(event)
+			_, err = replaceOnMain(event)
 		}
+		return err
 	}
 	relay.DeleteEvent = func(ctx context.Context, id nostr.ID) error {
 		// try to delete from everywhere

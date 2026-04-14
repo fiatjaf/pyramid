@@ -105,12 +105,14 @@ func setupEnabled() {
 			return global.IL.Inbox.SaveEvent(event)
 		}
 	}
-	Relay.ReplaceEvent = func(ctx context.Context, event nostr.Event) ([]nostr.Event, error) {
+	Relay.ReplaceEvent = func(ctx context.Context, event nostr.Event) error {
+		var err error
 		if slices.Contains(secretKinds, event.Kind) {
-			return global.IL.Secret.ReplaceEvent(event)
+			_, err = global.IL.Secret.ReplaceEvent(event)
 		} else {
-			return global.IL.Inbox.ReplaceEvent(event)
+			_, err = global.IL.Inbox.ReplaceEvent(event)
 		}
+		return err
 	}
 	Relay.DeleteEvent = func(ctx context.Context, id nostr.ID) error {
 		// TODO: allow deleting messages received
