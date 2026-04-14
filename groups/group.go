@@ -179,7 +179,7 @@ func (s *GroupsState) SyncGroupMetadataEvents(group *Group) iter.Seq2[nostr.Even
 				}
 			}
 
-			if err := s.DB.ReplaceEvent(event); err != nil {
+			if _, err := s.DB.ReplaceEvent(event); err != nil {
 				if !yield(nostr.Event{}, fmt.Errorf("failed to save group metadata event %d: %w", event.Kind, err)) {
 					return
 				}

@@ -77,7 +77,7 @@ func setupEnabled() {
 	Relay.StoreEvent = func(ctx context.Context, event nostr.Event) error {
 		return global.IL.ModerationQueue.SaveEvent(event)
 	}
-	Relay.ReplaceEvent = func(ctx context.Context, event nostr.Event) error {
+	Relay.ReplaceEvent = func(ctx context.Context, event nostr.Event) ([]nostr.Event, error) {
 		return global.IL.ModerationQueue.ReplaceEvent(event)
 	}
 	Relay.DeleteEvent = func(ctx context.Context, id nostr.ID) error {

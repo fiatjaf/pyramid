@@ -68,7 +68,7 @@ func setupEnabled() {
 		return db.SaveEvent(event)
 	}
 
-	Relay.ReplaceEvent = func(ctx context.Context, event nostr.Event) error {
+	Relay.ReplaceEvent = func(ctx context.Context, event nostr.Event) ([]nostr.Event, error) {
 		return db.ReplaceEvent(event)
 	}
 

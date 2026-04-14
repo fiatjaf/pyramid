@@ -105,7 +105,7 @@ func setupEnabled() {
 			return global.IL.Inbox.SaveEvent(event)
 		}
 	}
-	Relay.ReplaceEvent = func(ctx context.Context, event nostr.Event) error {
+	Relay.ReplaceEvent = func(ctx context.Context, event nostr.Event) ([]nostr.Event, error) {
 		if slices.Contains(secretKinds, event.Kind) {
 			return global.IL.Secret.ReplaceEvent(event)
 		} else {

@@ -28,7 +28,7 @@ func approveEvent(approver nostr.PubKey, id nostr.ID) error {
 	// save to moderated layer
 	var err error
 	if evt.Kind.IsAddressable() || evt.Kind.IsReplaceable() {
-		err = global.IL.Moderated.ReplaceEvent(evt)
+		_, err = global.IL.Moderated.ReplaceEvent(evt)
 	} else {
 		err = global.IL.Moderated.SaveEvent(evt)
 	}

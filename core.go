@@ -517,7 +517,7 @@ func saveToMain(event nostr.Event) error {
 	}
 }
 
-func replaceOnMain(event nostr.Event) error {
+func replaceOnMain(event nostr.Event) ([]nostr.Event, error) {
 	if global.Settings.Search.Enable {
 		search.Main.Lock()
 		defer search.Main.Unlock()
@@ -533,14 +533,15 @@ func replaceOnMain(event nostr.Event) error {
 		}
 	}
 
-	if err := global.IL.Main.ReplaceEvent(event); err != nil {
-		return err
+	replaced, err := global.IL.Main.ReplaceEvent(event)
+	if err != nil {
+		return replaced, err
 	}
 
 	if global.Settings.Search.Enable {
-		return search.Main.IndexEvent(event)
+		return replaced, search.Main.IndexEvent(event)
 	} else {
-		return nil
+		return replaced, nil
 	}
 }
 
