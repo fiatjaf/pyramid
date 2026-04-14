@@ -511,7 +511,7 @@ func saveToMain(event nostr.Event) error {
 	}
 
 	if global.Settings.Search.Enable {
-		return search.Main.IndexEvent(event)
+		return search.Main.SaveEvent(event)
 	} else {
 		return nil
 	}
@@ -539,7 +539,7 @@ func replaceOnMain(event nostr.Event) ([]nostr.Event, error) {
 	}
 
 	if global.Settings.Search.Enable {
-		return replaced, search.Main.IndexEvent(event)
+		return replaced, search.Main.SaveEvent(event)
 	} else {
 		return replaced, nil
 	}

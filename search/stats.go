@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"fiatjaf.com/nostr"
 	"github.com/fiatjaf/pyramid/global"
 )
 
@@ -105,8 +106,8 @@ func GetStats() (*SearchStats, error) {
 	}
 
 	// update document count from index if search is enabled and index is available
-	if Main != nil && Main.index != nil {
-		if count, err := Main.index.DocCount(); err == nil {
+	if Main != nil {
+		if count, err := Main.CountEvents(nostr.Filter{}); err == nil {
 			stats.DocumentCount = int64(count)
 		}
 	}

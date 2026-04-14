@@ -215,8 +215,14 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				} else {
 					global.Settings.Search.Languages = []string{"en"}
 				}
-				// call BuildLanguageDetector() to rebuild with new languages
-				search.BuildLanguageDetector()
+
+				// restart search so new languages are used
+				search.End()
+				if err := search.Init(); err != nil {
+					http.Error(w, "failed to restart search", 500)
+					return
+				}
+
 				// update timestamp when languages change
 				if err := search.UpdateLanguagesChange(); err != nil {
 					log.Warn().Err(err).Msg("failed to update languages change timestamp")
