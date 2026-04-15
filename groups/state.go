@@ -62,6 +62,10 @@ func NewGroupsState(opts Options) *GroupsState {
 }
 
 func (s *GroupsState) HandleEventSaved(event nostr.Event) {
+	if err := s.saveEventToGroupSearch(event); err != nil {
+		log.Error().Err(err).Stringer("event", event).Msg("failed to save event to group search index")
+	}
+
 	for _, affectedGroup := range s.ProcessEvent(context.Background(), event) {
 		for updated, err := range s.SyncGroupMetadataEvents(affectedGroup) {
 			if err != nil {
@@ -74,7 +78,7 @@ func (s *GroupsState) HandleEventSaved(event nostr.Event) {
 }
 
 func (s *GroupsState) WipeGroup(groupId string) error {
-	_, exists := s.Groups.Load(groupId)
+	group, exists := s.Groups.Load(groupId)
 	if !exists {
 		return fmt.Errorf("group not found")
 	}
@@ -92,6 +96,10 @@ func (s *GroupsState) WipeGroup(groupId string) error {
 	}
 
 	global.Log.Info().Str("groupId", groupId).Int("deletedEvents", count).Msg("wiped group")
+
+	if err := group.removeSearchIndex(); err != nil {
+		return fmt.Errorf("failed to wipe group search index: %w", err)
+	}
 
 	// remove group from memory
 	s.Groups.Delete(groupId)

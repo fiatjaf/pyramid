@@ -74,6 +74,9 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) (grou
 			}
 		} else if event.Kind == nostr.KindSimpleGroupDeleteGroup {
 			// when the group was deleted we just remove it
+			if err := group.removeSearchIndex(); err != nil {
+				log.Error().Err(err).Str("groupId", group.Address.ID).Msg("failed to remove group search index")
+			}
 			s.Groups.Delete(group.Address.ID)
 		}
 	}

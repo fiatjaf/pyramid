@@ -7,8 +7,10 @@ import (
 	"sync/atomic"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/eventstore/bleve"
 	"fiatjaf.com/nostr/nip29"
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/pemistahl/lingua-go"
 )
 
 type Group struct {
@@ -17,6 +19,10 @@ type Group struct {
 
 	last50      []nostr.ID
 	last50index atomic.Int32
+
+	searchIndex *bleve.BleveBackend
+	language    lingua.Language
+	hasLanguage bool
 }
 
 func (g *Group) AnyOfTheseIsAMember(pubkeys []nostr.PubKey) bool {

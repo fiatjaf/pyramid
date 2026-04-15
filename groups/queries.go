@@ -17,7 +17,14 @@ func (s *GroupsState) Query(ctx context.Context, filter nostr.Filter) iter.Seq[n
 			_, hasGroupIds = filter.Tags["h"]
 		}
 
-		for evt := range s.DB.QueryEvents(filter, 1500) {
+		var query iter.Seq[nostr.Event]
+		if filter.Search == "" {
+			query = s.DB.QueryEvents(filter, 1500)
+		} else {
+			query = s.queryGroupSearch(filter)
+		}
+
+		for evt := range query {
 			if s.hideEventFromReader(evt, hasGroupIds, authed) {
 				continue
 			}
