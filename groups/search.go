@@ -62,6 +62,27 @@ func (s *GroupsState) saveEventToGroupSearch(event nostr.Event) error {
 	return group.searchIndex.SaveEvent(event)
 }
 
+func (s *GroupsState) DeleteEventFromGroupSearch(event nostr.Event) error {
+	group := s.GetGroupFromEvent(event)
+	if group == nil {
+		return nil
+	}
+
+	return group.deleteEventFromSearch(event.ID)
+}
+
+func (group *Group) deleteEventFromSearch(id nostr.ID) error {
+	if group.searchIndex == nil {
+		if ok, err := group.maybeInitSearchIndex(); err != nil {
+			return err
+		} else if !ok {
+			return nil
+		}
+	}
+
+	return group.searchIndex.DeleteEvent(id)
+}
+
 func (group *Group) maybeInitSearchIndex() (bool, error) {
 	group.mu.Lock()
 	defer group.mu.Unlock()

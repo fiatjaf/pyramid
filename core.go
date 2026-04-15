@@ -624,6 +624,10 @@ func queryNormal(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event]
 }
 
 func handleDeleted(ctx context.Context, deleted nostr.Event) {
+	if err := groups.State.DeleteEventFromGroupSearch(deleted); err != nil {
+		log.Error().Err(err).Stringer("event", deleted).Msg("failed to delete event from group search index")
+	}
+
 	if deleted.Kind == 1163 {
 		paywall.RecomputeMemberPaywall(ctx, deleted.PubKey)
 		return
