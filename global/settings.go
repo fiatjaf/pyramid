@@ -144,6 +144,7 @@ type RelayMetadata struct {
 	Description  string   `json:"description"`
 	Icon         string   `json:"icon"`
 	HTTPBasePath string   `json:"path"`
+	HTTPDomain   string   `json:"domain,omitempty"`
 	Pinned       nostr.ID `json:"pinned,omitempty"`
 }
 
@@ -191,6 +192,17 @@ func (rm RelayMetadata) GetIcon() string {
 
 func (rm RelayMetadata) IsIconDefault() bool {
 	return rm.Icon == ""
+}
+
+func (rm RelayMetadata) GetServiceURL() string {
+	if rm.HTTPDomain != "" {
+		return Settings.WSScheme() + rm.HTTPDomain
+	}
+	return Settings.WSScheme() + Settings.Domain + "/" + rm.HTTPBasePath
+}
+
+func (rm RelayMetadata) GetPageURL() string {
+	return Settings.HTTPScheme() + Settings.Domain + "/" + rm.HTTPBasePath + "/"
 }
 
 func (us UserSettings) HTTPScheme() string {

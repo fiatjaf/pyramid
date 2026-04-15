@@ -45,7 +45,7 @@ func setupDisabled() {
 }
 
 func setupEnabled() {
-	Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Popular.HTTPBasePath
+	Relay.ServiceURL = global.Settings.Popular.GetServiceURL()
 
 	Relay.ManagementAPI.ChangeRelayName = changeRelayNameHandler
 	Relay.ManagementAPI.ChangeRelayDescription = changeRelayDescriptionHandler
@@ -108,7 +108,7 @@ func enableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setupEnabled()
-	http.Redirect(w, r, "/"+global.Settings.Popular.HTTPBasePath+"/", 302)
+	http.Redirect(w, r, global.Settings.Popular.GetPageURL(), 302)
 }
 
 func disableHandler(w http.ResponseWriter, r *http.Request) {
@@ -127,7 +127,7 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setupDisabled()
-	http.Redirect(w, r, "/"+global.Settings.Popular.HTTPBasePath+"/", 302)
+	http.Redirect(w, r, global.Settings.Popular.GetPageURL(), 302)
 }
 
 func changeRelayNameHandler(ctx context.Context, name string) error {

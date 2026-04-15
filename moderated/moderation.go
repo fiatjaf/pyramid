@@ -77,7 +77,7 @@ func approveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/"+global.Settings.Moderated.HTTPBasePath+"/", 302)
+	http.Redirect(w, r, global.Settings.Moderated.GetPageURL(), 302)
 }
 
 func rejectHandler(w http.ResponseWriter, r *http.Request) {
@@ -99,7 +99,7 @@ func rejectHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/"+global.Settings.Moderated.HTTPBasePath+"/", 302)
+	http.Redirect(w, r, global.Settings.Moderated.GetPageURL(), 302)
 }
 
 func listEventsNeedingModerationHandler(ctx context.Context) ([]nip86.IDReason, error) {

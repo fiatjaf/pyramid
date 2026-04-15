@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	"fiatjaf.com/nostr"
@@ -67,4 +68,26 @@ func checkPinnedID(str string, store *mmm.IndexingLayer) nostr.ID {
 	}
 
 	return nostr.ZeroID
+}
+
+func normalizeDomainInput(domain string) (string, error) {
+	// trim protocol prefixes
+	domain = strings.TrimPrefix(domain, "http://")
+	domain = strings.TrimPrefix(domain, "https://")
+	domain = strings.TrimPrefix(domain, "ws://")
+	domain = strings.TrimPrefix(domain, "wss://")
+
+	// trim trailing slashes and spaces again
+	domain = strings.TrimRight(domain, "/")
+	domain = strings.TrimSpace(domain)
+	if domain == "" {
+		return "", nil
+	}
+
+	// validate domain only contains letters, dots
+	if !domainRegex.MatchString(domain) {
+		return "", fmt.Errorf("'%s' is an invalid domain", domain)
+	}
+
+	return domain, nil
 }

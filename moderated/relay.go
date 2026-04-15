@@ -44,7 +44,7 @@ func setupDisabled() {
 }
 
 func setupEnabled() {
-	Relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/" + global.Settings.Moderated.HTTPBasePath
+	Relay.ServiceURL = global.Settings.Moderated.GetServiceURL()
 
 	pk := global.Settings.RelayInternalSecretKey.Public()
 	Relay.Info.Self = &pk
@@ -140,7 +140,7 @@ func enableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setupEnabled()
-	http.Redirect(w, r, "/"+global.Settings.Moderated.HTTPBasePath+"/", 302)
+	http.Redirect(w, r, global.Settings.Moderated.GetPageURL(), 302)
 }
 
 func disableHandler(w http.ResponseWriter, r *http.Request) {
@@ -159,7 +159,7 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setupDisabled()
-	http.Redirect(w, r, "/"+global.Settings.Moderated.HTTPBasePath+"/", 302)
+	http.Redirect(w, r, global.Settings.Moderated.GetPageURL(), 302)
 }
 
 func moderatedPageHandler(w http.ResponseWriter, r *http.Request) {

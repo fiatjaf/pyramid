@@ -501,6 +501,37 @@ func run(ctx context.Context) error {
 			return
 		}
 
+		// relays with special domains or subdomains
+		var subRelay *khatru.Relay
+		var basePath string
+		switch host {
+		case global.Settings.Internal.HTTPDomain:
+			subRelay, basePath = internal.Relay, global.Settings.Internal.HTTPBasePath
+		case global.Settings.Personal.HTTPDomain:
+			subRelay, basePath = personal.Relay, global.Settings.Personal.HTTPBasePath
+		case global.Settings.Favorites.HTTPDomain:
+			subRelay, basePath = favorites.Relay, global.Settings.Favorites.HTTPBasePath
+		case global.Settings.Inbox.HTTPDomain:
+			subRelay, basePath = inbox.Relay, global.Settings.Inbox.HTTPBasePath
+		case global.Settings.Popular.HTTPDomain:
+			subRelay, basePath = popular.Relay, global.Settings.Popular.HTTPBasePath
+		case global.Settings.Uppermost.HTTPDomain:
+			subRelay, basePath = uppermost.Relay, global.Settings.Uppermost.HTTPBasePath
+		case global.Settings.Moderated.HTTPDomain:
+			subRelay, basePath = moderated.Relay, global.Settings.Moderated.HTTPBasePath
+		}
+		if subRelay != nil {
+			if r.Header.Get("Upgrade") == "websocket" ||
+				r.Header.Get("Accept") == "application/nostr+json" ||
+				r.Header.Get("Content-Type") == "application/nostr+json+rpc" {
+				subRelay.ServeHTTP(w, r)
+				return
+			}
+
+			http.Redirect(w, r, global.Settings.HTTPScheme()+global.Settings.Domain+"/"+basePath+"/", http.StatusFound)
+			return
+		}
+
 		// otherwise handle normally
 		mainHandler.ServeHTTP(w, r)
 	}))
@@ -527,14 +558,30 @@ func run(ctx context.Context) error {
 	}
 
 	if port == "443" {
+		hosts := []string{
+			global.Settings.Domain,
+			"livekit." + global.Settings.Domain,
+			"turn." + global.Settings.Domain,
+		}
+
+		for _, domain := range []string{
+			global.Settings.Internal.HTTPDomain,
+			global.Settings.Personal.HTTPDomain,
+			global.Settings.Favorites.HTTPDomain,
+			global.Settings.Inbox.HTTPDomain,
+			global.Settings.Popular.HTTPDomain,
+			global.Settings.Uppermost.HTTPDomain,
+			global.Settings.Moderated.HTTPDomain,
+		} {
+			if domain != "" {
+				hosts = append(hosts, domain)
+			}
+		}
+
 		manager := &autocert.Manager{
-			Prompt: func(_ string) bool { return true },
-			HostPolicy: autocert.HostWhitelist(
-				global.Settings.Domain,
-				"livekit."+global.Settings.Domain,
-				"turn."+global.Settings.Domain,
-			),
-			Cache: autocert.DirCache("certs"),
+			Prompt:     func(_ string) bool { return true },
+			HostPolicy: autocert.HostWhitelist(hosts...),
+			Cache:      autocert.DirCache("certs"),
 		}
 
 		// HTTP server on 80 for ACME challenges and user access
