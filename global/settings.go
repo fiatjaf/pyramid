@@ -195,9 +195,6 @@ func (rm RelayMetadata) IsIconDefault() bool {
 }
 
 func (rm RelayMetadata) GetServiceURL() string {
-	if rm.HTTPDomain != "" {
-		return Settings.WSScheme() + rm.HTTPDomain
-	}
 	return Settings.WSScheme() + Settings.Domain + "/" + rm.HTTPBasePath
 }
 

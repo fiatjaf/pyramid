@@ -524,7 +524,7 @@ func run(ctx context.Context) error {
 			if r.Header.Get("Upgrade") == "websocket" ||
 				r.Header.Get("Accept") == "application/nostr+json" ||
 				r.Header.Get("Content-Type") == "application/nostr+json+rpc" {
-				subRelay.ServeHTTP(w, r)
+				subRelay.WithServiceURL(global.Settings.WSScheme()+host).ServeHTTP(w, r)
 				return
 			}
 
