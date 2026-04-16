@@ -408,6 +408,30 @@ all
 							</button>
 							<button
 								type="button"
+								@mousedown="browseUri = 'https://fevela.me/?r={url}'"
+								@mouseup="saveSettings()"
+								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+							>
+								fevela
+							</button>
+							<button
+								type="button"
+								@mousedown="browseUri = 'https://wisp.talk/relay/{url}'"
+								@mouseup="saveSettings()"
+								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+							>
+								wisp
+							</button>
+							<button
+								type="button"
+								@mousedown="browseUri = 'https://grimoire.rocks/run?cmd=req%20{url}'"
+								@mouseup="saveSettings()"
+								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+							>
+								grimoire
+							</button>
+							<button
+								type="button"
 								@mousedown="browseUri = 'https://nosotros.app/feed?relay={url}&kind=1&limit=30&type=relayfeed'"
 								@mouseup="saveSettings()"
 								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
@@ -421,14 +445,6 @@ all
 								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 							>
 								coracle
-							</button>
-							<button
-								type="button"
-								@mousedown="browseUri = 'https://fevela.me/?r={url}'"
-								@mouseup="saveSettings()"
-								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
-							>
-								fevela
 							</button>
 						</div>
 					</div>
@@ -461,11 +477,11 @@ all
 							</button>
 							<button
 								type="button"
-								@mousedown="linkUrl = 'https://njump.to/{code}'"
+								@mousedown="linkUrl = 'https://grimoire.rocks/run?cmd=open%20{code}'"
 								@mouseup="saveSettings()"
 								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 							>
-								njump.to
+								grimoire
 							</button>
 						</div>
 					</div>
@@ -792,7 +808,8 @@ all
 						<div class="mt-1 text-lg text-stone-900 dark:text-stone-100">clients: { relayClients }</div>
 						<div class="text-xs text-stone-500 dark:text-stone-400">subscriptions: { relayListeners }</div>
 						<div class="text-right text-sm text-stone-700 dark:text-stone-200 mt-4">
-							<a href="/log" target="_blank" class="cursor-pointer hover:underline hover:text-stone-400">/log</a>
+							<a href="/clients" target="_blank" class="cursor-pointer hover:underline hover:text-stone-400">/clients</a>
+							<a href="/log" target="_blank" class="ml-4 cursor-pointer hover:underline hover:text-stone-400">/log</a>
 						</div>
 					</div>
 					<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4">

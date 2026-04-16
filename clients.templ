@@ -1,0 +1,124 @@
+package main
+
+import (
+	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/khatru"
+	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
+)
+
+templ clientDetailsPage(loggedUser nostr.PubKey, clients []khatru.ClientInfo) {
+	@layout.Layout(loggedUser, "settings") {
+		<div class="max-w-6xl mx-auto space-y-6">
+			<div class="flex items-center justify-between gap-4">
+				@layout.SubSectionTitle("list of connected clients")
+			</div>
+			<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 overflow-x-auto">
+				<table class="w-full text-sm">
+					<thead>
+						<tr class="text-left text-stone-500 dark:text-stone-400 border-b border-stone-200 dark:border-stone-700">
+							<th class="px-4 py-3">client</th>
+							<th class="px-4 py-3">ip</th>
+							<th class="px-4 py-3">user</th>
+							<th class="px-4 py-3">origin</th>
+							<th class="px-4 py-3 text-right">subs</th>
+						</tr>
+					</thead>
+					<tbody>
+						if len(clients) == 0 {
+							<tr>
+								<td colspan="4" class="px-4 py-6 text-center text-stone-500 dark:text-stone-400">no clients connected</td>
+							</tr>
+						} else {
+							for _, client := range clients {
+								<tr class="border-b border-stone-100 dark:border-stone-700 last:border-b-0">
+									<td class="px-4 py-3 font-mono"><a href={ templ.SafeURL("/clients/" + client.ID) } class="hover:underline">{ client.ID }</a></td>
+									<td class="px-4 py-3 font-mono">{ client.IP }</td>
+									<td class="px-4 py-3">
+										for _, pk := range client.Authenticated {
+											<a
+												class="mr-1 block text-sm font-medium light:text-stone-600 dark:text-stone-400 hover:underline underline-offset-4"
+												target="_blank"
+												href={ templ.SafeURL(global.Settings.GetExternalLink(nostr.ProfilePointer{PublicKey: pk})) }
+											>
+												<nostr-name pubkey={ pk.Hex() }>{ pk.Hex() }</nostr-name>
+											</a>
+										}
+									</td>
+									<td class="px-4 py-3 break-all">
+										<div class="font-semibold text-gray-600">{ client.Origin }</div>
+										<div
+											if  client.Origin != "" {
+												class="mt-1 text-xs"
+											} else {
+												class="mt-1"
+											}
+										>{ client.UserAgent }</div>
+									</td>
+									<td class="px-4 py-3 text-right">{ client.SubscriptionCount }</td>
+								</tr>
+							}
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	}
+}
+
+templ singleClientDetailsPage(loggedUser nostr.PubKey, client khatru.ClientSnapshot) {
+	@layout.Layout(loggedUser, "settings") {
+		<div class="max-w-6xl mx-auto space-y-6">
+			<div class="flex items-center justify-between gap-4">
+				<div>
+					@layout.SubSectionTitle("client " + client.ID)
+					<div class="text-sm text-stone-600 dark:text-stone-400 mt-2">ip: <span class="font-mono">{ client.IP }</span></div>
+					<div class="text-sm text-stone-600 dark:text-stone-400">user-agent: { client.UserAgent }</div>
+					if client.Origin != "" {
+						<div class="text-sm text-stone-600 dark:text-stone-400">origin: { client.Origin }</div>
+					}
+					if len(client.Authenticated) > 0 {
+						<div class="text-sm text-stone-600 dark:text-stone-400 flex gap-2">
+							<div>authenticated:</div>
+							<div>
+								for _, pk := range client.Authenticated {
+									<a
+										class="mr-1 block text-sm font-medium light:text-stone-600 dark:text-stone-400 hover:underline underline-offset-4"
+										target="_blank"
+										href={ templ.SafeURL(global.Settings.GetExternalLink(nostr.ProfilePointer{PublicKey: pk})) }
+									>
+										<nostr-name pubkey={ pk.Hex() }>{ pk.Hex() }</nostr-name>
+									</a>
+								}
+							</div>
+						</div>
+					}
+				</div>
+			</div>
+			<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 overflow-x-auto">
+				<table class="w-full text-sm">
+					<thead>
+						<tr class="text-left text-stone-500 dark:text-stone-400 border-b border-stone-200 dark:border-stone-700">
+							<th class="px-4 py-3">subscription id</th>
+							<th class="px-4 py-3">filter</th>
+						</tr>
+					</thead>
+					<tbody>
+						if len(client.Subscriptions) == 0 {
+							<tr>
+								<td colspan="2" class="px-4 py-6 text-center text-stone-500 dark:text-stone-400">no open subscriptions</td>
+							</tr>
+						} else {
+							for _, sub := range client.Subscriptions {
+								<tr class="border-b border-stone-100 dark:border-stone-700 last:border-b-0 align-top">
+									<td class="px-4 py-3 font-mono whitespace-nowrap">{ sub.ID }</td>
+									<td class="px-4 py-3"><code class="text-xs break-all whitespace-pre-wrap">{ sub.Filter.String() }</code></td>
+								</tr>
+							}
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	}
+}
