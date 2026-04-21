@@ -7,10 +7,7 @@ import (
 	"fiatjaf.com/nostr/khatru"
 )
 
-func (s *GroupsState) RequestAuthWhenNecessary(
-	ctx context.Context,
-	filter nostr.Filter,
-) (reject bool, msg string) {
+func RequestAuthWhenNecessary(ctx context.Context, filter nostr.Filter) (reject bool, msg string) {
 	authed := khatru.GetAllAuthed(ctx)
 	groupIds, _ := filter.Tags["h"]
 	if len(groupIds) == 0 {
@@ -18,7 +15,7 @@ func (s *GroupsState) RequestAuthWhenNecessary(
 	}
 
 	for _, groupId := range groupIds {
-		if group, ok := s.Groups.Load(groupId); ok {
+		if group, ok := State.Groups.Load(groupId); ok {
 			if group.Private {
 				if len(authed) == 0 {
 					return true, "auth-required: you're trying to access a private group"

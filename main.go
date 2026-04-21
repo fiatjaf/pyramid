@@ -241,7 +241,7 @@ func main() {
 			if filter.Tags["h"] != nil {
 				// nip29 logic
 				if global.Settings.Groups.Enabled {
-					return groups.State.RequestAuthWhenNecessary(ctx, filter)
+					return groups.RequestAuthWhenNecessary(ctx, filter)
 				} else {
 					return true, "groups are disabled"
 				}
@@ -251,7 +251,7 @@ func main() {
 				if idx := slices.Index(filter.Kinds, nip29k); idx != -1 {
 					// nip29 logic
 					if global.Settings.Groups.Enabled {
-						return groups.State.RequestAuthWhenNecessary(ctx, filter)
+						return groups.RequestAuthWhenNecessary(ctx, filter)
 					} else {
 						return true, "groups are disabled"
 					}
@@ -283,7 +283,7 @@ func main() {
 		if event.Tags.Find("h") != nil {
 			// nip29 logic
 			if global.Settings.Groups.Enabled {
-				return groups.State.RejectEvent(ctx, event)
+				return groups.RejectEvent(ctx, event)
 			} else {
 				return true, "groups are disabled"
 			}
@@ -303,7 +303,7 @@ func main() {
 	relay.OnEventSaved = func(ctx context.Context, event nostr.Event) {
 		if h := event.Tags.Find("h"); h != nil {
 			// nip29 logic
-			groups.State.HandleEventSaved(event)
+			groups.HandleEventSaved(event)
 			return
 		}
 

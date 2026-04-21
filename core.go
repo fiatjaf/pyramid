@@ -314,7 +314,7 @@ func onConnect(ctx context.Context) {
 func preventBroadcast(ws *khatru.WebSocket, filter nostr.Filter, event nostr.Event) bool {
 	if global.Settings.Groups.Enabled && (nip29.MetadataEventKinds.Includes(event.Kind) || event.Tags.Find("h") != nil) {
 		// nip29 metadata event
-		if groups.State.ShouldPreventBroadcast(event, filter, ws.AuthedPublicKeys) {
+		if groups.ShouldPreventBroadcast(event, filter, ws.AuthedPublicKeys) {
 			return true
 		}
 	}
@@ -557,7 +557,7 @@ func queryStored(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event]
 		// query both normal and groups
 		return eventstore.SortedMerge(
 			queryNormal(ctx, filter),
-			groups.State.Query(ctx, filter),
+			groups.Query(ctx, filter),
 			filter.GetTheoreticalLimit(),
 		)
 	}
@@ -568,7 +568,7 @@ func queryStored(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event]
 	}
 
 	if len(filter.Tags["h"]) > 0 {
-		return groups.State.Query(ctx, filter)
+		return groups.Query(ctx, filter)
 	}
 
 	groupsFilter := filter
@@ -587,12 +587,12 @@ func queryStored(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event]
 		// mixed kinds - need to split the filter and query both
 		return eventstore.SortedMerge(
 			queryNormal(ctx, normalFilter),
-			groups.State.Query(ctx, groupsFilter),
+			groups.Query(ctx, groupsFilter),
 			filter.GetTheoreticalLimit(),
 		)
 	} else if groupsFilter.Kinds != nil && normalFilter.Kinds == nil {
 		// only groups kinds requested
-		return groups.State.Query(ctx, filter)
+		return groups.Query(ctx, filter)
 	} else {
 		// only normal kinds requested
 		return queryNormal(ctx, filter)
@@ -613,7 +613,7 @@ func queryNormal(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event]
 	}
 	if checkGroupsDB {
 		return eventstore.SortedMerge(
-			groups.State.Query(ctx, filter),
+			groups.Query(ctx, filter),
 			queryMain(ctx, filter),
 			filter.GetTheoreticalLimit(),
 		)
@@ -624,7 +624,7 @@ func queryNormal(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event]
 }
 
 func handleDeleted(ctx context.Context, deleted nostr.Event) {
-	if err := groups.State.DeleteEventFromGroupSearch(deleted); err != nil {
+	if err := groups.DeleteEventFromGroupSearch(deleted); err != nil {
 		log.Error().Err(err).Stringer("event", deleted).Msg("failed to delete event from group search index")
 	}
 

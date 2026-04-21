@@ -61,17 +61,17 @@ func NewGroupsState(opts Options) *GroupsState {
 	return state
 }
 
-func (s *GroupsState) HandleEventSaved(event nostr.Event) {
-	if err := s.saveEventToGroupSearch(event); err != nil {
+func HandleEventSaved(event nostr.Event) {
+	if err := State.saveEventToGroupSearch(event); err != nil {
 		log.Error().Err(err).Stringer("event", event).Msg("failed to save event to group search index")
 	}
 
-	for _, affectedGroup := range s.ProcessEvent(context.Background(), event) {
-		for updated, err := range s.SyncGroupMetadataEvents(affectedGroup) {
+	for _, affectedGroup := range State.ProcessEvent(context.Background(), event) {
+		for updated, err := range State.SyncGroupMetadataEvents(affectedGroup) {
 			if err != nil {
 				log.Error().Err(err).Stringer("event", event).Msg("failed to handle group event")
 			} else {
-				s.broadcast(updated)
+				State.broadcast(updated)
 			}
 		}
 	}

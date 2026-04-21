@@ -12,9 +12,9 @@ import (
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
-func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg string) {
+func RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg string) {
 	// the relay root key can write to any group
-	if event.PubKey == s.publicKey {
+	if event.PubKey == State.publicKey {
 		return false, ""
 	}
 
@@ -38,7 +38,7 @@ func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (rejec
 	}
 
 	groupId := htag[1]
-	group, ok := s.Groups.Load(groupId)
+	group, ok := State.Groups.Load(groupId)
 
 	// members of this pyramid can create a group
 	if event.Kind == nostr.KindSimpleGroupCreateGroup {
@@ -93,7 +93,7 @@ func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (rejec
 		// and they can't join if they have been kicked
 		var rem nostr.Event
 		var isRemoved bool
-		for removed := range s.DB.QueryEvents(nostr.Filter{
+		for removed := range State.DB.QueryEvents(nostr.Filter{
 			Kinds: []nostr.Kind{nostr.KindSimpleGroupRemoveUser},
 			Tags: nostr.TagMap{
 				"p": []string{event.PubKey.Hex()},
@@ -125,7 +125,7 @@ func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (rejec
 	}
 
 	// prevent republishing events that were just deleted
-	if slices.Contains(s.deletedCache[:], event.ID) {
+	if slices.Contains(State.deletedCache[:], event.ID) {
 		return true, "blocked: this was deleted"
 	}
 
@@ -197,7 +197,7 @@ func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (rejec
 			group.mu.RUnlock()
 		case nip29.DeleteEvent:
 			ineffective := true
-			for range s.DB.QueryEvents(nostr.Filter{IDs: a.Targets}, 500) {
+			for range State.DB.QueryEvents(nostr.Filter{IDs: a.Targets}, 500) {
 				ineffective = false
 				break
 			}
@@ -209,7 +209,7 @@ func (s *GroupsState) RejectEvent(ctx context.Context, event nostr.Event) (rejec
 			if !isPrimaryRole {
 				if del, ok := action.(nip29.DeleteEvent); ok {
 					authors := make([]nostr.PubKey, 0, len(del.Targets))
-					for target := range s.DB.QueryEvents(nostr.Filter{IDs: del.Targets}, 500) {
+					for target := range State.DB.QueryEvents(nostr.Filter{IDs: del.Targets}, 500) {
 						if !slices.Contains(authors, target.PubKey) {
 							authors = append(authors, target.PubKey)
 						}

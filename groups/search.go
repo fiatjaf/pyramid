@@ -62,8 +62,8 @@ func (s *GroupsState) saveEventToGroupSearch(event nostr.Event) error {
 	return group.searchIndex.SaveEvent(event)
 }
 
-func (s *GroupsState) DeleteEventFromGroupSearch(event nostr.Event) error {
-	group := s.GetGroupFromEvent(event)
+func DeleteEventFromGroupSearch(event nostr.Event) error {
+	group := State.GetGroupFromEvent(event)
 	if group == nil {
 		return nil
 	}
@@ -169,7 +169,7 @@ func (group *Group) removeSearchIndex() error {
 	return nil
 }
 
-func (s *GroupsState) queryGroupSearch(filter nostr.Filter) iter.Seq[nostr.Event] {
+func queryGroupSearch(filter nostr.Filter) iter.Seq[nostr.Event] {
 	maxLimit := filter.GetTheoreticalLimit()
 	if maxLimit == 0 || maxLimit > 40 {
 		maxLimit = 40
@@ -178,8 +178,8 @@ func (s *GroupsState) queryGroupSearch(filter nostr.Filter) iter.Seq[nostr.Event
 	return func(yield func(nostr.Event) bool) {
 		groupIDs, hasGroupIDs := filter.Tags["h"]
 		if !hasGroupIDs {
-			groupIDs = make([]string, 0, s.Groups.Size())
-			for groupID := range s.Groups.Range {
+			groupIDs = make([]string, 0, State.Groups.Size())
+			for groupID := range State.Groups.Range {
 				groupIDs = append(groupIDs, groupID)
 			}
 		}
@@ -188,7 +188,7 @@ func (s *GroupsState) queryGroupSearch(filter nostr.Filter) iter.Seq[nostr.Event
 		yielded := 0
 
 		for _, groupID := range groupIDs {
-			group, ok := s.Groups.Load(groupID)
+			group, ok := State.Groups.Load(groupID)
 			if !ok {
 				continue
 			}
