@@ -174,11 +174,6 @@ func (s *GroupsState) SyncGroupMetadataEvents(group *Group) iter.Seq2[nostr.Even
 			group.ToMembersEvent(),
 			group.ToRolesEvent(),
 		} {
-			if group.Private && event.Kind == nostr.KindSimpleGroupMembers {
-				// don't reveal lists of members of private groups ever, not even to members
-				continue
-			}
-
 			if err := event.Sign(s.secretKey); err != nil {
 				if !yield(nostr.Event{}, fmt.Errorf("failed to sign group metadata event %d: %w", event.Kind, err)) {
 					return
