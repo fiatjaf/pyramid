@@ -4,11 +4,11 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies
-RUN npm install 
+RUN npm install
 
 RUN npx tailwindcss -i base.css -o static/styles.css
 
-FROM golang:1.25 AS builder
+FROM golang:1.26 AS builder
 
 # Install necessary tools
 RUN apt-get update && \
