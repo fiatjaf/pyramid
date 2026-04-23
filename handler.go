@@ -926,6 +926,8 @@ func forumHandler(w http.ResponseWriter, r *http.Request) {
 `)
 }
 
+var nip05UsernameRe = regexp.MustCompile(`^[a-z0-9_]+$`)
+
 func memberPageHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, isLogged := global.GetLoggedUser(r)
 
@@ -933,7 +935,7 @@ func memberPageHandler(w http.ResponseWriter, r *http.Request) {
 		if nip05Username := r.PostFormValue("nip05_username"); nip05Username != "" {
 			// basic validation for NIP-05 username (alphanumeric and underscores only)
 			nip05Username = strings.ToLower(nip05Username)
-			if !regexp.MustCompile(`^[a-z0-9_]+$`).MatchString(nip05Username) {
+			if !nip05UsernameRe.MatchString(nip05Username) {
 				http.Error(w, "invalid username: only letters, numbers, and underscores are allowed", 400)
 				return
 			}
