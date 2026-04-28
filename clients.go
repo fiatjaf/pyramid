@@ -7,8 +7,19 @@ import (
 
 	"fiatjaf.com/nostr/khatru"
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/global/relays"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
+
+type relayClientInfo struct {
+	khatru.ClientInfo
+	RelayID global.RelayID
+}
+
+type relayClientSnapshot struct {
+	khatru.ClientSnapshot
+	RelayID global.RelayID
+}
 
 func detailsHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, ok := global.GetLoggedUser(r)
@@ -17,9 +28,22 @@ func detailsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clients := relay.ListClients()
-	slices.SortFunc(clients, func(a, b khatru.ClientInfo) int {
+	clients := make([]relayClientInfo, 0, 16)
+	for _, relay := range relays.GetAll() {
+		if relay.Relay == nil {
+			continue
+		}
+
+		for _, client := range relay.Relay.ListClients() {
+			clients = append(clients, relayClientInfo{ClientInfo: client, RelayID: relay.ID})
+		}
+	}
+
+	slices.SortFunc(clients, func(a, b relayClientInfo) int {
 		if diff := cmp.Compare(b.SubscriptionCount, a.SubscriptionCount); diff != 0 {
+			return diff
+		}
+		if diff := cmp.Compare(a.RelayID, b.RelayID); diff != 0 {
 			return diff
 		}
 		return cmp.Compare(a.ID, b.ID)
@@ -35,7 +59,24 @@ func clientDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, found := relay.GetClientSnapshot(r.PathValue("clientId"))
+	var client khatru.ClientSnapshot
+	var found bool
+	subrelay := relays.GetRelay(global.RelayID(r.URL.Query().Get("r")))
+	if subrelay != nil {
+		client, found = subrelay.GetClientSnapshot(r.PathValue("clientId"))
+		if !found {
+			http.NotFound(w, r)
+			return
+		}
+	} else {
+		for _, relay := range relays.GetAll() {
+			client, found = relay.Relay.GetClientSnapshot(r.PathValue("clientId"))
+			if found {
+				break
+			}
+		}
+	}
+
 	if !found {
 		http.NotFound(w, r)
 		return
@@ -45,5 +86,5 @@ func clientDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		return cmp.Compare(a.ID, b.ID)
 	})
 
-	singleClientDetailsPage(loggedUser, client).Render(r.Context(), w)
+	singleClientDetailsPage(loggedUser, relayClientSnapshot{ClientSnapshot: client, RelayID: global.RelayID(r.PathValue("relayId"))}).Render(r.Context(), w)
 }

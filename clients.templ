@@ -2,12 +2,11 @@ package main
 
 import (
 	"fiatjaf.com/nostr"
-	"fiatjaf.com/nostr/khatru"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
 )
 
-templ clientDetailsPage(loggedUser nostr.PubKey, clients []khatru.ClientInfo) {
+templ clientDetailsPage(loggedUser nostr.PubKey, clients []relayClientInfo) {
 	@layout.Layout(loggedUser, "settings") {
 		<div class="max-w-6xl mx-auto space-y-6">
 			<div class="flex items-center justify-between gap-4">
@@ -17,6 +16,7 @@ templ clientDetailsPage(loggedUser nostr.PubKey, clients []khatru.ClientInfo) {
 				<table class="w-full text-sm">
 					<thead>
 						<tr class="text-left text-stone-500 dark:text-stone-400 border-b border-stone-200 dark:border-stone-700">
+							<th class="px-4 py-3">relay</th>
 							<th class="px-4 py-3">client</th>
 							<th class="px-4 py-3">ip</th>
 							<th class="px-4 py-3">user</th>
@@ -27,12 +27,13 @@ templ clientDetailsPage(loggedUser nostr.PubKey, clients []khatru.ClientInfo) {
 					<tbody>
 						if len(clients) == 0 {
 							<tr>
-								<td colspan="4" class="px-4 py-6 text-center text-stone-500 dark:text-stone-400">no clients connected</td>
+								<td colspan="6" class="px-4 py-6 text-center text-stone-500 dark:text-stone-400">no clients connected</td>
 							</tr>
 						} else {
 							for _, client := range clients {
 								<tr class="border-b border-stone-100 dark:border-stone-700 last:border-b-0">
-									<td class="px-4 py-3 font-mono"><a href={ templ.SafeURL("/clients/" + client.ID) } class="hover:underline">{ client.ID }</a></td>
+									<td class="px-4 py-3 font-mono">{ client.RelayID.String() }</td>
+									<td class="px-4 py-3 font-mono"><a href={ templ.SafeURL("/clients/" + client.ID + "?r=" + client.RelayID.String()) } class="hover:underline">{ client.ID }</a></td>
 									<td class="px-4 py-3 font-mono">{ client.IP }</td>
 									<td class="px-4 py-3">
 										for _, pk := range client.Authenticated {
@@ -66,13 +67,14 @@ templ clientDetailsPage(loggedUser nostr.PubKey, clients []khatru.ClientInfo) {
 	}
 }
 
-templ singleClientDetailsPage(loggedUser nostr.PubKey, client khatru.ClientSnapshot) {
+templ singleClientDetailsPage(loggedUser nostr.PubKey, client relayClientSnapshot) {
 	@layout.Layout(loggedUser, "settings") {
 		<div class="max-w-6xl mx-auto space-y-6">
 			<div class="flex items-center justify-between gap-4">
 				<div>
 					@layout.SubSectionTitle("client " + client.ID)
-					<div class="text-sm text-stone-600 dark:text-stone-400 mt-2">ip: <span class="font-mono">{ client.IP }</span></div>
+					<div class="text-sm text-stone-600 dark:text-stone-400 mt-2">relay: <span class="font-mono">{ client.RelayID.String() }</span></div>
+					<div class="text-sm text-stone-600 dark:text-stone-400">ip: <span class="font-mono">{ client.IP }</span></div>
 					<div class="text-sm text-stone-600 dark:text-stone-400">user-agent: { client.UserAgent }</div>
 					if client.Origin != "" {
 						<div class="text-sm text-stone-600 dark:text-stone-400">origin: { client.Origin }</div>

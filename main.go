@@ -29,6 +29,7 @@ import (
 	"github.com/fiatjaf/pyramid/blossom"
 	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/global/relays"
 	"github.com/fiatjaf/pyramid/grasp"
 	"github.com/fiatjaf/pyramid/groups"
 	"github.com/fiatjaf/pyramid/inbox"
@@ -106,6 +107,7 @@ func main() {
 
 	// init main relay
 	relay = khatru.NewRelay()
+	relays.MainRelay = relay
 	relay.Info.Name = "main" // for debugging purposes
 	relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain
 	relay.Negentropy = true

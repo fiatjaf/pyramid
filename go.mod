@@ -189,3 +189,5 @@ replace (
 	github.com/gwuhaolin/livego => github.com/fiatjaf/livego v0.0.0-20260406031930-1b6c4d5e40f0
 	github.com/livekit/livekit-server => github.com/livekit/livekit-server v1.9.11
 )
+
+replace fiatjaf.com/nostr => ../nostrlib
