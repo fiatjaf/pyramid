@@ -21,7 +21,7 @@ var (
 )
 
 func Init() {
-	Relay = khatru.NewRelay()
+	Relay = global.NewRelay()
 
 	if global.Settings.Favorites.Enabled {
 		// relay enabled
@@ -79,6 +79,7 @@ func setupEnabled() {
 		policies.NoComplexFilters,
 		policies.NoSearchQueries,
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
+		global.RejectTooManyOpenSubscriptions,
 	)
 
 	Relay.OnEvent = policies.SeqEvent(

@@ -106,7 +106,7 @@ func main() {
 	}
 
 	// init main relay
-	relay = khatru.NewRelay()
+	relay = global.NewRelay()
 	relays.MainRelay = relay
 	relay.Info.Name = "main" // for debugging purposes
 	relay.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain
@@ -236,6 +236,10 @@ func main() {
 	relay.OnRequest = policies.SeqRequest(
 		policies.NoComplexFilters,
 		func(ctx context.Context, filter nostr.Filter) (bool, string) {
+			if reject, msg := global.RejectTooManyOpenSubscriptions(ctx, filter); reject {
+				return reject, msg
+			}
+
 			if !global.Settings.Search.Enable && filter.Search != "" {
 				return true, "search is disabled"
 			}

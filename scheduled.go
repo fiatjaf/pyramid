@@ -18,9 +18,8 @@ import (
 var scheduled *khatru.Relay
 
 func initScheduledRelay() {
-	scheduled = khatru.NewRelay()
 	db := global.IL.Scheduled
-	scheduled = khatru.NewRelay()
+	scheduled = global.NewRelay()
 	scheduled.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/scheduled"
 
 	scheduled.UseEventstore(db, 100)
@@ -42,6 +41,10 @@ func initScheduledRelay() {
 		policies.NoSearchQueries,
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
 		func(ctx context.Context, filter nostr.Filter) (bool, string) {
+			if reject, msg := global.RejectTooManyOpenSubscriptions(ctx, filter); reject {
+				return reject, msg
+			}
+
 			// only allow authed users to access scheduled events
 			authedPublicKeys := khatru.GetAllAuthed(ctx)
 			if len(authedPublicKeys) == 0 {

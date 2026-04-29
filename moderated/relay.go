@@ -22,7 +22,7 @@ var (
 )
 
 func Init() {
-	Relay = khatru.NewRelay()
+	Relay = global.NewRelay()
 
 	if global.Settings.Moderated.Enabled {
 		setupEnabled()
@@ -89,6 +89,7 @@ func setupEnabled() {
 		policies.NoComplexFilters,
 		policies.NoSearchQueries,
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
+		global.RejectTooManyOpenSubscriptions,
 	)
 
 	Relay.OnEvent = policies.SeqEvent(

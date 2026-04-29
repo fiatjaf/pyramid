@@ -1,0 +1,101 @@
+package global
+
+import (
+	"context"
+	"fmt"
+
+	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/khatru"
+	"github.com/puzpuzpuz/xsync/v3"
+)
+
+type trackedConnection struct {
+	subscriptions int
+	cost          int
+}
+
+var subscriptionTracker = xsync.NewMapOf[string, trackedConnection]()
+
+func NewRelay() *khatru.Relay {
+	relay := khatru.NewRelay()
+
+	relay.OnListenerAdded = func(ws *khatru.WebSocket, ssid int, id string, filter nostr.Filter) {
+		if ws == nil || ws.Request == nil {
+			return
+		}
+
+		ip := khatru.GetIPFromRequest(ws.Request)
+		if ip == "" {
+			return
+		}
+
+		subscriptionTracker.Compute(ip, func(v trackedConnection, loaded bool) (trackedConnection, bool) {
+			v.subscriptions++
+			v.cost += getFilterCost(filter)
+			return v, false
+		})
+	}
+
+	relay.OnListenerRemoved = func(ws *khatru.WebSocket, ssid int, id string, filter nostr.Filter) {
+		if ws == nil {
+			return
+		}
+
+		ip := khatru.GetIPFromRequest(ws.Request)
+		if ip == "" {
+			return
+		}
+
+		subscriptionTracker.Compute(ip, func(v trackedConnection, loaded bool) (trackedConnection, bool) {
+			v.subscriptions--
+			v.cost -= getFilterCost(filter)
+			return v, false
+		})
+	}
+
+	return relay
+}
+
+func RejectTooManyOpenSubscriptions(ctx context.Context, _ nostr.Filter) (bool, string) {
+	ip := khatru.GetIP(ctx)
+	if ip == "" {
+		return false, ""
+	}
+
+	maxTotal := 1200
+	maxCost := 3600
+	if Settings.Limits.MaxSubscriptionsOpen > 0 {
+		maxTotal = Settings.Limits.MaxSubscriptionsOpen
+	}
+	if Settings.Limits.MaxTotalCostOpen > 0 {
+		maxCost = Settings.Limits.MaxTotalCostOpen
+	}
+	if v, _ := subscriptionTracker.Load(ip); v.subscriptions >= maxTotal {
+		return true, fmt.Sprintf("already %d subscriptions from this IP", v)
+	} else if v.cost >= maxCost {
+		return true, fmt.Sprintf("there are subscriptions from this IP with a total filter cost of %d", v)
+	}
+
+	return false, ""
+}
+
+//go:inline
+func getFilterCost(filter nostr.Filter) int {
+	if filter.Authors != nil {
+		return len(filter.Authors)
+	}
+
+	if filter.Kinds != nil {
+		return len(filter.Authors)
+	}
+
+	if filter.Tags != nil {
+		sum := 0
+		for _, tagv := range filter.Tags {
+			sum += len(tagv)
+		}
+		return sum
+	}
+
+	return 1
+}

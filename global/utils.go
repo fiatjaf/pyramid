@@ -78,6 +78,8 @@ func CleanupRelay(relay *khatru.Relay) {
 	relay.OnEventSaved = nil
 	relay.OnDisconnect = nil
 	relay.OnCount = nil
+	relay.OnListenerAdded = nil
+	relay.OnListenerRemoved = nil
 }
 
 func BuildKindIsAllowedFunction(

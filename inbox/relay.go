@@ -24,7 +24,7 @@ var (
 )
 
 func Init() {
-	Relay = khatru.NewRelay()
+	Relay = global.NewRelay()
 
 	slices.Sort(supportedKindsDefault)
 	initAllowedKinds()
@@ -134,6 +134,7 @@ func setupEnabled() {
 		policies.NoComplexFilters,
 		policies.NoSearchQueries,
 		policies.FilterIPRateLimiter(20, time.Minute, 100),
+		global.RejectTooManyOpenSubscriptions,
 		rejectFilter,
 	)
 	Relay.OnEvent = policies.SeqEvent(

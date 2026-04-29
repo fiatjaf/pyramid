@@ -61,9 +61,9 @@ func clientDetailsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var client khatru.ClientSnapshot
 	var found bool
-	subrelay := relays.GetRelay(global.RelayID(r.URL.Query().Get("r")))
-	if subrelay != nil {
-		client, found = subrelay.GetClientSnapshot(r.PathValue("clientId"))
+	relay := relays.GetRelay(global.RelayID(r.URL.Query().Get("r")))
+	if relay != nil {
+		client, found = relay.GetClientSnapshot(r.PathValue("clientId"))
 		if !found {
 			http.NotFound(w, r)
 			return

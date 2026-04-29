@@ -62,6 +62,10 @@ type UserSettings struct {
 
 	BlockedIPs       []string `json:"blocked_ips"`
 	AllowedKindsSpec string   `json:"allowed_kinds_spec,omitempty"`
+	Limits           struct {
+		MaxSubscriptionsOpen int `json:"max_subscriptions_open,omitempty"`
+		MaxTotalCostOpen     int `json:"max_total_cost_open,omitempty"`
+	} `json:"limits"`
 
 	// Deprecated: remove this after people have migrated
 	AllowedKindsLegacy []nostr.Kind `json:"allowed_kinds,omitempty"`

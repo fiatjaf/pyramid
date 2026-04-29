@@ -21,7 +21,7 @@ var (
 )
 
 func Init() {
-	Relay = khatru.NewRelay()
+	Relay = global.NewRelay()
 
 	if global.Settings.Personal.Enabled {
 		setupEnabled()
@@ -85,7 +85,11 @@ func setupEnabled() {
 		policies.NoComplexFilters,
 		policies.NoSearchQueries,
 		policies.MustAuth,
-		func(ctx context.Context, _ nostr.Filter) (bool, string) {
+		func(ctx context.Context, filter nostr.Filter) (bool, string) {
+			if reject, msg := global.RejectTooManyOpenSubscriptions(ctx, filter); reject {
+				return reject, msg
+			}
+
 			authedPublicKeys := khatru.GetAllAuthed(ctx)
 			if len(authedPublicKeys) == 0 {
 				return true, "auth-required: only relay members have access to personal storage"

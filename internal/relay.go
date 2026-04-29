@@ -20,7 +20,7 @@ var (
 )
 
 func Init() {
-	Relay = khatru.NewRelay()
+	Relay = global.NewRelay()
 
 	if global.Settings.Internal.Enabled {
 		// relay enabled
@@ -78,7 +78,11 @@ func setupEnabled() {
 		policies.NoComplexFilters,
 		policies.NoSearchQueries,
 		policies.MustAuth,
-		func(ctx context.Context, _ nostr.Filter) (bool, string) {
+		func(ctx context.Context, filter nostr.Filter) (bool, string) {
+			if reject, msg := global.RejectTooManyOpenSubscriptions(ctx, filter); reject {
+				return reject, msg
+			}
+
 			authedPublicKeys := khatru.GetAllAuthed(ctx)
 			if len(authedPublicKeys) == 0 {
 				return true, "auth-required: this is only viewable by relay members"
