@@ -269,7 +269,7 @@ func main() {
 		},
 	)
 	relay.OnEvent = func(ctx context.Context, event nostr.Event) (reject bool, msg string) {
-		if len(event.Content) > global.Settings.MaxEventSize {
+		if len(event.Content) > global.Settings.Limits.MaxEventSize {
 			return true, "content is too big"
 		}
 

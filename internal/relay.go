@@ -99,7 +99,7 @@ func setupEnabled() {
 	)
 
 	Relay.OnEvent = policies.SeqEvent(
-		policies.PreventLargeContent(global.Settings.MaxEventSize),
+		policies.PreventLargeContent(global.Settings.Limits.MaxEventSize),
 		policies.PreventTooManyIndexableTags(15, []nostr.Kind{3}, nil),
 		policies.PreventTooManyIndexableTags(1400, nil, []nostr.Kind{3}),
 		policies.OnlyAllowNIP70ProtectedEvents,

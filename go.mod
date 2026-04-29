@@ -3,7 +3,7 @@ module github.com/fiatjaf/pyramid
 go 1.26
 
 require (
-	fiatjaf.com/nostr v0.0.0-20260424011647-744fb0702ced
+	fiatjaf.com/nostr v0.0.0-20260429223247-05b426e67eb7
 	github.com/FastFilter/xorfilter v0.2.1
 	github.com/a-h/templ v0.3.1001
 	github.com/bep/debounce v1.2.1
@@ -189,5 +189,3 @@ replace (
 	github.com/gwuhaolin/livego => github.com/fiatjaf/livego v0.0.0-20260406031930-1b6c4d5e40f0
 	github.com/livekit/livekit-server => github.com/livekit/livekit-server v1.9.11
 )
-
-replace fiatjaf.com/nostr => ../nostrlib

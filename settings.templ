@@ -246,7 +246,6 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				x-data={ `{
 					nip05Enabled: ` + fmt.Sprint(global.Settings.NIP05.Enabled) + `,
 					maxInvitesPerPerson: ` + global.JSONString(global.Settings.GetMaxInvitesDisplay()) + `,
-					maxEventSize: ` + fmt.Sprint(global.Settings.MaxEventSize) + `,
 					requireCurrentTimestamp: ` + fmt.Sprint(global.Settings.RequireCurrentTimestamp) + `,
 					acceptScheduledEvents: ` + fmt.Sprint(global.Settings.AcceptScheduledEvents) + `,
 					allowEphemeralFromAnyone: ` + fmt.Sprint(global.Settings.AllowEphemeralFromAnyone) + `,
@@ -337,18 +336,6 @@ templ settingsPage(loggedUser nostr.PubKey) {
 						<p class="text-xs text-stone-500 dark:text-stone-400 mt-1">
 							use a single number or slash-separated values for the number of invites available at each level (e.g. "5/4/3/2")
 						</p>
-					</div>
-					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="max_event_size">max event size (in bytes)</label>
-						<input
-							type="number"
-							name="max_event_size"
-							id="max_event_size"
-							min="1"
-							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-							x-model="maxEventSize"
-							@blur="saveSettings()"
-						/>
 					</div>
 					<div class="flex items-center">
 						<input
@@ -486,6 +473,78 @@ all
 						</div>
 					</div>
 				</div>
+				<div
+					x-show="saved"
+					x-transition
+					class="text-sm text-green-600 dark:text-green-400 font-medium"
+				>
+					saved!
+				</div>
+			</form>
+			<form
+				method="POST"
+				action="/settings"
+				class="space-y-6 mt-8"
+				x-data={ `{
+					maxEventSize: ` + fmt.Sprint(global.Settings.Limits.MaxEventSize) + `,
+					maxSubscriptionsOpen: ` + fmt.Sprint(global.Settings.Limits.MaxSubscriptionsOpen) + `,
+					maxTotalCostOpen: ` + fmt.Sprint(global.Settings.Limits.MaxTotalCostOpen) + `,
+					saved: false,
+					async saveSettings() {
+						const response = await fetch(this.$refs.form.action, {
+							method: 'POST',
+							body: new URLSearchParams(new FormData(this.$refs.form))
+						})
+						if (response.ok) {
+							this.saved = true;
+							setTimeout(() => this.saved = false, 2000)
+						}
+					}
+				}` }
+				x-ref="form"
+			>
+				@layout.SubSectionTitle("limits")
+				<details>
+					<summary class="cursor-pointer text-sm font-medium dark:text-stone-300">open</summary>
+					<div class="space-y-4 mt-4">
+						<div>
+							<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="max_event_size">max event size (in bytes)</label>
+							<input
+								type="number"
+								name="max_event_size"
+								id="max_event_size"
+								min="1"
+								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+								x-model="maxEventSize"
+								@blur="saveSettings()"
+							/>
+						</div>
+						<div>
+							<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="max_subscriptions_open">max subscriptions open</label>
+							<input
+								type="number"
+								name="max_subscriptions_open"
+								id="max_subscriptions_open"
+								min="0"
+								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+								x-model="maxSubscriptionsOpen"
+								@blur="saveSettings()"
+							/>
+						</div>
+						<div>
+							<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="max_total_cost_open">max total cost open</label>
+							<input
+								type="number"
+								name="max_total_cost_open"
+								id="max_total_cost_open"
+								min="0"
+								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+								x-model="maxTotalCostOpen"
+								@blur="saveSettings()"
+							/>
+						</div>
+					</div>
+				</details>
 				<div
 					x-show="saved"
 					x-transition

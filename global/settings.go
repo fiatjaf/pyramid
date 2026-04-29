@@ -39,7 +39,6 @@ type UserSettings struct {
 	LinkURL                  string `json:"link_url"`
 	MaxInvitesPerPerson      int    `json:"max_invites_per_person,omitempty"`
 	MaxInvitesAtEachLevel    []int  `json:"max_invites_at_each_level,omitempty"`
-	MaxEventSize             int    `json:"max_event_size"`
 	RequireCurrentTimestamp  bool   `json:"require_current_timestamp"`
 	AcceptScheduledEvents    bool   `json:"accept_scheduled_events"`
 	AllowEphemeralFromAnyone bool   `json:"allow_ephemeral_from_anyone"`
@@ -62,13 +61,13 @@ type UserSettings struct {
 
 	BlockedIPs       []string `json:"blocked_ips"`
 	AllowedKindsSpec string   `json:"allowed_kinds_spec,omitempty"`
-	Limits           struct {
-		MaxSubscriptionsOpen int `json:"max_subscriptions_open,omitempty"`
-		MaxTotalCostOpen     int `json:"max_total_cost_open,omitempty"`
-	} `json:"limits"`
+	Limits           Limits   `json:"limits"`
 
 	// Deprecated: remove this after people have migrated
 	AllowedKindsLegacy []nostr.Kind `json:"allowed_kinds,omitempty"`
+
+	// Deprecated: remove this after people have migrated
+	MaxEventSize int `json:"max_event_size,omitempty"`
 
 	// per-relay
 	Internal struct {
@@ -139,6 +138,12 @@ type UserSettings struct {
 		Enabled  bool   `json:"enabled"`
 		Password string `json:"password"`
 	} `json:"ftp"`
+}
+
+type Limits struct {
+	MaxEventSize         int `json:"max_event_size"`
+	MaxSubscriptionsOpen int `json:"max_subscriptions_open,omitempty"`
+	MaxTotalCostOpen     int `json:"max_total_cost_open,omitempty"`
 }
 
 type RelayMetadata struct {
@@ -263,11 +268,15 @@ func getUserSettingsPath() string {
 func loadUserSettings() error {
 	// start it with the defaults
 	Settings = UserSettings{
-		BrowseURI:                "https://jumble.social/?r={url}",
-		LinkURL:                  "nostr:{code}",
-		MaxInvitesPerPerson:      4,
-		MaxEventSize:             10000,
-		RequireCurrentTimestamp:  false,
+		BrowseURI:               "https://jumble.social/?r={url}",
+		LinkURL:                 "nostr:{code}",
+		MaxInvitesPerPerson:     4,
+		RequireCurrentTimestamp: false,
+		Limits: Limits{
+			MaxEventSize:         10_000,
+			MaxSubscriptionsOpen: 1_000,
+			MaxTotalCostOpen:     3_600,
+		},
 		BlockedIPs:               []string{},
 		AcceptScheduledEvents:    true,
 		AllowEphemeralFromAnyone: true,
@@ -361,6 +370,11 @@ func loadUserSettings() error {
 		}
 	}
 	Settings.Inbox.AllowedKindsLegacy = nil
+
+	if Settings.MaxEventSize != 0 {
+		Settings.Limits.MaxEventSize = Settings.MaxEventSize
+	}
+	Settings.MaxEventSize = 0
 
 	if kindIsAllowed, err := BuildKindIsAllowedFunction(Settings.AllowedKindsSpec, SupportedKindsDefault); err != nil {
 		return err

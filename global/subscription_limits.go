@@ -62,17 +62,9 @@ func RejectTooManyOpenSubscriptions(ctx context.Context, _ nostr.Filter) (bool, 
 		return false, ""
 	}
 
-	maxTotal := 1200
-	maxCost := 3600
-	if Settings.Limits.MaxSubscriptionsOpen > 0 {
-		maxTotal = Settings.Limits.MaxSubscriptionsOpen
-	}
-	if Settings.Limits.MaxTotalCostOpen > 0 {
-		maxCost = Settings.Limits.MaxTotalCostOpen
-	}
-	if v, _ := subscriptionTracker.Load(ip); v.subscriptions >= maxTotal {
+	if v, _ := subscriptionTracker.Load(ip); v.subscriptions >= Settings.Limits.MaxSubscriptionsOpen {
 		return true, fmt.Sprintf("already %d subscriptions from this IP", v)
-	} else if v.cost >= maxCost {
+	} else if v.cost >= Settings.Limits.MaxTotalCostOpen {
 		return true, fmt.Sprintf("there are subscriptions from this IP with a total filter cost of %d", v)
 	}
 

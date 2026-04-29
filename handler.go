@@ -145,7 +145,11 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 					global.Settings.MaxInvitesAtEachLevel = nil
 				}
 			case "max_event_size":
-				global.Settings.MaxEventSize, _ = strconv.Atoi(v[0])
+				global.Settings.Limits.MaxEventSize, _ = strconv.Atoi(v[0])
+			case "max_subscriptions_open":
+				global.Settings.Limits.MaxSubscriptionsOpen, _ = strconv.Atoi(v[0])
+			case "max_total_cost_open":
+				global.Settings.Limits.MaxTotalCostOpen, _ = strconv.Atoi(v[0])
 			case "browse_uri":
 				global.Settings.BrowseURI = v[0]
 			case "link_url":
