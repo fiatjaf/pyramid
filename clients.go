@@ -61,7 +61,9 @@ func clientDetailsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var client khatru.ClientSnapshot
 	var found bool
-	relay := relays.GetRelay(global.RelayID(r.URL.Query().Get("r")))
+
+	relayID := global.RelayID(r.URL.Query().Get("r"))
+	relay := relays.GetRelay(relayID)
 	if relay != nil {
 		client, found = relay.GetClientSnapshot(r.PathValue("clientId"))
 		if !found {
@@ -72,6 +74,7 @@ func clientDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		for _, relay := range relays.GetAll() {
 			client, found = relay.Relay.GetClientSnapshot(r.PathValue("clientId"))
 			if found {
+				relayID = relay.ID
 				break
 			}
 		}
@@ -86,5 +89,8 @@ func clientDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		return cmp.Compare(a.ID, b.ID)
 	})
 
-	singleClientDetailsPage(loggedUser, relayClientSnapshot{ClientSnapshot: client, RelayID: global.RelayID(r.PathValue("relayId"))}).Render(r.Context(), w)
+	singleClientDetailsPage(
+		loggedUser,
+		relayClientSnapshot{ClientSnapshot: client, RelayID: relayID},
+	).Render(r.Context(), w)
 }
