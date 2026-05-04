@@ -31,7 +31,7 @@ func NewRelay() *khatru.Relay {
 
 		subscriptionTracker.Compute(ip, func(v trackedConnection, loaded bool) (trackedConnection, bool) {
 			v.subscriptions++
-			v.cost += getFilterCost(filter)
+			v.cost += GetFilterCost(filter)
 			return v, false
 		})
 	}
@@ -48,7 +48,7 @@ func NewRelay() *khatru.Relay {
 
 		subscriptionTracker.Compute(ip, func(v trackedConnection, loaded bool) (trackedConnection, bool) {
 			v.subscriptions--
-			v.cost -= getFilterCost(filter)
+			v.cost -= GetFilterCost(filter)
 			return v, false
 		})
 	}
@@ -63,22 +63,24 @@ func RejectTooManyOpenSubscriptions(ctx context.Context, _ nostr.Filter) (bool, 
 	}
 
 	if v, _ := subscriptionTracker.Load(ip); v.subscriptions >= Settings.Limits.MaxSubscriptionsOpen {
-		return true, fmt.Sprintf("already %d subscriptions from this IP", v)
+		Log.Info().Str("ip", ip).Int("subs", v.subscriptions).Msg("rejected subscription due to max number of subscriptions reached")
+		return true, fmt.Sprintf("already %d subscriptions from this IP", v.subscriptions)
 	} else if v.cost >= Settings.Limits.MaxTotalCostOpen {
-		return true, fmt.Sprintf("there are subscriptions from this IP with a total filter cost of %d", v)
+		Log.Info().Str("ip", ip).Int("cost", v.cost).Msg("rejected subscription due to max cost reached")
+		return true, fmt.Sprintf("there are subscriptions from this IP with a total filter cost of %d", v.cost)
 	}
 
 	return false, ""
 }
 
 //go:inline
-func getFilterCost(filter nostr.Filter) int {
+func GetFilterCost(filter nostr.Filter) int {
 	if filter.Authors != nil {
 		return len(filter.Authors)
 	}
 
 	if filter.Kinds != nil {
-		return len(filter.Authors)
+		return len(filter.Kinds)
 	}
 
 	if filter.Tags != nil {

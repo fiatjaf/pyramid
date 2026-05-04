@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"fiatjaf.com/nostr"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
@@ -68,6 +70,12 @@ templ clientDetailsPage(loggedUser nostr.PubKey, clients []relayClientInfo) {
 }
 
 templ singleClientDetailsPage(loggedUser nostr.PubKey, client relayClientSnapshot) {
+	{{
+		totalCost := 0
+		for _, sub := range client.Subscriptions {
+			totalCost += global.GetFilterCost(sub.Filter)
+		}
+	}}
 	@layout.Layout(loggedUser, "settings") {
 		<div class="max-w-6xl mx-auto space-y-6">
 			<div class="flex items-center justify-between gap-4">
@@ -75,6 +83,7 @@ templ singleClientDetailsPage(loggedUser nostr.PubKey, client relayClientSnapsho
 					@layout.SubSectionTitle("client " + client.ID)
 					<div class="text-sm text-stone-600 dark:text-stone-400 mt-2">relay: <span class="font-mono">{ client.RelayID.String() }</span></div>
 					<div class="text-sm text-stone-600 dark:text-stone-400">ip: <span class="font-mono">{ client.IP }</span></div>
+					<div class="text-sm text-stone-600 dark:text-stone-400">total cost: { fmt.Sprint(totalCost) }</div>
 					<div class="text-sm text-stone-600 dark:text-stone-400">user-agent: { client.UserAgent }</div>
 					if client.Origin != "" {
 						<div class="text-sm text-stone-600 dark:text-stone-400">origin: { client.Origin }</div>
@@ -102,18 +111,20 @@ templ singleClientDetailsPage(loggedUser nostr.PubKey, client relayClientSnapsho
 					<thead>
 						<tr class="text-left text-stone-500 dark:text-stone-400 border-b border-stone-200 dark:border-stone-700">
 							<th class="px-4 py-3">subscription id</th>
+							<th class="px-4 py-3">cost</th>
 							<th class="px-4 py-3">filter</th>
 						</tr>
 					</thead>
 					<tbody>
 						if len(client.Subscriptions) == 0 {
 							<tr>
-								<td colspan="2" class="px-4 py-6 text-center text-stone-500 dark:text-stone-400">no open subscriptions</td>
+								<td colspan="3" class="px-4 py-6 text-center text-stone-500 dark:text-stone-400">no open subscriptions</td>
 							</tr>
 						} else {
 							for _, sub := range client.Subscriptions {
 								<tr class="border-b border-stone-100 dark:border-stone-700 last:border-b-0 align-top">
 									<td class="px-4 py-3 font-mono whitespace-nowrap">{ sub.ID }</td>
+									<td class="px-4 py-3">{ fmt.Sprint(global.GetFilterCost(sub.Filter)) }</td>
 									<td class="px-4 py-3"><code class="text-xs break-all whitespace-pre-wrap">{ sub.Filter.String() }</code></td>
 								</tr>
 							}
