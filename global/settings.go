@@ -96,12 +96,11 @@ type UserSettings struct {
 	} `json:"inbox"`
 
 	Groups struct {
-		Enabled                     bool   `json:"enabled"`
-		EmbeddedLiveKitEnabled      bool   `json:"embedded_livekit_enabled"`
-		LiveKitServerURL            string `json:"livekit_server_url"`
-		LiveKitAPIKey               string `json:"livekit_apikey"`
-		LiveKitAPISecret            string `json:"livekit_apisecret"`
-		PrivateGroupsMetadataHidden bool   `json:"private_groups_metadata_hidden"`
+		Enabled                bool   `json:"enabled"`
+		EmbeddedLiveKitEnabled bool   `json:"embedded_livekit_enabled"`
+		LiveKitServerURL       string `json:"livekit_server_url"`
+		LiveKitAPIKey          string `json:"livekit_apikey"`
+		LiveKitAPISecret       string `json:"livekit_apisecret"`
 	} `json:"groups"`
 
 	Grasp struct {

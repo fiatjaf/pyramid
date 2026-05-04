@@ -168,25 +168,39 @@ func (s *GroupsState) SyncGroupMetadataEvents(group *Group) iter.Seq2[nostr.Even
 		group.mu.RLock()
 		defer group.mu.RUnlock()
 
-		for _, event := range [4]nostr.Event{
+		for _, updated := range [4]nostr.Event{
 			group.ToMetadataEvent(),
 			group.ToAdminsEvent(),
 			group.ToMembersEvent(),
 			group.ToRolesEvent(),
 		} {
-			if err := event.Sign(s.secretKey); err != nil {
-				if !yield(nostr.Event{}, fmt.Errorf("failed to sign group metadata event %d: %w", event.Kind, err)) {
+			// first check if we really have to update this
+			var current nostr.Event
+			for existing := range s.DB.QueryEvents(nostr.Filter{
+				Kinds:   []nostr.Kind{updated.Kind},
+				Authors: []nostr.PubKey{s.publicKey},
+				Tags:    nostr.TagMap{"d": []string{group.Address.ID}},
+			}, 1) {
+				current = existing
+			}
+			if current.Tags.Eq(updated.Tags) {
+				continue
+			}
+
+			// then create the new
+			if err := updated.Sign(s.secretKey); err != nil {
+				if !yield(nostr.Event{}, fmt.Errorf("failed to sign group metadata event %d: %w", updated.Kind, err)) {
 					return
 				}
 			}
 
-			if _, err := s.DB.ReplaceEvent(event); err != nil {
-				if !yield(nostr.Event{}, fmt.Errorf("failed to save group metadata event %d: %w", event.Kind, err)) {
+			if _, err := s.DB.ReplaceEvent(updated); err != nil {
+				if !yield(nostr.Event{}, fmt.Errorf("failed to save group metadata event %d: %w", updated.Kind, err)) {
 					return
 				}
 			}
-			if event.CreatedAt > now-180 {
-				if !yield(event, nil) {
+			if updated.CreatedAt > now-180 {
+				if !yield(updated, nil) {
 					return
 				}
 			}
