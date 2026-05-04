@@ -273,8 +273,8 @@ func loadUserSettings() error {
 		RequireCurrentTimestamp: false,
 		Limits: Limits{
 			MaxEventSize:         10_000,
-			MaxSubscriptionsOpen: 1_000,
-			MaxTotalCostOpen:     3_600,
+			MaxSubscriptionsOpen: 2_000,
+			MaxTotalCostOpen:     7_200,
 		},
 		BlockedIPs:               []string{},
 		AcceptScheduledEvents:    true,
