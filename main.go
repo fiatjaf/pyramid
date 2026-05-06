@@ -77,13 +77,15 @@ func main() {
 	// stuff we have to initialize
 	fillInRelevantUsersMapping()
 
-	// start periodic version checking
-	go func() {
-		for {
-			fetchLatestVersion()
-			time.Sleep(time.Hour * 3)
-		}
-	}()
+	if autoUpdateEnabled() {
+		// start periodic version checking
+		go func() {
+			for {
+				fetchLatestVersion()
+				time.Sleep(time.Hour * 3)
+			}
+		}()
+	}
 
 	// cleanup expired invite codes
 	go func() {

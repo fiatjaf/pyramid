@@ -25,8 +25,8 @@ RUN TEMPL_VERSION=$(grep 'github.com/a-h/templ' go.mod | awk '{print $2}') && \
 
 # Build
 RUN templ generate
-RUN VERSION=$(git describe --tags --exact-match 2>/dev/null || echo "$(git describe --tags --abbrev=0)-$(git rev-parse --short=8 HEAD)")
-RUN CC=musl-gcc go build -tags=libsecp256k1 -ldflags="-X main.currentVersion=$VERSION -linkmode external -extldflags \"-static\"" -o ./pyramid-exe
+RUN VERSION=$(git describe --tags --exact-match 2>/dev/null || echo "$(git describe --tags --abbrev=0)-$(git rev-parse --short=8 HEAD)") && \
+    CC=musl-gcc go build -tags=libsecp256k1 -ldflags="-X main.currentVersion=$VERSION -X main.autoUpdate=false -linkmode external -extldflags \"-static\"" -o ./pyramid-exe
 
 # Final image
 FROM ubuntu:latest
