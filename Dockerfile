@@ -31,6 +31,20 @@ RUN CC=musl-gcc go build -tags=libsecp256k1 -ldflags="-X main.currentVersion=$VE
 # Final image
 FROM ubuntu:latest
 
+# Runtime dependencies:
+#   - git: required by the grasp (NIP-34) feature, which shells out to
+#     `git init --bare`, `git upload-pack`, `git receive-pack`, etc.
+#   - ca-certificates: required for outbound HTTPS — ACME/autocert (Let's Encrypt),
+#     GitHub API calls (self-update, embedded LiveKit release fetch), and
+#     federated relay sync.
+#   - tzdata: correct local-time formatting in templates.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        git \
+        ca-certificates \
+        tzdata && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy the built binary from the builder stage
