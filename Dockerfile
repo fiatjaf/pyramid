@@ -35,7 +35,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     templ generate && \
     VERSION=$(git describe --tags --exact-match 2>/dev/null || echo "$(git describe --tags --abbrev=0)-$(git rev-parse --short=8 HEAD)") && \
-    CC=musl-gcc go build -tags=libsecp256k1 -ldflags="-X main.currentVersion=$VERSION -X main.autoUpdate=false -linkmode external -extldflags \"-static\"" -o ./pyramid-exe
+    CC=musl-gcc go build -tags=libsecp256k1 -ldflags="-X main.currentVersion=$VERSION -linkmode external -extldflags \"-static\"" -o ./pyramid-exe
 
 # Final image
 FROM ubuntu:latest
