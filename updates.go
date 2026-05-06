@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -22,10 +23,6 @@ import (
 // this is set at build time to something else based on git
 var currentVersion string = "dev"
 
-// this is set at build time to false in Docker builds, where self-updating the
-// baked binary is not valid.
-var autoUpdate string = "true"
-
 // this is set by the user and reset on restart
 var customUpdateSource string
 
@@ -37,7 +34,10 @@ type releaseVersion struct {
 var latestVersion releaseVersion
 
 func autoUpdateEnabled() bool {
-	return !strings.EqualFold(autoUpdate, "false")
+	if disable, _ := strconv.ParseBool(os.Getenv("PYRAMID_DISABLE_UPDATE")); disable {
+		return false
+	}
+	return true
 }
 
 func fetchLatestVersion() {

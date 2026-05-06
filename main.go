@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/signal"
 	"slices"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -78,15 +77,17 @@ func main() {
 	// stuff we have to initialize
 	fillInRelevantUsersMapping()
 
-	if autoUpdateEnabled() {
-		// start periodic version checking
-		go func() {
+	// start periodic version checking
+	go func() {
+		if !autoUpdateEnabled() {
+			log.Warn().Msg("PYRAMID_DISABLE_UPDATE environment variable is set, auto-updater disabled")
+		} else {
 			for {
 				fetchLatestVersion()
 				time.Sleep(time.Hour * 3)
 			}
-		}()
-	}
+		}
+	}()
 
 	// cleanup expired invite codes
 	go func() {

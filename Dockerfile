@@ -62,5 +62,6 @@ COPY --from=builder /app/pyramid-exe ./pyramid-exe
 ENV HOST="0.0.0.0"
 ENV PORT="3334"
 ENV DATA_PATH="./data"
+ENV PYRAMID_DISABLE_UPDATE="true"
 
 CMD ["./pyramid-exe"]
