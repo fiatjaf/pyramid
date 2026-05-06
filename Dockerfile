@@ -1,11 +1,14 @@
+# syntax=docker/dockerfile:1
+
 FROM node:25 AS tailwind-builder
 
 WORKDIR /app
-COPY . .
 
 # Install dependencies
-RUN npm install
+COPY package.json ./
+RUN --mount=type=cache,target=/root/.npm npm install
 
+COPY . .
 RUN npx tailwindcss -i base.css -o static/styles.css
 
 FROM golang:1.26 AS builder
@@ -16,16 +19,22 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+COPY go.mod go.sum ./
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download && \
+    TEMPL_VERSION=$(grep 'github.com/a-h/templ' go.mod | awk '{print $2}') && \
+    go install github.com/a-h/templ/cmd/templ@${TEMPL_VERSION}
+
 COPY . .
 COPY --from=tailwind-builder /app/static ./static
 
-# Install Templ version specified in go.mod
-RUN TEMPL_VERSION=$(grep 'github.com/a-h/templ' go.mod | awk '{print $2}') && \
-    go install github.com/a-h/templ/cmd/templ@${TEMPL_VERSION}
-
 # Build
-RUN templ generate
-RUN VERSION=$(git describe --tags --exact-match 2>/dev/null || echo "$(git describe --tags --abbrev=0)-$(git rev-parse --short=8 HEAD)") && \
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    templ generate && \
+    VERSION=$(git describe --tags --exact-match 2>/dev/null || echo "$(git describe --tags --abbrev=0)-$(git rev-parse --short=8 HEAD)") && \
     CC=musl-gcc go build -tags=libsecp256k1 -ldflags="-X main.currentVersion=$VERSION -X main.autoUpdate=false -linkmode external -extldflags \"-static\"" -o ./pyramid-exe
 
 # Final image
