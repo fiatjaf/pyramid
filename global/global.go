@@ -11,10 +11,11 @@ import (
 
 var (
 	S struct {
-		Port     string `envconfig:"PORT" default:"3334"`
-		SFTPPort string `envconvig:"SFTP_PORT" default:"2222"`
-		Host     string `envconfig:"HOST" default:"localhost"`
-		DataPath string `envconfig:"DATA_PATH" default:"./data"`
+		Port          string `envconfig:"PORT" default:"3334"`
+		SFTPPort      string `envconvig:"SFTP_PORT" default:"2222"`
+		Host          string `envconfig:"HOST" default:"localhost"`
+		DataPath      string `envconfig:"DATA_PATH" default:"./data"`
+		NoAutoUpdates bool   `envconfig:"NO_AUTO_UPDATES"`
 	}
 	Nostr    *sdk.System
 	MMMM     *mmm.MultiMmapManager

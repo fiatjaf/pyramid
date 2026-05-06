@@ -4,7 +4,7 @@ FROM node:25 AS tailwind-builder
 
 WORKDIR /app
 
-# Install dependencies
+# install dependencies
 COPY package.json ./
 RUN --mount=type=cache,target=/root/.npm npm install
 
@@ -13,7 +13,7 @@ RUN npx tailwindcss -i base.css -o static/styles.css
 
 FROM golang:1.26 AS builder
 
-# Install necessary tools
+# install necessary tools
 RUN apt-get update && \
     apt-get install -y musl-tools git curl && \
     rm -rf /var/lib/apt/lists/*
@@ -30,17 +30,17 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 COPY . .
 COPY --from=tailwind-builder /app/static ./static
 
-# Build
+# build
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     templ generate && \
     VERSION=$(git describe --tags --exact-match 2>/dev/null || echo "$(git describe --tags --abbrev=0)-$(git rev-parse --short=8 HEAD)") && \
-    CC=musl-gcc go build -tags=libsecp256k1 -ldflags="-X main.currentVersion=$VERSION -X main.autoUpdate=false -linkmode external -extldflags \"-static\"" -o ./pyramid-exe
+    CC=musl-gcc go build -tags=libsecp256k1 -ldflags="-X main.currentVersion=$VERSION -linkmode external -extldflags \"-static\"" -o ./pyramid-exe
 
-# Final image
+# final image
 FROM ubuntu:latest
 
-# Runtime dependencies:
+# runtime dependencies:
 #   - git: required by the grasp (NIP-34) feature, which shells out to
 #     `git init --bare`, `git upload-pack`, `git receive-pack`, etc.
 #   - ca-certificates: required for outbound HTTPS — ACME/autocert (Let's Encrypt),
@@ -56,11 +56,12 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Copy the built binary from the builder stage
+# copy the built binary from the builder stage
 COPY --from=builder /app/pyramid-exe ./pyramid-exe
 
 ENV HOST="0.0.0.0"
 ENV PORT="3334"
 ENV DATA_PATH="./data"
+ENV NO_AUTO_UPDATES="true"
 
 CMD ["./pyramid-exe"]

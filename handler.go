@@ -169,7 +169,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.ValidateSchema = enabled
 			case "custom_update_source":
 				customUpdateSource = v[0]
-				if autoUpdateEnabled() {
+				if !global.S.NoAutoUpdates {
 					fetchLatestVersion()
 				}
 			case "livekit_server_url":
@@ -861,7 +861,7 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodPost {
-		if !autoUpdateEnabled() {
+		if global.S.NoAutoUpdates {
 			http.Error(w, "updates are disabled in this build", 403)
 			return
 		}

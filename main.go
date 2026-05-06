@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/signal"
 	"slices"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -78,7 +77,7 @@ func main() {
 	// stuff we have to initialize
 	fillInRelevantUsersMapping()
 
-	if autoUpdateEnabled() {
+	if !global.S.NoAutoUpdates {
 		// start periodic version checking
 		go func() {
 			for {
