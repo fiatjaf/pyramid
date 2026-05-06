@@ -1,0 +1,27 @@
+services:
+  pyramid:
+    # local development: build the image from the Dockerfile in this repo
+    build: .
+
+    # production: use a prebuilt image instead of building locally
+    # image: ghcr.io/fiatjaf/pyramid:latest
+
+    container_name: pyramid
+    restart: unless-stopped
+
+    ports:
+      - "3334:3334"
+      # - "2222:2222"   # SFTP (only if FTP is enabled in settings)
+      # - "80:80"       # production: ACME HTTP-01 + plain HTTP
+      # - "443:443"     # production: HTTPS via autocert (set PORT=443 below)
+
+    # environment:
+    #   SFTP_PORT: "2222"
+    #   production: uncomment and set PORT=443 to enable autocert TLS.
+    #   PORT: "443"
+
+    volumes:
+      - data:/app/data
+
+volumes:
+  data: {}

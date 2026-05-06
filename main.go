@@ -78,17 +78,15 @@ func main() {
 	// stuff we have to initialize
 	fillInRelevantUsersMapping()
 
-	// start periodic version checking
-	go func() {
-		if disable, _ := strconv.ParseBool(os.Getenv("PYRAMID_DISABLE_UPDATE")); disable {
-			log.Warn().Msg("PYRAMID_DISABLE_UPDATE environment variable is set, auto-updater disabled")
-		} else {
+	if autoUpdateEnabled() {
+		// start periodic version checking
+		go func() {
 			for {
 				fetchLatestVersion()
 				time.Sleep(time.Hour * 3)
 			}
-		}
-	}()
+		}()
+	}
 
 	// cleanup expired invite codes
 	go func() {
