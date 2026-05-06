@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -79,9 +80,13 @@ func main() {
 
 	// start periodic version checking
 	go func() {
-		for {
-			fetchLatestVersion()
-			time.Sleep(time.Hour * 3)
+		if disable, _ := strconv.ParseBool(os.Getenv("PYRAMID_DISABLE_UPDATE")); disable {
+			log.Warn().Msg("PYRAMID_DISABLE_UPDATE environment variable is set, auto-updater disabled")
+		} else {
+			for {
+				fetchLatestVersion()
+				time.Sleep(time.Hour * 3)
+			}
 		}
 	}()
 
