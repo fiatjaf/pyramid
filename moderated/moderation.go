@@ -113,7 +113,7 @@ func listEventsNeedingModerationHandler(ctx context.Context) ([]nip86.IDReason, 
 	}
 
 	var events []nip86.IDReason
-	for evt := range global.IL.ModerationQueue.QueryEvents(nostr.Filter{}, 1000) {
+	for evt := range global.IL.ModerationQueue.QueryEvents(nostr.Filter{}, 1_000) {
 		events = append(events, nip86.IDReason{ID: evt.ID})
 	}
 	return events, nil

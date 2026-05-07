@@ -65,7 +65,7 @@ func setupEnabled() {
 	Relay.QueryStored = func(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 		if len(filter.Kinds) == 0 {
 			// only normal kinds or no kinds specified
-			return global.IL.Inbox.QueryEvents(filter, 500)
+			return global.IL.Inbox.QueryEvents(filter, global.Settings.Limits.MaxQueryLimit)
 		}
 
 		secretFilter := filter
@@ -83,16 +83,16 @@ func setupEnabled() {
 		if len(secretFilter.Kinds) > 0 && len(normalFilter.Kinds) > 0 {
 			// mixed kinds - need to split the filter and query both
 			return eventstore.SortedMerge(
-				global.IL.Inbox.QueryEvents(normalFilter, 500),
-				global.IL.Secret.QueryEvents(secretFilter, 500),
+				global.IL.Inbox.QueryEvents(normalFilter, global.Settings.Limits.MaxQueryLimit),
+				global.IL.Secret.QueryEvents(secretFilter, global.Settings.Limits.MaxQueryLimit),
 				filter.GetTheoreticalLimit(),
 			)
 		} else if len(secretFilter.Kinds) > 0 && len(normalFilter.Kinds) == 0 {
 			// only secret kinds requested
-			return global.IL.Secret.QueryEvents(filter, 500)
+			return global.IL.Secret.QueryEvents(filter, global.Settings.Limits.MaxQueryLimit)
 		} else {
 			// only normal kinds requested
-			return global.IL.Inbox.QueryEvents(filter, 500)
+			return global.IL.Inbox.QueryEvents(filter, global.Settings.Limits.MaxQueryLimit)
 		}
 	}
 	Relay.Count = func(ctx context.Context, filter nostr.Filter) (uint32, error) {
@@ -138,6 +138,9 @@ func setupEnabled() {
 		rejectFilter,
 	)
 	Relay.OnEvent = policies.SeqEvent(
+		policies.PreventLargeContent(global.Settings.Limits.MaxEventSize),
+		policies.PreventTooManyIndexableTags(global.Settings.Limits.MaxIndexableTags, []nostr.Kind{3}, nil),
+		policies.PreventTooManyIndexableTags(global.Settings.Limits.MaxEntriesInFollowList, nil, []nostr.Kind{3}),
 		policies.PreventNormalDuplicates(global.IL.Inbox.QueryEvents),
 		policies.RejectUnprefixedNostrReferences,
 		policies.EventPubKeyRateLimiter(1, 2*time.Minute, 15),

@@ -223,7 +223,7 @@ func main() {
 	// do not expire groups stuff, but do expire main stuff
 	relay.StartExpirationManager(
 		func(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
-			return global.IL.Main.QueryEvents(filter, 500)
+			return global.IL.Main.QueryEvents(filter, 1_000)
 		},
 		func(ctx context.Context, id nostr.ID) error {
 			return global.IL.Main.DeleteEvent(id)
@@ -298,8 +298,8 @@ func main() {
 		} else {
 			// normal logic
 			return policies.SeqEvent(
-				policies.PreventTooManyIndexableTags(15, []nostr.Kind{3}, nil),
-				policies.PreventTooManyIndexableTags(1400, nil, []nostr.Kind{3}),
+				policies.PreventTooManyIndexableTags(global.Settings.Limits.MaxIndexableTags, []nostr.Kind{3}, nil),
+				policies.PreventTooManyIndexableTags(global.Settings.Limits.MaxEntriesInFollowList, nil, []nostr.Kind{3}),
 				policies.RejectUnprefixedNostrReferences,
 				grasp.RejectIncomingEvent,
 				policies.PreventNormalDuplicates(global.IL.Main.QueryEvents),
@@ -399,6 +399,10 @@ func main() {
 		info.Icon = global.Settings.RelayIcon
 		info.Limitation = &nip11.RelayLimitationDocument{
 			RestrictedWrites: true,
+			MaxMessageLength: global.Settings.Limits.MaxEventSize,
+			MaxEventTags:     global.Settings.Limits.MaxIndexableTags,
+			MaxSubscriptions: global.Settings.Limits.MaxSubscriptionsOpen,
+			MaxLimit:         global.Settings.Limits.MaxQueryLimit,
 		}
 		info.Software = "https://github.com/fiatjaf/pyramid"
 		info.Version = currentVersion

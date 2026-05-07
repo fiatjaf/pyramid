@@ -92,25 +92,20 @@ func setupEnabled() {
 		global.RejectTooManyOpenSubscriptions,
 	)
 
-	Relay.OnEvent = policies.SeqEvent(
-		policies.PreventLargeContent(global.Settings.Limits.MaxEventSize),
-		policies.PreventTooManyIndexableTags(15, []nostr.Kind{3}, nil),
-		policies.PreventTooManyIndexableTags(1400, nil, []nostr.Kind{3}),
-		func(ctx context.Context, evt nostr.Event) (bool, string) {
-			if !global.KindIsAllowed(evt.Kind) {
-				return true, "blocked: kind unallowed"
-			}
+	Relay.OnEvent = func(ctx context.Context, evt nostr.Event) (bool, string) {
+		if !global.KindIsAllowed(evt.Kind) {
+			return true, "blocked: kind unallowed"
+		}
 
-			if global.Settings.Moderated.MinPoW > 0 {
-				difficulty := nip13.Difficulty(evt.ID)
-				if uint(difficulty) < global.Settings.Moderated.MinPoW {
-					return true, fmt.Sprintf("pow: requires %d bits, got %d", global.Settings.Moderated.MinPoW, difficulty)
-				}
+		if global.Settings.Moderated.MinPoW > 0 {
+			difficulty := nip13.Difficulty(evt.ID)
+			if uint(difficulty) < global.Settings.Moderated.MinPoW {
+				return true, fmt.Sprintf("pow: requires %d bits, got %d", global.Settings.Moderated.MinPoW, difficulty)
 			}
+		}
 
-			return false, ""
-		},
-	)
+		return false, ""
+	}
 
 	Relay.PreventBroadcast = func(ws *khatru.WebSocket, filter nostr.Filter, event nostr.Event) bool {
 		// prevent all broadcasts because we don't want anyone to see events that haven't yet been moderated

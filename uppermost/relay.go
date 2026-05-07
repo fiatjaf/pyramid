@@ -66,7 +66,7 @@ func setupEnabled() {
 	// cache pinned event at startup
 	global.CachePinnedEvent(global.RelayUppermost)
 
-	Relay.UseEventstore(db, 500)
+	Relay.UseEventstore(db, global.Settings.Limits.MaxQueryLimit)
 
 	// use custom QueryStored with pinned event support
 	Relay.QueryStored = global.QueryStoredWithPinned(global.RelayUppermost)

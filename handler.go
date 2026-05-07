@@ -150,6 +150,12 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Limits.MaxSubscriptionsOpen, _ = strconv.Atoi(v[0])
 			case "max_total_cost_open":
 				global.Settings.Limits.MaxTotalCostOpen, _ = strconv.Atoi(v[0])
+			case "max_indexable_tags":
+				global.Settings.Limits.MaxIndexableTags, _ = strconv.Atoi(v[0])
+			case "max_entries_in_follow_list":
+				global.Settings.Limits.MaxEntriesInFollowList, _ = strconv.Atoi(v[0])
+			case "max_query_limit":
+				global.Settings.Limits.MaxQueryLimit, _ = strconv.Atoi(v[0])
 			case "browse_uri":
 				global.Settings.BrowseURI = v[0]
 			case "link_url":

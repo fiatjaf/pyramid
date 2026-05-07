@@ -268,7 +268,7 @@ func queryMain(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 			// use this special query that filters content for paying visitors
 			authed := khatru.GetAllAuthed(ctx)
 
-			for evt := range global.IL.Main.QueryEvents(filter, 500) {
+			for evt := range global.IL.Main.QueryEvents(filter, global.Settings.Limits.MaxQueryLimit) {
 				if evt.Tags.Has("nip63") {
 					// this is a paywalled event, check if reader can read
 					for _, pk := range authed {
@@ -295,7 +295,7 @@ func queryMain(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 			}
 		} else {
 			// otherwise do a normal query
-			for evt := range global.IL.Main.QueryEvents(filter, 500) {
+			for evt := range global.IL.Main.QueryEvents(filter, global.Settings.Limits.MaxQueryLimit) {
 				if !yield(evt) {
 					return
 				}

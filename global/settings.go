@@ -140,9 +140,12 @@ type UserSettings struct {
 }
 
 type Limits struct {
-	MaxEventSize         int `json:"max_event_size"`
-	MaxSubscriptionsOpen int `json:"max_subscriptions_open,omitempty"`
-	MaxTotalCostOpen     int `json:"max_total_cost_open,omitempty"`
+	MaxEventSize           int `json:"max_event_size"`
+	MaxSubscriptionsOpen   int `json:"max_subscriptions_open"`
+	MaxTotalCostOpen       int `json:"max_total_cost_open"`
+	MaxIndexableTags       int `json:"max_indexable_tags"`
+	MaxEntriesInFollowList int `json:"max_entries_in_follow_list"`
+	MaxQueryLimit          int `json:"max_query_limit"`
 }
 
 type RelayMetadata struct {
@@ -272,9 +275,12 @@ func loadUserSettings() error {
 		MaxInvitesPerPerson:     4,
 		RequireCurrentTimestamp: false,
 		Limits: Limits{
-			MaxEventSize:         10_000,
-			MaxSubscriptionsOpen: 2_000,
-			MaxTotalCostOpen:     7_200,
+			MaxEventSize:           10_000,
+			MaxSubscriptionsOpen:   2_000,
+			MaxTotalCostOpen:       7_200,
+			MaxIndexableTags:       14,
+			MaxEntriesInFollowList: 1600,
+			MaxQueryLimit:          500,
 		},
 		BlockedIPs:               []string{},
 		AcceptScheduledEvents:    true,

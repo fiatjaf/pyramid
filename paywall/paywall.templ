@@ -32,7 +32,7 @@ templ paywallPage(loggedUser nostr.PubKey) {
 								</tr>
 							</thead>
 							<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
-								for evt := range global.IL.Main.QueryEvents(nostr.Filter{Authors: []nostr.PubKey{loggedUser}}, 1000) {
+								for evt := range global.IL.Main.QueryEvents(nostr.Filter{Authors: []nostr.PubKey{loggedUser}}, 1_000) {
 									if evt.Tags.Has("nip63") {
 										<tr>
 											<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">

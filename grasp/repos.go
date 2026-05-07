@@ -12,7 +12,7 @@ import (
 
 func getRepositories() iter.Seq2[nip34.Repository, bool] {
 	return func(yield func(nip34.Repository, bool) bool) {
-		for evt := range global.IL.Main.QueryEvents(nostr.Filter{Kinds: []nostr.Kind{nostr.KindRepositoryAnnouncement}}, 1000) {
+		for evt := range global.IL.Main.QueryEvents(nostr.Filter{Kinds: []nostr.Kind{nostr.KindRepositoryAnnouncement}}, 1_000) {
 			repo := nip34.ParseRepository(evt)
 			var cont bool
 			if info, err := os.Stat(filepath.Join(repoDir, repo.PubKey.Hex(), repo.ID)); err == nil && info.IsDir() {

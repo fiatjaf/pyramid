@@ -197,7 +197,7 @@ func RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg strin
 			group.mu.RUnlock()
 		case nip29.DeleteEvent:
 			ineffective := true
-			for range State.DB.QueryEvents(nostr.Filter{IDs: a.Targets}, 500) {
+			for range State.DB.QueryEvents(nostr.Filter{IDs: a.Targets}, len(a.Targets)) {
 				ineffective = false
 				break
 			}
@@ -209,7 +209,7 @@ func RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg strin
 			if !isPrimaryRole {
 				if del, ok := action.(nip29.DeleteEvent); ok {
 					authors := make([]nostr.PubKey, 0, len(del.Targets))
-					for target := range State.DB.QueryEvents(nostr.Filter{IDs: del.Targets}, 500) {
+					for target := range State.DB.QueryEvents(nostr.Filter{IDs: del.Targets}, len(del.Targets)) {
 						if !slices.Contains(authors, target.PubKey) {
 							authors = append(authors, target.PubKey)
 						}

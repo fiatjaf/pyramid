@@ -107,8 +107,8 @@ func setupEnabled() {
 
 	Relay.OnEvent = policies.SeqEvent(
 		policies.PreventLargeContent(global.Settings.Limits.MaxEventSize),
-		policies.PreventTooManyIndexableTags(15, []nostr.Kind{3}, nil),
-		policies.PreventTooManyIndexableTags(1400, nil, []nostr.Kind{3}),
+		policies.PreventTooManyIndexableTags(global.Settings.Limits.MaxIndexableTags, []nostr.Kind{3}, nil),
+		policies.PreventTooManyIndexableTags(global.Settings.Limits.MaxEntriesInFollowList, nil, []nostr.Kind{3}),
 		func(ctx context.Context, evt nostr.Event) (bool, string) {
 			if !pyramid.IsMember(evt.PubKey) {
 				return true, "blocked: this event isn't from a relay member"
@@ -146,7 +146,7 @@ func query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 	// if ids are given fetch such ids and check their authorship
 	if len(filter.IDs) > 0 {
 		return func(yield func(nostr.Event) bool) {
-			for evt := range db.QueryEvents(filter, 500) {
+			for evt := range db.QueryEvents(filter, global.Settings.Limits.MaxQueryLimit) {
 				if evt.PubKey == authed {
 					if !yield(evt) {
 						return
@@ -158,7 +158,7 @@ func query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 
 	// otherwise add the authenticated user to the filter so that is enforced
 	filter.Authors = []nostr.PubKey{authed}
-	return db.QueryEvents(filter, 500)
+	return db.QueryEvents(filter, global.Settings.Limits.MaxQueryLimit)
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {

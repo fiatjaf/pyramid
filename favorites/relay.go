@@ -66,7 +66,7 @@ func setupEnabled() {
 	// cache pinned event at startup
 	global.CachePinnedEvent(global.RelayFavorites)
 
-	Relay.UseEventstore(db, 500)
+	Relay.UseEventstore(db, global.Settings.Limits.MaxQueryLimit)
 
 	// use custom QueryStored with pinned event support
 	Relay.QueryStored = global.QueryStoredWithPinned(global.RelayFavorites)
@@ -84,8 +84,8 @@ func setupEnabled() {
 
 	Relay.OnEvent = policies.SeqEvent(
 		policies.PreventLargeContent(global.Settings.Limits.MaxEventSize),
-		policies.PreventTooManyIndexableTags(15, []nostr.Kind{3}, nil),
-		policies.PreventTooManyIndexableTags(1400, nil, []nostr.Kind{3}),
+		policies.PreventTooManyIndexableTags(global.Settings.Limits.MaxIndexableTags, []nostr.Kind{3}, nil),
+		policies.PreventTooManyIndexableTags(global.Settings.Limits.MaxEntriesInFollowList, nil, []nostr.Kind{3}),
 		func(ctx context.Context, evt nostr.Event) (bool, string) {
 			if !global.KindIsAllowed(evt.Kind) {
 				return true, "blocked: kind unallowed"

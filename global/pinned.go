@@ -55,7 +55,7 @@ func QueryStoredWithPinned(relayId RelayID) func(ctx context.Context, filter nos
 			}
 
 			// then return normal query results
-			for event := range store.QueryEvents(filter, 500) {
+			for event := range store.QueryEvents(filter, Settings.Limits.MaxQueryLimit) {
 				if !yield(event) {
 					return
 				}

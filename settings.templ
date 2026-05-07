@@ -489,6 +489,9 @@ all
 					maxEventSize: ` + fmt.Sprint(global.Settings.Limits.MaxEventSize) + `,
 					maxSubscriptionsOpen: ` + fmt.Sprint(global.Settings.Limits.MaxSubscriptionsOpen) + `,
 					maxTotalCostOpen: ` + fmt.Sprint(global.Settings.Limits.MaxTotalCostOpen) + `,
+					maxIndexableTags: ` + fmt.Sprint(global.Settings.Limits.MaxIndexableTags) + `,
+					maxEntriesInFollowList: ` + fmt.Sprint(global.Settings.Limits.MaxEntriesInFollowList) + `,
+					maxQueryLimit: ` + fmt.Sprint(global.Settings.Limits.MaxQueryLimit) + `,
 					saved: false,
 					async saveSettings() {
 						const response = await fetch(this.$refs.form.action, {
@@ -540,6 +543,42 @@ all
 								min="0"
 								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
 								x-model="maxTotalCostOpen"
+								@blur="saveSettings()"
+							/>
+						</div>
+						<div>
+							<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="max_indexable_tags">max indexable tags per event</label>
+							<input
+								type="number"
+								name="max_indexable_tags"
+								id="max_indexable_tags"
+								min="0"
+								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+								x-model="maxIndexableTags"
+								@blur="saveSettings()"
+							/>
+						</div>
+						<div>
+							<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="max_entries_in_follow_list">max entries in follow list (kind 3)</label>
+							<input
+								type="number"
+								name="max_entries_in_follow_list"
+								id="max_entries_in_follow_list"
+								min="0"
+								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+								x-model="maxEntriesInFollowList"
+								@blur="saveSettings()"
+							/>
+						</div>
+						<div>
+							<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="max_query_limit">max query limit</label>
+							<input
+								type="number"
+								name="max_query_limit"
+								id="max_query_limit"
+								min="0"
+								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+								x-model="maxQueryLimit"
 								@blur="saveSettings()"
 							/>
 						</div>
