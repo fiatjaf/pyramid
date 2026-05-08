@@ -569,7 +569,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 
 		if delayedRedirectTarget != "" {
 			r.Header.Set("Content-Type", "text/html")
-			fmt.Fprintf(w, `<!doctype html><meta http-equiv="refresh" content="2;url=`+delayedRedirectTarget+`">restarting...`)
+			fmt.Fprintf(w, `<!doctype html><meta http-equiv="refresh" content="2;url=%s">restarting...`, delayedRedirectTarget)
 			return
 		}
 

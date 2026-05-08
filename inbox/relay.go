@@ -238,5 +238,5 @@ func checkWoTHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, fmt.Sprint(aggregatedWoT.Contains(pk)))
+	fmt.Fprintf(w, "%v", aggregatedWoT.Contains(pk))
 }
