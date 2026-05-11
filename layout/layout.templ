@@ -1,12 +1,13 @@
 package layout
 
 import (
-	"fiatjaf.com/nostr"
 	"fmt"
+	"strings"
+
+	"fiatjaf.com/nostr"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
-	"strings"
 )
 
 templ Layout(loggedUser nostr.PubKey, currentPage string) {
@@ -251,7 +252,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								<div x-data="authButton()">
 									<button
 										@click="handleAuth($event)"
-										class="cursor-pointer px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg themed:bg-[var(--accent-color)] light:bg-blue-500 hover:bg-blue-600"
+										class="cursor-pointer px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg themed:bg-[var(--accent-color)] light:bg-blue-500 hover:bg-blue-600 dark:bg-blue-500 dark:hover:bg-blue-600"
 									>
 										logout
 									</button>
@@ -272,7 +273,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							<div x-data="authButton()">
 								<button
 									@click="handleAuth($event)"
-									class="cursor-pointer px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg themed:bg-[var(--accent-color)] light:bg-blue-500 hover:bg-blue-600"
+									class="cursor-pointer px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg themed:bg-[var(--accent-color)] light:bg-blue-500 hover:bg-blue-600 dark:bg-blue-500 dark:hover:bg-blue-600"
 								>
 									login
 								</button>
@@ -300,6 +301,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 			</footer>
 			<script>window.wnjParams = { position: 'bottom', startHidden: true, compactMode: true }</script>
 			<script src="https://cdn.jsdelivr.net/npm/window.nostr.js/dist/window.nostr.min.js"></script>
+			<script src="https://unpkg.com/htmx.org@1.9.12"></script>
 			<script>
 				function authButton() {
 					return {

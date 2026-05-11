@@ -885,11 +885,16 @@ all
 							</div>
 						}
 					</div>
-					<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4">
-						<div class="text-sm font-medium text-stone-700 dark:text-stone-300">memory usage</div>
-						<div class="mt-1 text-lg text-stone-900 dark:text-stone-100">total: { systemStats.Memory }</div>
-						<div class="text-xs text-stone-500 dark:text-stone-400">pyramid: { systemStats.MemoryProcess }</div>
+<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4 flex flex-col justify-between" style="min-height: 120px;">
+					<div>
+						<div class="text-sm font-medium text-stone-700 dark:text-stone-300">data usage</div>
+						<div class="mt-1 text-lg text-stone-900 dark:text-stone-100">disk used: { systemStats.DiskUsed } / { systemStats.DiskTotal } ({ systemStats.DiskUsedPct })</div>
+						<div class="text-sm text-stone-600 dark:text-stone-400">pyramid: { systemStats.DataSize } ({ global.S.DataPath })</div>
 					</div>
+					<div class="text-right text-sm text-stone-700 dark:text-stone-200 mt-2">
+						<a href="/database" target="_blank" class="cursor-pointer hover:underline hover:text-stone-400">/database</a>
+					</div>
+				</div>
 				</div>
 				<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
 					<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4">
@@ -901,19 +906,21 @@ all
 							<div class="text-sm text-stone-600 dark:text-stone-400">managing TLS certificates</div>
 						}
 					</div>
-					<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4">
+<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4 flex flex-col justify-between" style="min-height: 120px;">
+					<div>
 						<div class="text-sm font-medium text-stone-700 dark:text-stone-300">relay</div>
 						<div class="mt-1 text-lg text-stone-900 dark:text-stone-100">clients: { relayClients }</div>
 						<div class="text-xs text-stone-500 dark:text-stone-400">subscriptions: { relayListeners }</div>
-						<div class="text-right text-sm text-stone-700 dark:text-stone-200 mt-4">
-							<a href="/clients" target="_blank" class="cursor-pointer hover:underline hover:text-stone-400">/clients</a>
-							<a href="/log" target="_blank" class="ml-4 cursor-pointer hover:underline hover:text-stone-400">/log</a>
-						</div>
 					</div>
+					<div class="text-right text-sm text-stone-700 dark:text-stone-200 mt-4">
+						<a href="/clients" target="_blank" class="cursor-pointer hover:underline hover:text-stone-400">/clients</a>
+						<a href="/log" target="_blank" class="ml-4 cursor-pointer hover:underline hover:text-stone-400">/log</a>
+					</div>
+				</div>
 					<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4">
-						<div class="text-sm font-medium text-stone-700 dark:text-stone-300">data usage</div>
-						<div class="mt-1 text-lg text-stone-900 dark:text-stone-100">disk used: { systemStats.DiskUsed } / { systemStats.DiskTotal } ({ systemStats.DiskUsedPct })</div>
-						<div class="text-sm text-stone-600 dark:text-stone-400">pyramid: { systemStats.DataSize } ({ global.S.DataPath })</div>
+						<div class="text-sm font-medium text-stone-700 dark:text-stone-300">memory usage</div>
+						<div class="mt-1 text-lg text-stone-900 dark:text-stone-100">total: { systemStats.Memory }</div>
+						<div class="text-xs text-stone-500 dark:text-stone-400">pyramid: { systemStats.MemoryProcess }</div>
 					</div>
 				</div>
 				<div class="mt-4">
