@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"net/http"
 
+	"cmp"
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/eventstore/mmm"
+	"fiatjaf.com/nostr/nip19"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
 	"github.com/fiatjaf/pyramid/pyramid"
+	"slices"
 	"time"
 )
 
@@ -19,8 +22,6 @@ func databaseHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", 403)
 		return
 	}
-
-	isHTMX := r.Header.Get("Hx-Request") == "true"
 
 	filterJSON := "{}"
 	results := []dbResult{}
@@ -36,56 +37,59 @@ func databaseHandler(w http.ResponseWriter, r *http.Request) {
 		if err := json.Unmarshal([]byte(filterJSON), &filter); err != nil {
 			errMsg = "invalid filter JSON: " + err.Error()
 		} else {
-			// validate selected databases
-			validDBs := map[string]*mmm.IndexingLayer{}
-			for _, name := range selectedDBs {
-				switch name {
-				case "system":
-					validDBs[name] = global.IL.System
-				case "main":
-					validDBs[name] = global.IL.Main
-				case "internal":
-					validDBs[name] = global.IL.Internal
-				case "favorites":
-					validDBs[name] = global.IL.Favorites
-				case "invites":
-					validDBs[name] = global.IL.Invites
-				case "personal":
-					validDBs[name] = global.IL.Personal
-				case "groups":
-					validDBs[name] = global.IL.Groups
-				case "inbox":
-					validDBs[name] = global.IL.Inbox
-				case "secret":
-					validDBs[name] = global.IL.Secret
-				case "moderation-queue":
-					validDBs[name] = global.IL.ModerationQueue
-				case "moderated":
-					validDBs[name] = global.IL.Moderated
-				case "popular":
-					validDBs[name] = global.IL.Popular
-				case "uppermost":
-					validDBs[name] = global.IL.Uppermost
-				case "scheduled":
-					validDBs[name] = global.IL.Scheduled
-				case "blossom":
-					validDBs[name] = global.IL.Blossom
-				}
-			}
-
 			// if no limit set, default to 100
 			if filter.Limit == 0 && !filter.LimitZero {
 				filter.Limit = 100
 			}
 
 			// query each selected database directly, bypassing relay rules
-			for dbName, db := range validDBs {
+			for _, name := range selectedDBs {
+				var db *mmm.IndexingLayer
+				switch name {
+				case "system":
+					db = global.IL.System
+				case "main":
+					db = global.IL.Main
+				case "internal":
+					db = global.IL.Internal
+				case "favorites":
+					db = global.IL.Favorites
+				case "invites":
+					db = global.IL.Invites
+				case "personal":
+					db = global.IL.Personal
+				case "groups":
+					db = global.IL.Groups
+				case "inbox":
+					db = global.IL.Inbox
+				case "secret":
+					db = global.IL.Secret
+				case "moderation-queue":
+					db = global.IL.ModerationQueue
+				case "moderated":
+					db = global.IL.Moderated
+				case "popular":
+					db = global.IL.Popular
+				case "uppermost":
+					db = global.IL.Uppermost
+				case "scheduled":
+					db = global.IL.Scheduled
+				case "blossom":
+					db = global.IL.Blossom
+				}
+
 				for evt := range db.QueryEvents(filter, filter.Limit) {
 					results = append(results, dbResult{
-						DatabaseName: dbName,
+						DatabaseName: name,
 						Event:        evt,
 					})
 				}
+			}
+
+			if len(selectedDBs) > 1 {
+				slices.SortFunc(results, func(a, b dbResult) int {
+					return cmp.Compare(a.Event.CreatedAt, b.Event.CreatedAt)
+				})
 			}
 
 			// cap total results
@@ -95,7 +99,7 @@ func databaseHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if isHTMX {
+	if isHTMX := r.Header.Get("Hx-Request") == "true"; isHTMX {
 		databaseResults(results, errMsg).Render(r.Context(), w)
 	} else {
 		databasePage(loggedUser, filterJSON, errMsg).Render(r.Context(), w)
@@ -220,13 +224,36 @@ templ databaseResults(results []dbResult, errMsg string) {
 							<tr class="border-b border-stone-100 dark:border-stone-700 last:border-b-0">
 								<td class="px-4 py-3 font-medium">{ result.DatabaseName }</td>
 								<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", result.Event.Kind) }</td>
-								<td class="px-4 py-3 font-mono">
-									<code class="text-xs break-all">{ result.Event.ID.Hex() }</code>
+								<td class="px-4 py-3 font-mono" x-data="{ truncated: true }">
+									<div
+										class="text-xs break-all cursor-pointer hover:text-blue-500 dark:hover:text-blue-400 font-mono"
+										@click="truncated = !truncated"
+										:class="truncated ? 'w-20 truncate' : ''"
+									>{ result.Event.ID.Hex() }</div>
 								</td>
-								<td class="px-4 py-3 font-mono">
-									<nostr-name pubkey={ result.Event.PubKey.Hex() }>{ result.Event.PubKey.Hex() }</nostr-name>
+								<td class="px-4 py-3 font-mono" x-data="{ mode: 'name' }">
+									<span
+										class="cursor-pointer hover:text-blue-500 dark:hover:text-blue-400"
+										@click="mode = mode === 'name' ? 'hex' : (mode === 'hex' ? 'npub' : 'name')"
+										title="click to toggle"
+									>
+										<span :class="mode === 'name' ? '' : 'hidden'">
+											<nostr-name pubkey={ result.Event.PubKey.Hex() }>{ result.Event.PubKey.Hex() }</nostr-name>
+										</span>
+										<code :class="mode === 'hex' ? '' : 'hidden'" class="text-xs">{ result.Event.PubKey.Hex() }</code>
+										<code :class="mode === 'npub' ? '' : 'hidden'" class="text-xs">{ nip19.EncodeNpub(result.Event.PubKey) }</code>
+									</span>
 								</td>
-								<td class="px-4 py-3">{ result.Event.CreatedAt.Time().Format(time.DateTime) }</td>
+								<td class="px-4 py-3" x-data="{ unix: false }">
+									<span
+										class="cursor-pointer hover:text-blue-500 dark:hover:text-blue-400"
+										@click="unix = !unix"
+										title="click to toggle"
+									>
+										<span :class="unix ? 'hidden' : ''">{ result.Event.CreatedAt.Time().Format(time.DateTime) }</span>
+										<code :class="unix ? '' : 'hidden'" class="text-xs">{ fmt.Sprintf("%d", result.Event.CreatedAt) }</code>
+									</span>
+								</td>
 								<td class="px-4 py-3 break-all max-w-md">
 									if len(result.Event.Tags) == 0 {
 										<code class="text-xs whitespace-pre-wrap">[]</code>
