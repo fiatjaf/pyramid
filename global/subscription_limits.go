@@ -62,11 +62,27 @@ func RejectTooManyOpenSubscriptions(ctx context.Context, _ nostr.Filter) (bool, 
 		return false, ""
 	}
 
+	var client string
+	if conn := khatru.GetConnection(ctx); conn != nil && conn.Request != nil {
+		client = conn.Request.Header.Get("Origin")
+		if client == "" {
+			client = conn.Request.Header.Get("user-agent")
+		}
+	}
+
 	if v, _ := subscriptionTracker.Load(ip); v.subscriptions >= Settings.Limits.MaxSubscriptionsOpen {
-		Log.Info().Str("ip", ip).Int("subs", v.subscriptions).Msg("rejected subscription due to max number of subscriptions reached")
+		Log.Info().
+			Str("ip", ip).
+			Int("subs", v.subscriptions).
+			Str("client", client).
+			Msg("rejected subscription due to max number of subscriptions reached")
 		return true, fmt.Sprintf("already %d subscriptions from this IP", v.subscriptions)
 	} else if v.cost >= Settings.Limits.MaxTotalCostOpen {
-		Log.Info().Str("ip", ip).Int("cost", v.cost).Msg("rejected subscription due to max cost reached")
+		Log.Info().
+			Str("ip", ip).
+			Int("cost", v.cost).
+			Str("client", client).
+			Msg("rejected subscription due to max cost reached")
 		return true, fmt.Sprintf("there are subscriptions from this IP with a total filter cost of %d", v.cost)
 	}
 
