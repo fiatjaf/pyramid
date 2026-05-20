@@ -44,7 +44,7 @@ func hideEventFromReader(filter nostr.Filter, evt nostr.Event, authed []nostr.Pu
 
 	if group.Hidden {
 		// 'hidden' works only by hiding the group from abrangent queries like listing all groups in a relay etc
-		if requestedGroupIds(filter) == nil {
+		if requestedGroupIds(filter) == nil && filter.IDs == nil {
 			return true
 		}
 
