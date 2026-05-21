@@ -1,0 +1,165 @@
+package operator
+
+import (
+	"fiatjaf.com/nostr"
+
+	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
+	"github.com/fiatjaf/pyramid/pyramid"
+)
+
+templ operatorPage(loggedUser nostr.PubKey) {
+	@layout.Layout(loggedUser, "operator") {
+		<div class="max-w-3xl mx-auto">
+			<h1 class="text-4xl font-bold mb-4 font-[family-name:var(--primary-font)]">operator</h1>
+			<div class="space-y-4 text-gray-700 dark:text-gray-300">
+				<p class="text-lg leading-relaxed">
+					pomegranate operator service for frost key shard management.
+				</p>
+			</div>
+			if pyramid.IsRoot(loggedUser) {
+				<div class="mt-8">
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">configuration</h3>
+					if !global.Settings.Operator.Enabled {
+						<form method="POST" action="/po/enable">
+							<button
+								type="submit"
+								class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+							>
+								enable
+							</button>
+						</form>
+					} else {
+						<form
+							method="POST"
+							action="/settings"
+							class="space-y-4"
+							x-data={ `{
+								saved: false,
+								googleClientId: '` + global.Settings.Operator.GoogleClientID + `',
+								googleClientSecret: '` + global.Settings.Operator.GoogleClientSecret + `',
+								async saveSettings() {
+									const response = await fetch(this.$refs.form.action, {
+										method: 'POST',
+										body: new URLSearchParams(new FormData(this.$refs.form))
+									});
+									if (response.ok) {
+										this.saved = true;
+										setTimeout(() => this.saved = false, 2000);
+									}
+								}
+							}` }
+							x-ref="form"
+						>
+							<div>
+								<label class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+									google client id
+								</label>
+								<input
+									type="text"
+									name="operator_google_client_id"
+									x-model="googleClientId"
+									@blur="saveSettings()"
+									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-md bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+								/>
+							</div>
+							<div>
+								<label class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+									google client secret
+								</label>
+								<input
+									type="text"
+									name="operator_google_client_secret"
+									x-model="googleClientSecret"
+									@blur="saveSettings()"
+									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-md bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+								/>
+							</div>
+							<div
+								x-show="saved"
+								x-transition
+								class="text-sm text-green-600 dark:text-green-400 font-medium"
+							>
+								saved!
+							</div>
+						</form>
+						<details class="mt-4">
+							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">disable operator</summary>
+							<form class="my-4" method="POST" action="/po/disable">
+								<button
+									type="submit"
+									class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+								>
+									disable
+								</button>
+							</form>
+						</details>
+					}
+				</div>
+			}
+		</div>
+	}
+}
+
+templ confirmRecoveryPage(email, shard string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>Confirm Recovery</title>
+			<link rel="stylesheet" href="/static/styles.css"/>
+		</head>
+		<body class="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100">
+			<div class="max-w-md mx-auto p-8 bg-white dark:bg-stone-800 rounded-lg shadow-lg">
+				<h1 class="text-2xl font-bold mb-4">Confirm Recovery</h1>
+				<p class="mb-4 text-stone-600 dark:text-stone-400">Are you sure you want to recover your secret shard for { email }?</p>
+				<p class="mb-6 text-stone-600 dark:text-stone-400">This will share your secret shard with the requesting application.</p>
+				<div class="flex gap-4">
+					<button id="confirm" class="cursor-pointer px-4 py-2 rounded bg-blue-500 hover:bg-blue-600 text-white font-medium">Yes, I trust the application</button>
+					<button onclick="window.close()" class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium">Cancel</button>
+				</div>
+			</div>
+			<script>
+				const shard = "{{ shard }}";
+				document.getElementById('confirm').addEventListener('click', function() {
+					window.opener.postMessage(shard, "*")
+					window.close()
+				})
+			</script>
+		</body>
+	</html>
+}
+
+templ confirmErasePage(email string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>Confirm Erase</title>
+			<link rel="stylesheet" href="/static/styles.css"/>
+		</head>
+		<body class="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100">
+			<div class="max-w-md mx-auto p-8 bg-white dark:bg-stone-800 rounded-lg shadow-lg">
+				<h1 class="text-2xl font-bold mb-4">Confirm Erase</h1>
+				<p class="mb-4 text-stone-600 dark:text-stone-400">Are you sure you want to erase your secret shard for account { email }?</p>
+				<p class="mb-6 text-stone-600 dark:text-stone-400">This action cannot be undone.</p>
+				<div class="flex gap-4">
+					<button id="confirm" class="cursor-pointer px-4 py-2 rounded bg-red-500 hover:bg-red-600 text-white font-medium">Yes, erase forever</button>
+					<button onclick="window.close()" class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium">Cancel</button>
+				</div>
+			</div>
+			<script>
+				document.getElementById('confirm').addEventListener('click', async function() {
+					const response = await fetch('/po/shard', { method: 'DELETE', credentials: 'same-origin' })
+					if (!response.ok) {
+						alert(await response.text())
+						return
+					}
+					window.close()
+				})
+			</script>
+		</body>
+	</html>
+}

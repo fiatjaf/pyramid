@@ -35,6 +35,7 @@ import (
 	"github.com/fiatjaf/pyramid/inbox"
 	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/moderated"
+	"github.com/fiatjaf/pyramid/operator"
 	"github.com/fiatjaf/pyramid/paywall"
 	"github.com/fiatjaf/pyramid/personal"
 	"github.com/fiatjaf/pyramid/popular"
@@ -162,6 +163,7 @@ func main() {
 	blossom.Init(relay)
 	paywall.Init(relay)
 	stream.Init(relay)
+	operator.Init(relay)
 	favorites.Init()
 	inbox.Init()
 	internal.Init()
@@ -497,6 +499,9 @@ func run(ctx context.Context) error {
 
 	mux.Handle("/paywall/", paywall.Handler)
 	mux.Handle("/paywall", paywall.Handler)
+
+	mux.Handle("/po/", operator.Handler)
+	mux.Handle("/po", operator.Handler)
 
 	mux.Handle("/scheduled/", scheduled)
 	mux.Handle("/scheduled", scheduled)

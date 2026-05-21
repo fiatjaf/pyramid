@@ -123,6 +123,11 @@ func Init() error {
 		return fmt.Errorf("failed to ensure 'blossom': %w", err)
 	}
 
+	IL.OperatorBucket, err = MMMM.EnsureLayer("operator")
+	if err != nil {
+		return fmt.Errorf("failed to ensure 'operator': %w", err)
+	}
+
 	return nil
 }
 
@@ -161,4 +166,7 @@ var IL struct {
 
 	// blossom blob index
 	Blossom *mmm.IndexingLayer
+
+	// operator registrations
+	OperatorBucket *mmm.IndexingLayer
 }

@@ -546,6 +546,10 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 					global.Settings.Blossom.MaxUserUploadSize, _ = strconv.Atoi(v[0])
 					global.Settings.Blossom.MaxUserUploadSizeAtEachLevel = nil
 				}
+			case "operator_google_client_id":
+				global.Settings.Operator.GoogleClientID = v[0]
+			case "operator_google_client_secret":
+				global.Settings.Operator.GoogleClientSecret = v[0]
 			}
 		}
 

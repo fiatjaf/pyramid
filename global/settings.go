@@ -137,6 +137,13 @@ type UserSettings struct {
 		Enabled  bool   `json:"enabled"`
 		Password string `json:"password"`
 	} `json:"ftp"`
+
+	Operator struct {
+		Enabled            bool   `json:"enabled"`
+		HTTPBasePath       string `json:"path"`
+		GoogleClientID     string `json:"google_client_id"`
+		GoogleClientSecret string `json:"google_client_secret"`
+	} `json:"operator"`
 }
 
 type Limits struct {
@@ -310,6 +317,10 @@ func loadUserSettings() error {
 
 	// Stream settings
 	Settings.Stream.Enabled = false
+
+	// Operator settings
+	Settings.Operator.Enabled = false
+	Settings.Operator.HTTPBasePath = "po"
 
 	// theme defaults
 	Settings.Theme.TextColor = "#ffffff"
