@@ -83,9 +83,8 @@ templ operatorPage(loggedUser nostr.PubKey) {
 								saved!
 							</div>
 						</form>
-
-						<div class="mt-6 space-y-4">
-							<h4 class="text-base font-semibold dark:text-stone-200">registration filter</h4>
+						<details class="mt-6 space-y-4">
+							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">filtering options</summary>
 							<p class="text-sm text-stone-600 dark:text-stone-400">restrict who can register a shard to the pomegranate operator.</p>
 							<form
 								method="POST"
@@ -112,7 +111,9 @@ templ operatorPage(loggedUser nostr.PubKey) {
 										name="operator_registration_filter"
 										value=""
 										class="w-4 h-4"
-										checked={ global.Settings.Operator.RegistrationFilter == "" }
+										if global.Settings.Operator.RegistrationFilter == "" {
+											checked
+										}
 										@change="saveSettings()"
 									/>
 									<span class="text-sm dark:text-stone-300">anyone (no restriction)</span>
@@ -123,7 +124,9 @@ templ operatorPage(loggedUser nostr.PubKey) {
 										name="operator_registration_filter"
 										value="members"
 										class="w-4 h-4"
-										checked={ global.Settings.Operator.RegistrationFilter == "members" }
+										if global.Settings.Operator.RegistrationFilter == "members" {
+											checked
+										}
 										@change="saveSettings()"
 									/>
 									<span class="text-sm dark:text-stone-300">only pyramid members</span>
@@ -134,7 +137,9 @@ templ operatorPage(loggedUser nostr.PubKey) {
 										name="operator_registration_filter"
 										value="wot"
 										class="w-4 h-4"
-										checked={ global.Settings.Operator.RegistrationFilter == "wot" }
+										if global.Settings.Operator.RegistrationFilter == "wot" {
+											checked
+										}
 										@change="saveSettings()"
 									/>
 									<span class="text-sm dark:text-stone-300">only web-of-trust (extended network)</span>
@@ -147,9 +152,8 @@ templ operatorPage(loggedUser nostr.PubKey) {
 									saved!
 								</div>
 							</form>
-						</div>
-
-						<details class="mt-4">
+						</details>
+						<details>
 							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">disable operator</summary>
 							<form class="my-4" method="POST" action="/po/disable">
 								<button

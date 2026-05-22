@@ -53,6 +53,11 @@ func handleSign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if reg.CentralPubKey != evt.PubKey.Hex() {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	switch evt.Kind {
 	case common.KindConfiguration:
 		cfg := frost.Configuration{}

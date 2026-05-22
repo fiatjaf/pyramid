@@ -27,6 +27,7 @@ import (
 	"github.com/fiatjaf/pyramid/inbox"
 	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/moderated"
+	"github.com/fiatjaf/pyramid/operator"
 	"github.com/fiatjaf/pyramid/personal"
 	"github.com/fiatjaf/pyramid/popular"
 	"github.com/fiatjaf/pyramid/pyramid"
@@ -548,8 +549,10 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			case "operator_google_client_id":
 				global.Settings.Operator.GoogleClientID = v[0]
+				operator.SetupEnabled()
 			case "operator_google_client_secret":
 				global.Settings.Operator.GoogleClientSecret = v[0]
+				operator.SetupEnabled()
 			case "operator_registration_filter":
 				if v[0] == "members" || v[0] == "wot" || v[0] == "" {
 					global.Settings.Operator.RegistrationFilter = v[0]

@@ -44,6 +44,7 @@ import (
 	"github.com/fiatjaf/pyramid/stream"
 	"github.com/fiatjaf/pyramid/uppermost"
 	"github.com/fiatjaf/pyramid/wot"
+	"github.com/rs/cors"
 )
 
 var (
@@ -504,8 +505,8 @@ func run(ctx context.Context) error {
 	mux.Handle("/paywall/", paywall.Handler)
 	mux.Handle("/paywall", paywall.Handler)
 
-	mux.Handle("/po/", operator.Handler)
-	mux.Handle("/po", operator.Handler)
+	mux.Handle("/po/", cors.AllowAll().Handler(operator.Handler))
+	mux.Handle("/po", cors.AllowAll().Handler(operator.Handler))
 
 	mux.Handle("/scheduled/", scheduled)
 	mux.Handle("/scheduled", scheduled)

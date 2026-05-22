@@ -35,7 +35,7 @@ func Init(relay *khatru.Relay) {
 	if !global.Settings.Operator.Enabled {
 		setupDisabled()
 	} else {
-		setupEnabled()
+		SetupEnabled()
 	}
 }
 
@@ -46,7 +46,7 @@ func setupDisabled() {
 	L.Debug().Msg("operator service disabled")
 }
 
-func setupEnabled() {
+func SetupEnabled() {
 	googleConfig := &oauth2.Config{
 		ClientID:     global.Settings.Operator.GoogleClientID,
 		ClientSecret: global.Settings.Operator.GoogleClientSecret,
@@ -68,9 +68,9 @@ func setupEnabled() {
 		http.Redirect(w, r, "/po/action/google?intent=erase", http.StatusFound)
 	})
 	Handler.mux.HandleFunc("/po/callback/google", handleGoogleCallback(googleConfig))
-	Handler.mux.HandleFunc("POST /po/register", handleRegister)
 	Handler.mux.HandleFunc("POST /po/sign", handleSign)
 	Handler.mux.HandleFunc("DELETE /po/shard", handleDeleteShard)
+	Handler.mux.Handle("POST /po/register", http.HandlerFunc(handleRegister))
 	Handler.mux.HandleFunc("/po/", pageHandler)
 	L.Debug().Msg("operator service enabled")
 }
@@ -89,7 +89,7 @@ func enableHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	setupEnabled()
+	SetupEnabled()
 	http.Redirect(w, r, "/po/", http.StatusFound)
 }
 
@@ -204,10 +204,9 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check registration filter
-	pubkey := evt.PubKey
 	switch global.Settings.Operator.RegistrationFilter {
 	case "members":
-		if !pyramid.IsMember(pubkey) {
+		if !pyramid.IsMember(evt.PubKey) {
 			http.Error(w, "only pyramid members can register", http.StatusForbidden)
 			return
 		}
@@ -216,7 +215,7 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "web-of-trust not yet computed, try again later", http.StatusServiceUnavailable)
 			return
 		}
-		if !wot.Current.Contains(pubkey) {
+		if !wot.Current.Contains(evt.PubKey) {
 			http.Error(w, "only web-of-trust members can register", http.StatusForbidden)
 			return
 		}
@@ -248,7 +247,7 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf("%s/operator/ack", centralTag[1]),
 		strings.NewReader(url.Values{
 			"email": {emailTag[1]},
-			"url":   {global.Settings.HTTPScheme() + global.Settings.Domain + "/po"},
+			"url":   {global.Settings.HTTPScheme() + global.Settings.Domain},
 		}.Encode()),
 	)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
