@@ -43,6 +43,7 @@ import (
 	"github.com/fiatjaf/pyramid/search"
 	"github.com/fiatjaf/pyramid/stream"
 	"github.com/fiatjaf/pyramid/uppermost"
+	"github.com/fiatjaf/pyramid/wot"
 )
 
 var (
@@ -166,6 +167,9 @@ func main() {
 	operator.Init(relay)
 	favorites.Init()
 	inbox.Init()
+
+	// start background web-of-trust computation (needed by inbox and operator)
+	wot.StartBackgroundComputation()
 	internal.Init()
 	personal.Init()
 	moderated.Init()

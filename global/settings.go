@@ -143,6 +143,7 @@ type UserSettings struct {
 		HTTPBasePath       string `json:"path"`
 		GoogleClientID     string `json:"google_client_id"`
 		GoogleClientSecret string `json:"google_client_secret"`
+		RegistrationFilter string `json:"registration_filter,omitempty"`
 	} `json:"operator"`
 }
 

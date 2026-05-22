@@ -550,6 +550,10 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Operator.GoogleClientID = v[0]
 			case "operator_google_client_secret":
 				global.Settings.Operator.GoogleClientSecret = v[0]
+			case "operator_registration_filter":
+				if v[0] == "members" || v[0] == "wot" || v[0] == "" {
+					global.Settings.Operator.RegistrationFilter = v[0]
+				}
 			}
 		}
 

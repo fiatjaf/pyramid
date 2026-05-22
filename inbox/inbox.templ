@@ -9,6 +9,7 @@ import (
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
 	"github.com/fiatjaf/pyramid/pyramid"
+	"github.com/fiatjaf/pyramid/wot"
 )
 
 templ inboxPage(loggedUser nostr.PubKey) {
@@ -52,13 +53,13 @@ templ inboxPage(loggedUser nostr.PubKey) {
 					browse inbox →
 				</a>
 				<div class="mt-6 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-					if !wotComputed {
+					if !wot.Computed {
 						<span>calculating aggregated web-of-trust...</span>
 					} else {
 						<div class="flex items-center gap-4">
 							<h3 class="font-semibold text-gray-800 dark:text-gray-200">check who is allowed to post</h3>
 							<div class="text-sm text-gray-600 dark:text-gray-400">
-								{ fmt.Sprintf("(total: %d pubkeys)", aggregatedWoT.Items) }
+								{ fmt.Sprintf("(total: %d pubkeys)", wot.Current.Items) }
 							</div>
 						</div>
 						<form

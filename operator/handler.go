@@ -21,6 +21,7 @@ import (
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
+	"github.com/fiatjaf/pyramid/wot"
 )
 
 var (
@@ -200,6 +201,27 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 	if evt.Kind != common.KindOperatorRegistration {
 		http.Error(w, "invalid kind", http.StatusBadRequest)
 		return
+	}
+
+	// check registration filter
+	pubkey := evt.PubKey
+	switch global.Settings.Operator.RegistrationFilter {
+	case "members":
+		if !pyramid.IsMember(pubkey) {
+			http.Error(w, "only pyramid members can register", http.StatusForbidden)
+			return
+		}
+	case "wot":
+		if !wot.Computed {
+			http.Error(w, "web-of-trust not yet computed, try again later", http.StatusServiceUnavailable)
+			return
+		}
+		if !wot.Current.Contains(pubkey) {
+			http.Error(w, "only web-of-trust members can register", http.StatusForbidden)
+			return
+		}
+	default:
+		// allow anyone
 	}
 
 	emailTag := evt.Tags.Find("email")

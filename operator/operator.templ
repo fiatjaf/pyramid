@@ -83,6 +83,72 @@ templ operatorPage(loggedUser nostr.PubKey) {
 								saved!
 							</div>
 						</form>
+
+						<div class="mt-6 space-y-4">
+							<h4 class="text-base font-semibold dark:text-stone-200">registration filter</h4>
+							<p class="text-sm text-stone-600 dark:text-stone-400">restrict who can register a shard to the pomegranate operator.</p>
+							<form
+								method="POST"
+								action="/settings"
+								class="space-y-3"
+								x-data={ `{
+									saved: false,
+									async saveSettings() {
+										const response = await fetch(this.$refs.regFilterForm.action, {
+											method: 'POST',
+											body: new URLSearchParams(new FormData(this.$refs.regFilterForm))
+										});
+										if (response.ok) {
+											this.saved = true;
+											setTimeout(() => this.saved = false, 2000);
+										}
+									}
+								}` }
+								x-ref="regFilterForm"
+							>
+								<label class="flex items-center gap-2 cursor-pointer">
+									<input
+										type="radio"
+										name="operator_registration_filter"
+										value=""
+										class="w-4 h-4"
+										checked={ global.Settings.Operator.RegistrationFilter == "" }
+										@change="saveSettings()"
+									/>
+									<span class="text-sm dark:text-stone-300">anyone (no restriction)</span>
+								</label>
+								<label class="flex items-center gap-2 cursor-pointer">
+									<input
+										type="radio"
+										name="operator_registration_filter"
+										value="members"
+										class="w-4 h-4"
+										checked={ global.Settings.Operator.RegistrationFilter == "members" }
+										@change="saveSettings()"
+									/>
+									<span class="text-sm dark:text-stone-300">only pyramid members</span>
+								</label>
+								<label class="flex items-center gap-2 cursor-pointer">
+									<input
+										type="radio"
+										name="operator_registration_filter"
+										value="wot"
+										class="w-4 h-4"
+										checked={ global.Settings.Operator.RegistrationFilter == "wot" }
+										@change="saveSettings()"
+									/>
+									<span class="text-sm dark:text-stone-300">only web-of-trust (extended network)</span>
+								</label>
+								<div
+									x-show="saved"
+									x-transition
+									class="text-sm text-green-600 dark:text-green-400 font-medium"
+								>
+									saved!
+								</div>
+							</form>
+						</div>
+
 						<details class="mt-4">
 							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">disable operator</summary>
 							<form class="my-4" method="POST" action="/po/disable">
