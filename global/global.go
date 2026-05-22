@@ -1,8 +1,13 @@
 package global
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"strings"
+	"time"
 
 	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/sdk"
@@ -20,6 +25,7 @@ var (
 	Nostr    *sdk.System
 	MMMM     *mmm.MultiMmapManager
 	Settings UserSettings
+	PublicIP string
 )
 
 func Init() error {
@@ -126,6 +132,30 @@ func Init() error {
 	IL.OperatorBucket, err = MMMM.EnsureLayer("operator")
 	if err != nil {
 		return fmt.Errorf("failed to ensure 'operator': %w", err)
+	}
+
+	for _, url := range []string{"https://api.ipify.org", "https://httpbin.org/ip"} {
+		resp, err := (&http.Client{Timeout: 10 * time.Second}).Get(url)
+		if err != nil {
+			continue
+		}
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			continue
+		}
+		ip := strings.TrimSpace(string(body))
+		if url == "https://httpbin.org/ip" {
+			var v struct{ Origin string }
+			if err := json.Unmarshal(body, &v); err != nil {
+				continue
+			}
+			ip = v.Origin
+		}
+		if ip != "" {
+			PublicIP = ip
+			break
+		}
 	}
 
 	return nil

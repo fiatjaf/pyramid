@@ -14,7 +14,7 @@ templ operatorPage(loggedUser nostr.PubKey) {
 			<h1 class="text-4xl font-bold mb-4 font-[family-name:var(--primary-font)]">operator</h1>
 			<div class="space-y-4 text-gray-700 dark:text-gray-300">
 				<p class="text-lg leading-relaxed">
-					pomegranate operator service for frost key shard management.
+					<a href="https://viewsource.win/fiatjaf.com/pomegranate" target="_blank" class="underline hover:text-stone-700 dark:hover:text-stone-200">pomegranate</a> operator service for frost key shard management.
 				</p>
 			</div>
 			if pyramid.IsRoot(loggedUser) {
@@ -51,6 +51,9 @@ templ operatorPage(loggedUser nostr.PubKey) {
 							}` }
 							x-ref="form"
 						>
+							<p class="text-xs text-stone-500 dark:text-stone-400 mb-2">
+								get credentials at <a href="https://console.cloud.google.com/auth/clients" target="_blank" class="underline hover:text-stone-700 dark:hover:text-stone-200">https://console.cloud.google.com/auth/clients</a>
+							</p>
 							<div>
 								<label class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
 									google client id

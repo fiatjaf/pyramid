@@ -533,9 +533,24 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 												stop embedded livekit server
 											</button>
 										</form>
-										<p class="text-xs text-stone-500 dark:text-stone-400">
-											{ "point livekit." + global.Settings.Domain + " and turn." + global.Settings.Domain + " DNS records to this same pyramid IP before clients try to connect." }
-										</p>
+										{{ dncStatus, serverIP := EmbeddedLiveKitDNSCheck() }}
+										if dncStatus == "ok" {
+											<p class="text-xs text-green-600 dark:text-green-400">
+												DNS records "livekit.{ global.Settings.Domain }" and "turn.{ global.Settings.Domain }" correctly pointing to "{ serverIP }".
+											</p>
+										} else if dncStatus == "wrong_ip" {
+											<p class="text-xs text-red-600 dark:text-red-400">
+												DNS records "livekit.{ global.Settings.Domain }" and "turn.{ global.Settings.Domain }" are pointing to the wrong IP, they must point to "{ serverIP }".
+											</p>
+										} else if dncStatus == "no_records" {
+											<p class="text-xs text-red-600 dark:text-red-400">
+												no DNS records found for "livekit.{ global.Settings.Domain }" and "turn.{ global.Settings.Domain }". point them to "{ serverIP }".
+											</p>
+										} else {
+											<p class="text-xs text-stone-500 dark:text-stone-400">
+												checking DNS...
+											</p>
+										}
 									} else if EmbeddedLiveKitAvailable() {
 										<form method="POST" action="/groups/livekit/start">
 											<button
@@ -549,6 +564,9 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 									if EmbeddedLiveKitAvailable() {
 										<p class="text-xs text-stone-500 dark:text-stone-400">
 											{ "this downloads the latest matching LiveKit release into livekit-bin, generates fresh credentials, serves it from livekit." + global.Settings.Domain + ", exposes TURN on turn." + global.Settings.Domain + ", and updates the fields below." }
+										</p>
+										<p class="text-xs text-stone-500 dark:text-stone-400">
+											{ "point livekit." + global.Settings.Domain + " and turn." + global.Settings.Domain + " DNS records to this same pyramid IP before clients try to connect." }
 										</p>
 										<div class="grid gap-3 sm:grid-cols-2">
 											<div>
@@ -579,6 +597,9 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 									}
 								</div>
 							}
+							<p class="text-xs text-stone-500 dark:text-stone-400 mb-2">
+								get free LiveKit instance at <a href="https://cloud.livekit.io/" target="_blank" class="underline hover:text-stone-700 dark:hover:text-stone-200">cloud.livekit.io</a>
+							</p>
 							<form method="POST" action="/settings" class="space-y-4 my-4">
 								<div>
 									<label for="livekit_server_url" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -217,6 +218,7 @@ keys:
 	embeddedLiveKit.running = true
 	embeddedLiveKit.version = release.TagName
 	embeddedLiveKit.error = ""
+	startEmbeddedLiveKitDNSChecker()
 	log.Info().Str("version", release.TagName).Int("pid", cmd.Process.Pid).Msg("started embedded livekit server")
 	return nil
 }
@@ -436,4 +438,74 @@ func ShutdownEmbeddedLiveKit() {
 	case <-ctx.Done():
 		log.Warn().Msg("timed out stopping embedded livekit during shutdown")
 	}
+}
+
+type dnsCheckResult struct {
+	mu       sync.RWMutex
+	status   string // "checking", "no_records", "wrong_ip", "ok"
+	serverIP string
+}
+
+var embeddedDNS = &dnsCheckResult{status: "checking"}
+
+func EmbeddedLiveKitDNSCheck() (status, serverIP string) {
+	embeddedDNS.mu.RLock()
+	defer embeddedDNS.mu.RUnlock()
+	return embeddedDNS.status, embeddedDNS.serverIP
+}
+
+func checkEmbeddedLiveKitDNS() {
+	domain := global.Settings.Domain
+	if domain == "" {
+		embeddedDNS.mu.Lock()
+		embeddedDNS.status = "checking"
+		embeddedDNS.serverIP = ""
+		embeddedDNS.mu.Unlock()
+		return
+	}
+
+	livekitHost := "livekit." + domain
+	turnHost := "turn." + domain
+
+	livekitIPs, errLK := net.LookupHost(livekitHost)
+	turnIPs, errTurn := net.LookupHost(turnHost)
+
+	embeddedDNS.mu.Lock()
+	defer embeddedDNS.mu.Unlock()
+
+	embeddedDNS.serverIP = global.PublicIP
+
+	if errLK != nil || errTurn != nil || (len(livekitIPs) == 0 && len(turnIPs) == 0) {
+		embeddedDNS.status = "no_records"
+		return
+	}
+
+	allIPs := append(livekitIPs, turnIPs...)
+	for _, ip := range allIPs {
+		if ip == global.PublicIP {
+			embeddedDNS.status = "ok"
+			return
+		}
+	}
+
+	embeddedDNS.status = "wrong_ip"
+}
+
+func startEmbeddedLiveKitDNSChecker() {
+	go func() {
+		for {
+			checkEmbeddedLiveKitDNS()
+
+			embeddedDNS.mu.RLock()
+			s := embeddedDNS.status
+			embeddedDNS.mu.RUnlock()
+
+			interval := 5 * time.Minute
+			if s == "ok" {
+				interval = 24 * time.Hour
+			}
+
+			time.Sleep(interval)
+		}
+	}()
 }
