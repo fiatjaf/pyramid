@@ -264,8 +264,8 @@ templ inviteTreePage(
 						x-text="buttonLabel"
 					></button>
 				</form>
-				{{ remainingInvitesForLogged := pyramid.GetMaxInvitesFor(loggedUser) - pyramid.GetInviteCount(loggedUser) }}
-				if len(pendingAccessRequests) > 0 && remainingInvitesForLogged > 0 {
+				{{ remainingInvites := pyramid.GetMaxInvitesFor(loggedUser) - pyramid.GetInviteCount(loggedUser) }}
+				if len(pendingAccessRequests) > 0 {
 					<div class="mb-6 ml-2 space-y-2">
 						<div class="text-sm font-medium themed:text-[var(--text-color)] light:text-gray-700 dark:text-gray-300">
 							pending access requests:
@@ -276,7 +276,13 @@ templ inviteTreePage(
 								<button
 									type="button"
 									@click.prevent={ "acceptAccessRequest('" + request.PubKey.Hex() + "')" }
-									class="cursor-pointer rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-blue-600/10 hover:text-blue-700 text-gray-600 dark:text-gray-400"
+									if remainingInvites <= 0 {
+										class="cursor-not-allowed rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 text-gray-400 dark:text-gray-500"
+										disabled
+										title="no more invites left"
+									} else {
+										class="cursor-pointer rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-blue-600/10 hover:text-blue-700 text-gray-600 dark:text-gray-400"
+									}
 								>
 									accept
 								</button>
