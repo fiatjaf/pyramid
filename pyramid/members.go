@@ -117,6 +117,12 @@ func GetMaxInvitesFor(pubkey nostr.PubKey) int {
 		// if level is beyond the array, no invites are allowed
 		return 0
 	}
+
+	if IsRoot(pubkey) {
+		// root has unlimited invites
+		return 999999
+	}
+
 	return global.Settings.MaxInvitesPerPerson
 }
 

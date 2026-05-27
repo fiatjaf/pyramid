@@ -259,6 +259,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								<div x-data="authButton()">
 									<button
 										@click="handleAuth($event)"
+										data-auth-action="logout"
 										class="cursor-pointer px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg themed:bg-[var(--accent-color)] light:bg-blue-500 hover:bg-blue-600 dark:bg-blue-500 dark:hover:bg-blue-600"
 									>
 										logout
@@ -280,9 +281,15 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							<div x-data="authButton()">
 								<button
 									@click="handleAuth($event)"
+									data-auth-action="login"
 									class="cursor-pointer px-4 py-2 rounded-lg font-semibold text-white shadow-md hover:shadow-lg themed:bg-[var(--accent-color)] light:bg-blue-500 hover:bg-blue-600 dark:bg-blue-500 dark:hover:bg-blue-600"
 								>
-									login
+									<span class="block leading-tight">login</span>
+									if global.Settings.AllowAccessRequest {
+										<span class="mt-0.5 block text-[10px] font-medium leading-tight text-white/80">
+											to request access
+										</span>
+									}
 								</button>
 							</div>
 						}
@@ -324,7 +331,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 						},
 						async handleAuth(event) {
-							const isLogin = event.target.innerText.toLowerCase() === 'login';
+							const isLogin = event.currentTarget.dataset.authAction === 'login';
 							if (isLogin) {
 								try {
 									const event = await window.nostr.signEvent({

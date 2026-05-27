@@ -2,16 +2,86 @@ package main
 
 import (
 	"fiatjaf.com/nostr"
+	"net/http"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
+type pending struct {
+	EventID nostr.ID
+	Target  nostr.PubKey
+}
+
+func inviteTreeHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, isLoggedIn := global.GetLoggedUser(r)
+	var nip05Names map[nostr.PubKey]string
+	if global.Settings.NIP05.Enabled {
+		nip05Names = make(map[nostr.PubKey]string, pyramid.Members.Size())
+		for name, pubkey := range global.Settings.NIP05.Names {
+			nip05Names[pubkey] = name
+		}
+	}
+
+	onlinePubkeys := map[nostr.PubKey]struct{}{}
+	for evt := range global.IL.Main.QueryEvents(nostr.Filter{
+		Since: nostr.Now() - 60*10,
+		Kinds: []nostr.Kind{1},
+	}, 1000) {
+		onlinePubkeys[evt.PubKey] = struct{}{}
+	}
+
+	var pendingAccessRequests []nostr.Event      // used only for logged pyramid members
+	var loggedUserPending *pending               // whether the currently logged user has already requested access
+	var pendingAccessCounts map[nostr.PubKey]int // if the currently logged user hasn't requested access we need this
+	if global.Settings.AllowAccessRequest && isLoggedIn {
+		if pyramid.IsMember(loggedUser) {
+			// fetch the pending requests only for the currently logged member
+			for revt := range global.IL.PendingAccess.QueryEvents(nostr.Filter{
+				Tags: nostr.TagMap{
+					"p": []string{loggedUser.Hex()},
+				},
+			}, 100) {
+				pendingAccessRequests = append(pendingAccessRequests, revt)
+			}
+		} else {
+			// check if the currently logged user has requested access
+			for pevt := range global.IL.PendingAccess.QueryEvents(nostr.Filter{
+				Authors: []nostr.PubKey{loggedUser},
+			}, 1) {
+				pTag := pevt.Tags.Find("p")
+				target, _ := nostr.PubKeyFromHex(pTag[1])
+				loggedUserPending = &pending{pevt.ID, target}
+				break
+			}
+
+			// otherwise we'll need all information about pending requests in order to display the 'ask' buttons
+			if loggedUserPending != nil {
+				for evt := range global.IL.PendingAccess.QueryEvents(nostr.Filter{}, 10_000) {
+					if pendingAccessCounts == nil {
+						pendingAccessCounts = make(map[nostr.PubKey]int)
+					}
+					if ptag := evt.Tags.Find("p"); ptag != nil && len(ptag) > 1 {
+						if pubkey, err := nostr.PubKeyFromHex(ptag[1]); err == nil {
+							pendingAccessCounts[pubkey]++
+						}
+					}
+				}
+			}
+		}
+	}
+
+	inviteTreePage(loggedUser, nip05Names, onlinePubkeys, pendingAccessCounts, pendingAccessRequests, loggedUserPending).Render(r.Context(), w)
+}
+
 templ inviteTreePage(
 	loggedUser nostr.PubKey,
 	nip05Names map[nostr.PubKey]string,
 	onlinePubkeys map[nostr.PubKey]struct{},
+	pendingAccessCounts map[nostr.PubKey]int,
+	pendingAccessRequests []nostr.Event,
+	loggedUserPending *pending,
 ) {
 	@layout.Layout(loggedUser, "invite-tree") {
 		<div
@@ -19,6 +89,7 @@ templ inviteTreePage(
 			x-data={ `{
 				target: '',
 				generating: false,
+				requestingAccessTarget: '',
 				claiming: false,
 				get buttonLabel() {
 					if (this.generating) {
@@ -88,14 +159,81 @@ templ inviteTreePage(
 						this.claiming = false;
 					}
 				},
-				handleInviteClick() {
-					if (!this.target) {
-						this.generateInvite();
-					} else {
-						this.$refs.inviteForm.submit();
+				async requestAccess(targetPubkey) {
+					if (this.requestingAccessTarget) {
+						return;
 					}
-				}
-			}` }
+					this.requestingAccessTarget = targetPubkey;
+					try {
+						const pubkey = await window.nostr.getPublicKey();
+						const event = await window.nostr.signEvent({
+							created_at: Math.round(Date.now() / 1000),
+							kind: 28934,
+							pubkey,
+							tags: [['-'], ['p', targetPubkey]],
+							content: ''
+						});
+						const [pub] = window.nostrSharedPool.publish([location.href], event, {
+							onauth(evtt) {
+								return window.nostr.signEvent(evtt)
+							}
+						});
+						await pub;
+						window.location.reload();
+					} catch (error) {
+						console.error('error requesting access:', error);
+						alert('failed to request access: ' + String(error));
+					} finally {
+						this.requestingAccessTarget = '';
+					}
+				},
+					handleInviteClick() {
+						if (!this.target) {
+							this.generateInvite();
+						} else {
+							this.$refs.inviteForm.submit();
+						}
+					},
+					acceptAccessRequest(pubkey) {
+						if (!confirm('really accept this access request?')) {
+							return;
+						}
+						this.target = pubkey;
+						this.$nextTick(() => this.$refs.inviteForm.submit());
+					},
+					async deleteAccessRequest(eventId) {
+						if (!confirm('delete this access request?')) {
+							return;
+						}
+
+						// NIP-86 'banevent' call to delete stuff
+						const body = JSON.stringify({method: 'banevent', params: [eventId]});
+						const hashBuf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body));
+						const hashHex = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+						const authEvent = await window.nostr.signEvent({
+							created_at: Math.round(Date.now() / 1000),
+							kind: 27235,
+							tags: [['u', location.href], ['payload', hashHex]],
+							content: ''
+						});
+						try {
+							const resp = await fetch(location.href, {
+								method: 'POST',
+								headers: {
+									'Content-Type': 'application/nostr+json+rpc',
+									'Authorization': 'Nostr ' + btoa(JSON.stringify(authEvent))
+								},
+								body
+							});
+							const result = await resp.json();
+							if (result.error) throw new Error(result.error);
+							location.reload();
+						} catch (error) {
+							console.error('error rejecting access request:', error);
+							alert('failed to reject: ' + String(error));
+						}
+					}
+				}` }
 			x-init="claimInviteFromURL()"
 		>
 			if pyramid.CanInviteMore(loggedUser) {
@@ -126,6 +264,33 @@ templ inviteTreePage(
 						x-text="buttonLabel"
 					></button>
 				</form>
+				{{ remainingInvitesForLogged := pyramid.GetMaxInvitesFor(loggedUser) - pyramid.GetInviteCount(loggedUser) }}
+				if len(pendingAccessRequests) > 0 && remainingInvitesForLogged > 0 {
+					<div class="mb-6 ml-2 space-y-2">
+						<div class="text-sm font-medium themed:text-[var(--text-color)] light:text-gray-700 dark:text-gray-300">
+							pending access requests:
+						</div>
+						for _, request := range pendingAccessRequests {
+							<div class="flex items-center gap-3 text-sm">
+								@layout.ProfileLink(request.PubKey)
+								<button
+									type="button"
+									@click.prevent={ "acceptAccessRequest('" + request.PubKey.Hex() + "')" }
+									class="cursor-pointer rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-blue-600/10 hover:text-blue-700 text-gray-600 dark:text-gray-400"
+								>
+									accept
+								</button>
+								<button
+									type="button"
+									@click.prevent={ "deleteAccessRequest('" + request.ID.Hex() + "')" }
+									class="cursor-pointer rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-red-600/10 hover:text-red-700 text-gray-600 dark:text-gray-400"
+								>
+									reject
+								</button>
+							</div>
+						}
+					</div>
+				}
 			}
 			if len(onlinePubkeys) > 1 {
 				<div class="mb-4 text-sm font-medium themed:text-[var(--text-color)] light:text-gray-700 dark:text-gray-300">
@@ -133,7 +298,7 @@ templ inviteTreePage(
 				</div>
 			}
 			<div class="themed:text-[var(--text-color)] light:text-gray-700 dark:text-gray-300">
-				@inviteTreeComponent(pyramid.AbsoluteKey, loggedUser, false, nip05Names, onlinePubkeys)
+				@inviteTreeComponent(pyramid.AbsoluteKey, loggedUser, false, nip05Names, onlinePubkeys, pendingAccessCounts, pendingAccessRequests, loggedUserPending)
 			</div>
 		</div>
 	}
@@ -145,6 +310,9 @@ templ inviteTreeComponent(
 	isDescendantOfLoggedUser bool,
 	nip05Names map[nostr.PubKey]string,
 	onlinePubkeys map[nostr.PubKey]struct{},
+	pendingAccessCounts map[nostr.PubKey]int,
+	pendingAccessRequests []nostr.Event,
+	loggedUserPending *pending,
 ) {
 	<ul>
 		for pubkey, member := range pyramid.GetChildren(curr) {
@@ -170,6 +338,25 @@ templ inviteTreeComponent(
 							</span>
 						}
 					</span>
+					if global.Settings.AllowAccessRequest && loggedUser != nostr.ZeroPK && !pyramid.IsMember(loggedUser) {
+						if loggedUserPending == nil && (pendingAccessCounts[pubkey] < (pyramid.GetMaxInvitesFor(pubkey) - pyramid.GetInviteCount(pubkey))*2) {
+							<button
+								type="button"
+								@click.prevent={ "requestAccess('" + pubkey.Hex() + "')" }
+								:disabled={ "requestingAccessTarget === '" + pubkey.Hex() + "'" }
+								class="cursor-pointer opacity-60 hover:opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-blue-600/10 hover:text-blue-700 text-gray-600 dark:text-gray-400"
+								x-text={ "requestingAccessTarget === '" + pubkey.Hex() + "' ? 'requesting...' : 'ask for access'" }
+							></button>
+						} else if loggedUserPending.Target == pubkey {
+							<button
+								type="button"
+								@click.prevent={ "deleteAccessRequest('" + loggedUserPending.EventID.Hex() + "')" }
+								class="cursor-pointer rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-red-600/10 hover:text-red-700 text-gray-600 dark:text-gray-400"
+							>
+								withdraw access request
+							</button>
+						}
+					}
 					if (loggedUser != nostr.ZeroPK && loggedUser == curr) || isDescendantOfLoggedUser {
 						if pyramid.HasSingleRootAncestor(loggedUser, pubkey) {
 							if member.Removed {
@@ -219,7 +406,7 @@ templ inviteTreeComponent(
 						</div>
 					}
 				</div>
-				@inviteTreeComponent(pubkey, loggedUser, isDescendantOfLoggedUser || (loggedUser != nostr.ZeroPK && loggedUser == curr), nip05Names, onlinePubkeys)
+				@inviteTreeComponent(pubkey, loggedUser, isDescendantOfLoggedUser || (loggedUser != nostr.ZeroPK && loggedUser == curr), nip05Names, onlinePubkeys, pendingAccessCounts, pendingAccessRequests, loggedUserPending)
 			</li>
 		}
 	</ul>

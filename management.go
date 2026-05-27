@@ -24,6 +24,9 @@ func allowPubKeyHandler(ctx context.Context, pubkey nostr.PubKey, reason string)
 
 	err := pyramid.AddAction("invite", caller, pubkey)
 	if err == nil {
+		if err := deletePendingAccessRequests(pubkey); err != nil {
+			log.Warn().Err(err).Str("pubkey", pubkey.Hex()).Msg("failed to delete pending access requests after management allowpubkey")
+		}
 		publishMembershipChange(pubkey, true)
 	}
 	return err
@@ -85,35 +88,32 @@ func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
 		return fmt.Errorf("not authenticated")
 	}
 
-	// allow if caller is a root user
-	if pyramid.IsRoot(caller) {
-		log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("management banevent called by root")
-	} else {
-		// check if the caller is the author of the event being banned
-		var isAuthor bool
-		for evt := range global.IL.Main.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
-			if evt.PubKey == caller {
-				isAuthor = true
-				break
-			}
-		}
-		if !isAuthor {
-			return fmt.Errorf("must be a root user or the event author to ban an event")
-		}
-		log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("management banevent called by author")
-	}
+	log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("management banevent called")
 
-	var deleted nostr.Event
 	for evt := range global.IL.Main.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
-		deleted = evt
+		// only authors or root users can delete from main event
+		if evt.PubKey == caller || pyramid.IsRoot(caller) {
+			if err := deleteFromMain(id); err != nil {
+				return err
+			}
+			handleDeleted(ctx, evt)
+			return nil
+		}
 	}
 
-	if deleted.PubKey != nostr.ZeroPK {
-		if err := deleteFromMain(id); err != nil {
-			return err
+	// scheduled is like main
+	for evt := range global.IL.Scheduled.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+		if evt.PubKey == caller || pyramid.IsRoot(caller) {
+			return global.IL.Scheduled.DeleteEvent(id)
 		}
+	}
 
-		handleDeleted(ctx, deleted)
+	// also check pending access requests
+	for evt := range global.IL.PendingAccess.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+		// (in this case anyone can delete requests target at themselves)
+		if evt.PubKey == caller || evt.Tags.FindWithValue("p", caller.Hex()) != nil || pyramid.IsRoot(caller) {
+			return global.IL.PendingAccess.DeleteEvent(id)
+		}
 	}
 
 	return nil

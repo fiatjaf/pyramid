@@ -117,13 +117,45 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 
 		return true, "invalid report"
 	case 28934:
-		// check join request
-		claim := event.Tags.Find("claim")
-		if claim == nil || len(claim) < 2 {
-			return true, "restricted: missing claim tag"
+		if pyramid.IsMember(event.PubKey) {
+			return true, "restricted: you are already a member of this relay"
 		}
 
-		invite, err := fetchInviteByClaim(claim[1])
+		claim := event.Tags.Find("claim")
+		if claim == nil {
+			if !global.Settings.AllowAccessRequest {
+				return true, "restricted: missing invite code"
+			}
+
+			// validate access requests made from the homepage
+			p := event.Tags.Find("p")
+			if p == nil {
+				return true, "restricted: missing pubkey target"
+			}
+
+			target, err := nostr.PubKeyFromHex(p[1])
+			if err != nil {
+				return true, "restricted: invalid pubkey target"
+			}
+
+			if !pyramid.IsMember(target) {
+				return true, "restricted: pubkey target is not a member"
+			}
+
+			remainingInvites := pyramid.GetMaxInvitesFor(target) - pyramid.GetInviteCount(target)
+			pendingAccessRequests, err := global.IL.PendingAccess.CountEvents(nostr.Filter{Tags: nostr.TagMap{"p": []string{target.Hex()}}})
+			if err != nil {
+				return true, "error: failed to count pending access requests for target"
+			}
+			if int(pendingAccessRequests) >= remainingInvites*2 {
+				return true, "restricted: target member has too many pending access requests"
+			}
+
+			// this is an access request targeted at some member
+			return false, ""
+		}
+
+		invite, err := fetchInvite(claim[1])
 		if err != nil {
 			return true, err.Error()
 		}
@@ -137,9 +169,6 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		}
 
 		// check if this person can still join
-		if pyramid.IsMember(event.PubKey) {
-			return true, "restricted: you are already a member of this relay"
-		}
 		if !pyramid.CanInviteMore(parent) {
 			return true, "restricted: end of inviter quota"
 		}
@@ -350,13 +379,16 @@ func preventBroadcast(ws *khatru.WebSocket, filter nostr.Filter, event nostr.Eve
 }
 
 func processJoinRequest(ctx context.Context, event nostr.Event) {
-	// here we know the event is already validated
 	claim := event.Tags.Find("claim")
 	if claim == nil || len(claim) < 2 {
-		log.Warn().Stringer("event", event).Msg("missing claim tag in join request")
+		if err := global.IL.PendingAccess.SaveEvent(event); err != nil {
+			log.Warn().Err(err).Stringer("event", event).Msg("failed to store pending access request")
+		}
 		return
 	}
-	invite, err := fetchInviteByClaim(claim[1])
+
+	// here we know invite-backed join request is already validated
+	invite, err := fetchInvite(claim[1])
 	if err != nil {
 		log.Warn().Err(err).Stringer("event", event).Msg("invite not found when processing join request")
 		return
@@ -376,6 +408,10 @@ func processJoinRequest(ctx context.Context, event nostr.Event) {
 		log.Warn().Err(err).Str("parent", parent.Hex()).Str("child", event.PubKey.Hex()).Stringer("event", event).
 			Msg("failed to add from join request")
 		return
+	}
+	if err := deletePendingAccessRequests(event.PubKey); err != nil {
+		log.Warn().Err(err).Str("child", event.PubKey.Hex()).Stringer("event", event).
+			Msg("failed to delete pending access requests after acceptance")
 	}
 	if err := global.IL.Invites.DeleteEvent(invite.ID); err != nil {
 		log.Warn().Err(err).Stringer("event", event).Msg("failed to delete invite after acceptance")
@@ -453,7 +489,7 @@ func publishMembershipChange(pubkey nostr.PubKey, added bool) {
 	}
 }
 
-func fetchInviteByClaim(claim string) (nostr.Event, error) {
+func fetchInvite(claim string) (nostr.Event, error) {
 	filter := nostr.Filter{
 		Kinds: []nostr.Kind{28935},
 		Tags:  nostr.TagMap{"claim": []string{claim}},
@@ -495,6 +531,15 @@ func cleanupExpiredInvites() (int, error) {
 		}
 	}
 	return deleted, nil
+}
+
+func deletePendingAccessRequests(pubkey nostr.PubKey) error {
+	for evt := range global.IL.PendingAccess.QueryEvents(nostr.Filter{Authors: []nostr.PubKey{pubkey}}, 10_000) {
+		if err := global.IL.PendingAccess.DeleteEvent(evt.ID); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func deleteFromMain(id nostr.ID) error {

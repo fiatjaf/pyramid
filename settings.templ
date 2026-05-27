@@ -248,6 +248,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 					maxInvitesPerPerson: ` + global.JSONString(global.Settings.GetMaxInvitesDisplay()) + `,
 					requireCurrentTimestamp: ` + fmt.Sprint(global.Settings.RequireCurrentTimestamp) + `,
 					acceptScheduledEvents: ` + fmt.Sprint(global.Settings.AcceptScheduledEvents) + `,
+					allowAccessRequest: ` + fmt.Sprint(global.Settings.AllowAccessRequest) + `,
 					allowEphemeralFromAnyone: ` + fmt.Sprint(global.Settings.AllowEphemeralFromAnyone) + `,
 					validateSchema: ` + fmt.Sprint(global.Settings.ValidateSchema) + `,
 					browseUri: ` + global.JSONString(global.Settings.BrowseURI) + `,
@@ -322,20 +323,36 @@ templ settingsPage(loggedUser nostr.PubKey) {
 						</label>
 						<input type="hidden" name="allow_ephemeral_from_anyone" value="off"/>
 					</div>
-					<div>
-						<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="max_invites_per_person">max invites per person</label>
-						<input
-							type="text"
-							name="max_invites_per_person"
-							id="max_invites_per_person"
-							placeholder="e.g. 4 or 5/4/3/2/1"
-							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-							x-model="maxInvitesPerPerson"
-							@blur="saveSettings()"
-						/>
-						<p class="text-xs text-stone-500 dark:text-stone-400 mt-1">
-							use a single number or slash-separated values for the number of invites available at each level (e.g. "5/4/3/2")
-						</p>
+					<div class="flex flex-wrap gap-4 items-start">
+						<div class="flex-1 min-w-[240px]">
+							<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="max_invites_per_person">max invites per person</label>
+							<input
+								type="text"
+								name="max_invites_per_person"
+								id="max_invites_per_person"
+								placeholder="e.g. 4 or 5/4/3/2/1"
+								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+								x-model="maxInvitesPerPerson"
+								@blur="saveSettings()"
+							/>
+							<p class="text-xs text-stone-500 dark:text-stone-400 mt-1">
+								use a single number or slash-separated values for the number of invites available at each level (e.g. "5/4/3/2")
+							</p>
+						</div>
+						<div class="pt-8">
+							<label for="allow_access_request" class="text-sm font-medium dark:text-stone-300 flex items-center whitespace-nowrap">
+								<input
+									type="checkbox"
+									name="allow_access_request"
+									id="allow_access_request"
+									class="w-4 h-6 rounded border-stone-300 dark:border-stone-600 mr-2"
+									x-model="allowAccessRequest"
+									@change="saveSettings()"
+								/>
+								allow access requests
+							</label>
+							<input type="hidden" name="allow_access_request" value="off"/>
+						</div>
 					</div>
 					<div class="flex items-center">
 						<input
@@ -885,16 +902,16 @@ all
 							</div>
 						}
 					</div>
-<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4 flex flex-col justify-between" style="min-height: 120px;">
-					<div>
-						<div class="text-sm font-medium text-stone-700 dark:text-stone-300">data usage</div>
-						<div class="mt-1 text-lg text-stone-900 dark:text-stone-100">disk used: { systemStats.DiskUsed } / { systemStats.DiskTotal } ({ systemStats.DiskUsedPct })</div>
-						<div class="text-sm text-stone-600 dark:text-stone-400">pyramid: { systemStats.DataSize } ({ global.S.DataPath })</div>
+					<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4 flex flex-col justify-between" style="min-height: 120px;">
+						<div>
+							<div class="text-sm font-medium text-stone-700 dark:text-stone-300">data usage</div>
+							<div class="mt-1 text-lg text-stone-900 dark:text-stone-100">disk used: { systemStats.DiskUsed } / { systemStats.DiskTotal } ({ systemStats.DiskUsedPct })</div>
+							<div class="text-sm text-stone-600 dark:text-stone-400">pyramid: { systemStats.DataSize } ({ global.S.DataPath })</div>
+						</div>
+						<div class="text-right text-sm text-stone-700 dark:text-stone-200 mt-2">
+							<a href="/database" target="_blank" class="cursor-pointer hover:underline hover:text-stone-400">/database</a>
+						</div>
 					</div>
-					<div class="text-right text-sm text-stone-700 dark:text-stone-200 mt-2">
-						<a href="/database" target="_blank" class="cursor-pointer hover:underline hover:text-stone-400">/database</a>
-					</div>
-				</div>
 				</div>
 				<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
 					<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4">
@@ -906,17 +923,17 @@ all
 							<div class="text-sm text-stone-600 dark:text-stone-400">managing TLS certificates</div>
 						}
 					</div>
-<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4 flex flex-col justify-between" style="min-height: 120px;">
-					<div>
-						<div class="text-sm font-medium text-stone-700 dark:text-stone-300">relay</div>
-						<div class="mt-1 text-lg text-stone-900 dark:text-stone-100">clients: { relayClients }</div>
-						<div class="text-xs text-stone-500 dark:text-stone-400">subscriptions: { relayListeners }</div>
+					<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4 flex flex-col justify-between" style="min-height: 120px;">
+						<div>
+							<div class="text-sm font-medium text-stone-700 dark:text-stone-300">relay</div>
+							<div class="mt-1 text-lg text-stone-900 dark:text-stone-100">clients: { relayClients }</div>
+							<div class="text-xs text-stone-500 dark:text-stone-400">subscriptions: { relayListeners }</div>
+						</div>
+						<div class="text-right text-sm text-stone-700 dark:text-stone-200 mt-4">
+							<a href="/clients" target="_blank" class="cursor-pointer hover:underline hover:text-stone-400">/clients</a>
+							<a href="/log" target="_blank" class="ml-4 cursor-pointer hover:underline hover:text-stone-400">/log</a>
+						</div>
 					</div>
-					<div class="text-right text-sm text-stone-700 dark:text-stone-200 mt-4">
-						<a href="/clients" target="_blank" class="cursor-pointer hover:underline hover:text-stone-400">/clients</a>
-						<a href="/log" target="_blank" class="ml-4 cursor-pointer hover:underline hover:text-stone-400">/log</a>
-					</div>
-				</div>
 					<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4">
 						<div class="text-sm font-medium text-stone-700 dark:text-stone-300">memory usage</div>
 						<div class="mt-1 text-lg text-stone-900 dark:text-stone-100">total: { systemStats.Memory }</div>

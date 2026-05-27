@@ -41,6 +41,7 @@ type UserSettings struct {
 	MaxInvitesAtEachLevel    []int  `json:"max_invites_at_each_level,omitempty"`
 	RequireCurrentTimestamp  bool   `json:"require_current_timestamp"`
 	AcceptScheduledEvents    bool   `json:"accept_scheduled_events"`
+	AllowAccessRequest       bool   `json:"allow_access_request"`
 	AllowEphemeralFromAnyone bool   `json:"allow_ephemeral_from_anyone"`
 	ValidateSchema           bool   `json:"validate_schema"`
 	Search                   struct {
@@ -292,6 +293,7 @@ func loadUserSettings() error {
 		},
 		BlockedIPs:               []string{},
 		AcceptScheduledEvents:    true,
+		AllowAccessRequest:       true,
 		AllowEphemeralFromAnyone: true,
 	}
 	Settings.Search.Enable = false
@@ -368,6 +370,12 @@ func loadUserSettings() error {
 
 	if err := json.Unmarshal(data, &Settings); err != nil {
 		return err
+	}
+	var loadedSettings map[string]json.RawMessage
+	if err := json.Unmarshal(data, &loadedSettings); err == nil {
+		if _, ok := loadedSettings["allow_access_request"]; !ok {
+			Settings.AllowAccessRequest = true
+		}
 	}
 
 	if Settings.AllowedKindsSpec == "" && len(Settings.AllowedKindsLegacy) > 0 {

@@ -355,7 +355,7 @@ func TestGetMaxInvitesFor(t *testing.T) {
 	global.Settings.MaxInvitesAtEachLevel = nil
 	global.Settings.MaxInvitesPerPerson = 5
 
-	require.Equal(t, 5, GetMaxInvitesFor(root1))
+	require.Equal(t, 999999, GetMaxInvitesFor(root1))
 	require.Equal(t, 5, GetMaxInvitesFor(userA))
 	require.Equal(t, 5, GetMaxInvitesFor(userB))
 	require.Equal(t, 5, GetMaxInvitesFor(userC))

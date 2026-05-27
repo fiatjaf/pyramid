@@ -56,6 +56,8 @@ func databaseHandler(w http.ResponseWriter, r *http.Request) {
 					db = global.IL.Favorites
 				case "invites":
 					db = global.IL.Invites
+				case "pending-access":
+					db = global.IL.PendingAccess
 				case "personal":
 					db = global.IL.Personal
 				case "groups":
@@ -159,6 +161,7 @@ templ databasePage(loggedUser nostr.PubKey, filterJSON string, errMsg string) {
 						@dbCheckbox("internal", "Internal")
 						@dbCheckbox("favorites", "Favorites")
 						@dbCheckbox("invites", "Invites")
+						@dbCheckbox("pending-access", "Pending Access")
 						@dbCheckbox("personal", "Personal")
 						@dbCheckbox("groups", "Groups")
 						@dbCheckbox("inbox", "Inbox")

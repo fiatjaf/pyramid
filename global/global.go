@@ -74,6 +74,11 @@ func Init() error {
 		return fmt.Errorf("failed to ensure 'invites': %w", err)
 	}
 
+	IL.PendingAccess, err = MMMM.EnsureLayer("pending-access")
+	if err != nil {
+		return fmt.Errorf("failed to ensure 'pending-access': %w", err)
+	}
+
 	IL.Personal, err = MMMM.EnsureLayer("personal")
 	if err != nil {
 		return fmt.Errorf("failed to ensure 'personal': %w", err)
@@ -173,12 +178,13 @@ var IL struct {
 	Main *mmm.IndexingLayer
 
 	// specific
-	Favorites *mmm.IndexingLayer
-	Internal  *mmm.IndexingLayer
-	Invites   *mmm.IndexingLayer
-	Personal  *mmm.IndexingLayer
-	Groups    *mmm.IndexingLayer
-	Inbox     *mmm.IndexingLayer
+	Favorites     *mmm.IndexingLayer
+	Internal      *mmm.IndexingLayer
+	Invites       *mmm.IndexingLayer
+	PendingAccess *mmm.IndexingLayer
+	Personal      *mmm.IndexingLayer
+	Groups        *mmm.IndexingLayer
+	Inbox         *mmm.IndexingLayer
 
 	// only nip44-encrypted DMs for now
 	Secret *mmm.IndexingLayer

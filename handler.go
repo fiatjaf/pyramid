@@ -36,27 +36,6 @@ import (
 	"github.com/pemistahl/lingua-go"
 )
 
-func inviteTreeHandler(w http.ResponseWriter, r *http.Request) {
-	loggedUser, _ := global.GetLoggedUser(r)
-	var nip05Names map[nostr.PubKey]string
-	if global.Settings.NIP05.Enabled {
-		nip05Names = make(map[nostr.PubKey]string, pyramid.Members.Size())
-		for name, pubkey := range global.Settings.NIP05.Names {
-			nip05Names[pubkey] = name
-		}
-	}
-
-	onlinePubkeys := map[nostr.PubKey]struct{}{}
-	for evt := range global.IL.Main.QueryEvents(nostr.Filter{
-		Since: nostr.Now() - 60*10,
-		Kinds: []nostr.Kind{1},
-	}, 1000) {
-		onlinePubkeys[evt.PubKey] = struct{}{}
-	}
-
-	inviteTreePage(loggedUser, nip05Names, onlinePubkeys).Render(r.Context(), w)
-}
-
 func actionHandler(w http.ResponseWriter, r *http.Request) {
 	var type_ pyramid.Action
 	switch r.PostFormValue("type") {
@@ -80,6 +59,11 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 	if err := pyramid.AddAction(type_, author, target); err != nil {
 		http.Error(w, err.Error(), 403)
 		return
+	}
+	if type_ == pyramid.ActionInvite {
+		if err := deletePendingAccessRequests(target); err != nil {
+			log.Warn().Err(err).Str("target", target.Hex()).Msg("failed to delete pending access requests after invite action")
+		}
 	}
 
 	go publishMembershipChange(target, type_ == pyramid.ActionInvite)
@@ -165,6 +149,8 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.RequireCurrentTimestamp = v[0] == "on"
 			case "accept_scheduled_events":
 				global.Settings.AcceptScheduledEvents = v[0] == "on"
+			case "allow_access_request":
+				global.Settings.AllowAccessRequest = v[0] == "on"
 			case "allow_ephemeral_from_anyone":
 				global.Settings.AllowEphemeralFromAnyone = v[0] == "on"
 			case "validate_schema":
@@ -252,6 +238,9 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				if err := pyramid.AddAction(pyramid.ActionInvite, pyramid.AbsoluteKey, target); err != nil {
 					http.Error(w, "failed to add root user: "+err.Error(), 500)
 					return
+				}
+				if err := deletePendingAccessRequests(target); err != nil {
+					log.Warn().Err(err).Str("target", target.Hex()).Msg("failed to delete pending access requests after adding root user")
 				}
 				//
 				// nip-05 settings
