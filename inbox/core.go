@@ -23,6 +23,7 @@ var (
 
 var supportedKindsDefault = []nostr.Kind{
 	1, 6, 7, 11, 20, 21, 22, 9321, 9735, 1111, 1222, 1244, 9802, 30023, 30818,
+	4454, 4455,
 }
 
 func rejectFilter(ctx context.Context, filter nostr.Filter) (bool, string) {
