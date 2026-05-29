@@ -16,9 +16,7 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-var (
-	log = global.Log.With().Str("module", "wot").Logger()
-)
+var log = global.Log.With().Str("module", "wot").Logger()
 
 type XorFilter struct {
 	Items int
@@ -51,6 +49,10 @@ func ComputeAggregated(ctx context.Context) (XorFilter, error) {
 
 	log.Info().Int("n", len(members)).Msg("fetching primary follow lists for members")
 	for _, member := range members {
+		if slices.Contains(global.Settings.Inbox.SpecificallyBlocked, member) {
+			continue
+		}
+
 		if err := sem.Acquire(ctx, 1); err != nil {
 			return XorFilter{}, fmt.Errorf("failed to acquire: %w", err)
 		}
@@ -77,6 +79,10 @@ func ComputeAggregated(ctx context.Context) (XorFilter, error) {
 
 	log.Info().Int("n", queue.Size()).Msg("fetching secondary follow lists for follows")
 	for user := range queue.Range {
+		if slices.Contains(global.Settings.Inbox.SpecificallyBlocked, user) {
+			continue
+		}
+
 		all.Add(1)
 		go func() {
 			if err := sem.Acquire(ctx, 1); err != nil {
@@ -116,6 +122,10 @@ func makeFilter(m chan nostr.PubKey) XorFilter {
 	shids := make([]uint64, 0, 60000)
 	shidMap := make(map[uint64]struct{}, 60000)
 	for pk := range m {
+		if slices.Contains(global.Settings.Inbox.SpecificallyBlocked, pk) {
+			continue
+		}
+
 		shid := pubKeyToShid(pk)
 		if _, alreadyAdded := shidMap[shid]; !alreadyAdded {
 			shidMap[shid] = struct{}{}
