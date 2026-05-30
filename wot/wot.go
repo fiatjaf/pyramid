@@ -26,11 +26,13 @@ func StartBackgroundComputation() {
 			wot, err := ComputeAggregated(ctx)
 			if err != nil {
 				nostr.InfoLogger.Println("failed to compute aggregated WoT:", err)
+				time.Sleep(3 * time.Hour)
+			} else {
+				Current = wot
+				Computed = true
+				nostr.InfoLogger.Printf("computed aggregated WoT with %d entries", wot.Items)
+				time.Sleep(48 * time.Hour)
 			}
-			Current = wot
-			Computed = true
-			nostr.InfoLogger.Printf("computed aggregated WoT with %d entries", wot.Items)
-			time.Sleep(48 * time.Hour)
 		}
 	}()
 }
