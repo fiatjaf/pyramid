@@ -8,6 +8,7 @@ import (
 	"fiatjaf.com/nostr/eventstore/slicestore"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/nip29"
+	"github.com/fiatjaf/pyramid/pyramid"
 	"github.com/puzpuzpuz/xsync/v3"
 	"github.com/stretchr/testify/require"
 )
@@ -42,15 +43,68 @@ func TestHideEventFromReader(t *testing.T) {
 		"expected metadata to be hidden from non-member when group is private and hidden",
 	)
 
-	require.True(t,
+	require.False(t,
 		hideEventFromReader(requested, metadata, []nostr.PubKey{member}),
-		"expected metadata to stay hidden from member when group is private and hidden",
+		"expected metadata to be visible to a member when group is private and hidden and explicitly requested",
 	)
 
 	group.Hidden = false
 	require.False(t,
 		hideEventFromReader(requested, metadata, []nostr.PubKey{nonMember}),
 		"expected private-only group metadata to stay visible to non-member when explicitly requested",
+	)
+}
+
+func TestHiddenGroupVisibleInListing(t *testing.T) {
+	prevState := State
+	defer func() { State = prevState }()
+
+	State = &GroupsState{Groups: xsync.NewMapOf[string, *Group]()}
+
+	member := nostr.PubKey{1}
+	stranger := nostr.PubKey{2}
+	relayRoot := nostr.PubKey{3}
+
+	// register a relay root (a member invited directly by the relay key)
+	prevAbsolute := pyramid.AbsoluteKey
+	pyramid.AbsoluteKey = nostr.PubKey{7}
+	pyramid.Members.Store(relayRoot, pyramid.Member{Parents: []nostr.PubKey{pyramid.AbsoluteKey}})
+	defer func() {
+		pyramid.AbsoluteKey = prevAbsolute
+		pyramid.Members.Delete(relayRoot)
+	}()
+
+	group := &Group{Group: nip29.Group{
+		Address: nip29.GroupAddress{ID: "secret"},
+		Members: map[nostr.PubKey][]*nip29.Role{},
+	}}
+	group.Hidden = true
+	group.Private = true
+	group.Members[member] = nil
+	State.Groups.Store(group.Address.ID, group)
+
+	metadata := nostr.Event{
+		Kind: nostr.KindSimpleGroupMetadata,
+		Tags: nostr.Tags{{"d", group.Address.ID}},
+	}
+
+	listing := nostr.Filter{Kinds: []nostr.Kind{nostr.KindSimpleGroupMetadata}}
+
+	require.True(t,
+		hideEventFromReader(listing, metadata, nil),
+		"hidden group must stay out of an unauthenticated broad listing",
+	)
+	require.True(t,
+		hideEventFromReader(listing, metadata, []nostr.PubKey{stranger}),
+		"hidden group must stay out of a broad listing for a non-member non-root",
+	)
+	require.False(t,
+		hideEventFromReader(listing, metadata, []nostr.PubKey{member}),
+		"a group member must see the hidden group in a broad listing",
+	)
+	require.False(t,
+		hideEventFromReader(listing, metadata, []nostr.PubKey{relayRoot}),
+		"a relay admin must see the hidden group in a broad listing even without being a member",
 	)
 }
 
