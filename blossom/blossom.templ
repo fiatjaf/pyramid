@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/nip19"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
@@ -24,50 +25,8 @@ templ blossomPage(loggedUser nostr.PubKey) {
 				<div
 					class="mt-8"
 					x-data={ `{
-						deleting: false,
 						uploading: false,
 						hasBlobs: false,
-						async deleteBlob(hash) {
-							this.deleting = hash;
-							if (!confirm('delete blob '+ hash.slice(0, 16) +'...?')) {
-								return;
-							}
-
-							try {
-								const authEvent = await window.nostr.signEvent({
-									created_at: Math.round(Date.now() / 1000),
-									kind: 24242,
-									tags: [
-										['t', 'delete'],
-										['x', hash],
-										['expiration', (Math.round(Date.now() / 1000) + 60).toString()],
-									],
-									content: ''
-								});
-
-								// make delete request with Authorization header
-								const response = await fetch('/' + hash, {
-									method: 'DELETE',
-									headers: {
-										'Authorization': 'Nostr ' + btoa(JSON.stringify(authEvent))
-									}
-								});
-
-								if (response.ok) {
-									// refresh page on success
-									window.location.reload();
-								} else {
-									// show error message
-									const errorReason = response.headers.get('X-Reason');
-									const errorText = await response.text();
-									alert('failed to delete blob: ' + (errorReason || errorText || response.statusText));
-								}
-							} catch (error) {
-								alert('error deleting blob: ' + String(error));
-							} finally {
-								this.deleting = false;
-							}
-						},
 						async uploadBlob(file) {
 							if (!file) return;
 
@@ -166,12 +125,12 @@ templ blossomPage(loggedUser nostr.PubKey) {
 										if global.Settings.Blossom.Enabled {
 											<button
 												type="button"
-												class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-xs"
-												:class="deleting ? '' : 'cursor-pointer'"
-												@click={ "deleteBlob('" + blob.SHA256 + "')" }
-												x-text={ "deleting === '" + blob.SHA256 + "' ? 'deleting...' : 'delete'" }
-												:disabled="deleting"
-											></button>
+												class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-xs cursor-pointer"
+												hx-delete={ "/blossom/b/" + blob.SHA256 + "?user=" + loggedUser.Hex() }
+												hx-target="closest tr"
+												hx-swap="outerHTML"
+												hx-confirm={ "delete blob " + blob.SHA256[:16] + "...?" }
+											>delete</button>
 										}
 									</td>
 								</tr>
@@ -192,7 +151,6 @@ templ blossomPage(loggedUser nostr.PubKey) {
 							<button
 								type="button"
 								class="px-4 py-2 rounded themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] themed:text-white light:bg-stone-200 light:hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
-								:class="deleting ? '' : 'cursor-pointer'"
 								@click="$refs.fileInput.click()"
 								x-text="uploading ? 'uploading...' : 'upload file'"
 								:disabled="uploading"
@@ -202,10 +160,27 @@ templ blossomPage(loggedUser nostr.PubKey) {
 				</div>
 			}
 			if pyramid.IsRoot(loggedUser) {
+				{{
+					type stats struct {
+						count int
+						size  int
+					}
+					perUser := make(map[nostr.PubKey]*stats)
+					total := stats{}
+
+					for owner, bd := range BlobIndex.ListAllBlobs(ctx) {
+						if _, ok := perUser[owner]; ok {
+							perUser[owner].count++
+							perUser[owner].size += bd.Size
+						} else {
+							perUser[owner] = &stats{1, bd.Size}
+						}
+						total.count++
+						total.size += bd.Size
+					}
+				}}
 				<div class="mt-8">
 					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">server stats</h3>
-					{{ totalBlobs := 0 }}
-					{{ totalSize := 0 }}
 					<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
 						<thead class="bg-stone-50 dark:bg-stone-800">
 							<tr>
@@ -215,37 +190,34 @@ templ blossomPage(loggedUser nostr.PubKey) {
 							</tr>
 						</thead>
 						<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
-							for member := range pyramid.Members.Range {
-								{{ userBlobs := 0 }}
-								{{ userSize := 0 }}
-								for blob := range BlobIndex.List(ctx, member) {
-									{{ totalBlobs++ }}
-									{{ totalSize += blob.Size }}
-									{{ userBlobs++ }}
-									{{ userSize += blob.Size }}
-								}
-								if userBlobs > 0 {
-									<tr>
-										<td class="px-4 py-3 text-sm">
-											@layout.ProfileLink(member)
-										</td>
-										<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
-											{ fmt.Sprintf("%d", userBlobs) }
-										</td>
-										<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
-											{ formatSize(userSize) }
-										</td>
-									</tr>
-								}
+							for user, stats := range perUser {
+								<tr>
+									<td class="px-4 py-3 text-sm">
+										<div class="relative inline-block">
+											<a href={ "/blossom/u/" + nip19.EncodeNpub(user) } class="text-sm font-medium light:text-stone-600 dark:text-stone-400 hover:underline underline-offset-4">
+												<nostr-name pubkey={ user.Hex() }>{ user.Hex() }</nostr-name>
+											</a>
+											if !pyramid.IsMember(user) {
+												<span class="absolute left-0 top-1/2 w-full h-0.5 themed:bg-[var(--base-color)] light:bg-gray-700 dark:bg-gray-300 -translate-y-1/2"></span>
+											}
+										</div>
+									</td>
+									<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+										{ fmt.Sprintf("%d",stats.count) }
+									</td>
+									<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+										{ formatSize(stats.size) }
+									</td>
+								</tr>
 							}
 						</tbody>
 					</table>
 					<div class="flex justify-between">
 						<p class="text-sm text-stone-600 dark:text-stone-400 mt-4">
-							total blobs: { fmt.Sprintf("%d", totalBlobs) }
+							total blobs: { fmt.Sprintf("%d", total.count) }
 						</p>
 						<p class="text-sm text-stone-600 dark:text-stone-400 mt-4">
-							total size: { formatSize(totalSize) }
+							total size: { formatSize(total.size) }
 						</p>
 					</div>
 				</div>
@@ -321,6 +293,86 @@ templ blossomPage(loggedUser nostr.PubKey) {
 					}
 				</div>
 			}
+		</div>
+	}
+}
+
+templ blossomUserPage(loggedUser nostr.PubKey, targetUser nostr.PubKey) {
+	@layout.Layout(loggedUser, "blossom") {
+		<div class="max-w-3xl mx-auto">
+			<h1 class="text-4xl font-bold mb-4 font-[family-name:var(--primary-font)]">blossom</h1>
+			<p class="text-lg leading-relaxed text-gray-700 dark:text-gray-300 mb-8">
+				blobs for <nostr-name pubkey={ targetUser.Hex() }>{ nip19.EncodeNpub(targetUser) }</nostr-name>
+			</p>
+			<div
+				x-data={ `{
+				hasBlobs: false
+			}` }
+			>
+				<p class="text-sm text-stone-600 dark:text-stone-400" x-show="!hasBlobs">no blobs</p>
+				<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700" x-show="hasBlobs">
+					<thead class="bg-stone-50 dark:bg-stone-800">
+						<tr>
+							<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">hash</th>
+							<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">type</th>
+							<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">size</th>
+							<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">upload date</th>
+							<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">other owners</th>
+							<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider"></th>
+						</tr>
+					</thead>
+					<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
+						{{ hasBlobs := false }}
+						for blob := range BlobIndex.List(ctx, targetUser) {
+							{{ hasBlobs = true }}
+							<tr>
+								<td class="px-4 py-3 text-sm font-mono text-stone-900 dark:text-stone-100">
+									<a href={ templ.SafeURL(blob.URL) } target="_blank" class="hover:underline">
+										{ blob.SHA256[:16] }...
+									</a>
+								</td>
+								<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+									{ blob.Type }
+								</td>
+								<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+									{ formatSize(blob.Size) }
+								</td>
+								<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+									if blob.Uploaded > nostr.Now() - 61 {
+										<span class="text-emerald-800">just now</span>
+									} else {
+										<span>{ blob.Uploaded.Time().Format(time.DateTime) }</span>
+									}
+								</td>
+								<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+									for _, owner := range BlobIndex.OwnersForBlob(ctx, blob.SHA256) {
+										if owner != targetUser {
+											<a href={ "/blossom/u/" + nip19.EncodeNpub(owner) } class="text-sm font-medium light:text-stone-600 dark:text-stone-400 hover:underline underline-offset-4 mr-2">
+												<nostr-name pubkey={ owner.Hex() }>{ owner.Hex() }</nostr-name>
+											</a>
+										}
+									}
+								</td>
+								<td class="px-4 py-3 text-sm">
+									if global.Settings.Blossom.Enabled {
+										<button
+											type="button"
+											class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-xs cursor-pointer"
+											hx-delete={ "/blossom/b/" + blob.SHA256 + "?user=" + targetUser.Hex() }
+											hx-target="closest tr"
+											hx-swap="outerHTML"
+											hx-confirm={ "delete blob " + blob.SHA256[:16] + "...?" }
+										>delete</button>
+									}
+								</td>
+							</tr>
+						}
+						if hasBlobs {
+							<span x-init="hasBlobs = true"></span>
+						}
+					</tbody>
+				</table>
+			</div>
 		</div>
 	}
 }
