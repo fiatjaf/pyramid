@@ -104,9 +104,9 @@ templ blossomPage(loggedUser nostr.PubKey) {
 								{{ hasBlobs = true }}
 								<tr>
 									<td class="px-4 py-3 text-sm font-mono text-stone-900 dark:text-stone-100">
-										<a href={ templ.SafeURL(blob.URL) } target="_blank" class="hover:underline">
-											{ blob.SHA256[:16] }...
-										</a>
+									<a href={ templ.SafeURL(blob.URL) } target="_blank" class="block truncate max-w-[8rem] hover:underline">
+										{ blob.SHA256 }
+									</a>
 									</td>
 									<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
 										{ blob.Type }
@@ -325,8 +325,8 @@ templ blossomUserPage(loggedUser nostr.PubKey, targetUser nostr.PubKey) {
 							{{ hasBlobs = true }}
 							<tr>
 								<td class="px-4 py-3 text-sm font-mono text-stone-900 dark:text-stone-100">
-									<a href={ templ.SafeURL(blob.URL) } target="_blank" class="hover:underline">
-										{ blob.SHA256[:16] }...
+									<a href={ templ.SafeURL(blob.URL) } target="_blank" class="block truncate max-w-[8rem] hover:underline">
+										{ blob.SHA256 }
 									</a>
 								</td>
 								<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
@@ -404,9 +404,9 @@ templ blossomAllBlobsPage(loggedUser nostr.PubKey) {
 						for owner, blob := range BlobIndex.ListAllBlobs(ctx) {
 							{{ hasBlobs = true }}
 							<tr>
-								<td class="px-4 py-3 text-sm font-mono text-stone-900 dark:text-stone-100">
-									<a href={ templ.SafeURL(blob.URL) } target="_blank" class="hover:underline">
-										{ blob.SHA256[:16] }...
+								<td class="px-4 py-3 text-sm font-mono text-stone-900 dark:text-stone-100 max-w-0">
+									<a href={ templ.SafeURL(blob.URL) } target="_blank" class="block truncate hover:underline">
+										{ blob.SHA256 }
 									</a>
 								</td>
 								<td class="px-4 py-3 text-sm">
