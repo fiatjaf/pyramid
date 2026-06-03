@@ -6,6 +6,7 @@ import (
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
+	"github.com/fiatjaf/pyramid/pyramid"
 )
 
 func Query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
@@ -42,10 +43,16 @@ func hideEventFromReader(filter nostr.Filter, evt nostr.Event, authed []nostr.Pu
 		return true
 	}
 
+	// the group's own members (which includes its admins) and relay admins are
+	// allowed to discover and read a hidden group's metadata
+	privileged := group.AnyOfTheseIsAMember(authed) || anyIsRelayRoot(authed)
+
 	if group.Hidden {
 		// 'hidden' works only by hiding the group from abrangent queries like listing all groups in a relay etc
 		if requestedGroupIds(filter) == nil && filter.IDs == nil {
-			return true
+			if !privileged {
+				return true
+			}
 		}
 
 		// if specific groups were requested then the 'hidden' field has no effect as the reader
@@ -58,8 +65,8 @@ func hideEventFromReader(filter nostr.Filter, evt nostr.Event, authed []nostr.Pu
 		// group metadata is still public -- UNLESS the group is also marked as hidden, that's a special case
 		if evt.Kind == nostr.KindSimpleGroupMetadata {
 			if group.Hidden {
-				// still allow reading for members only
-				if group.AnyOfTheseIsAMember(authed) {
+				// still allow reading for members and relay admins only
+				if privileged {
 					return false
 				}
 
@@ -76,6 +83,15 @@ func hideEventFromReader(filter nostr.Filter, evt nostr.Event, authed []nostr.Pu
 		}
 	}
 
+	return false
+}
+
+func anyIsRelayRoot(authed []nostr.PubKey) bool {
+	for _, pk := range authed {
+		if pyramid.IsRoot(pk) {
+			return true
+		}
+	}
 	return false
 }
 
