@@ -334,8 +334,10 @@ func queryMain(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 }
 
 func onConnect(ctx context.Context) {
-	// if there is a paywall give the reader the option to auth
-	if global.Settings.Paywall.Enabled {
+	// give the reader the option to auth: with a paywall it gates reads, and with
+	// groups it lets admins/members see their hidden groups in broad listings (a
+	// broad metadata query never triggers auth-required on its own)
+	if global.Settings.Paywall.Enabled || global.Settings.Groups.Enabled {
 		khatru.RequestAuth(ctx)
 	}
 }
