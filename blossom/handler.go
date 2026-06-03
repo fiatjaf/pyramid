@@ -44,6 +44,7 @@ func Init(relay *khatru.Relay) {
 func setupDisabled() {
 	Handler.mux = http.NewServeMux()
 	Handler.mux.HandleFunc("POST /blossom/enable", enableHandler)
+	Handler.mux.HandleFunc("GET /blossom/blobs", blobsPageHandler)
 	Handler.mux.HandleFunc("GET /blossom/u/{pubkey}", userPageHandler)
 	Handler.mux.HandleFunc("DELETE /blossom/b/{sha256}", deleteUserBlobHandler)
 	Handler.mux.HandleFunc("/blossom/", pageHandler)
@@ -101,6 +102,7 @@ func setupEnabled() {
 
 	Handler.mux = http.NewServeMux()
 	Handler.mux.HandleFunc("POST /blossom/disable", disableHandler)
+	Handler.mux.HandleFunc("GET /blossom/blobs", blobsPageHandler)
 	Handler.mux.HandleFunc("GET /blossom/u/{pubkey}", userPageHandler)
 	Handler.mux.HandleFunc("DELETE /blossom/b/{sha256}", deleteUserBlobHandler)
 	Handler.mux.HandleFunc("/blossom/", pageHandler)
@@ -147,6 +149,17 @@ func userPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	blossomUserPage(loggedUser, user).Render(r.Context(), w)
+}
+
+func blobsPageHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	blossomAllBlobsPage(loggedUser).Render(r.Context(), w)
 }
 
 func deleteUserBlobHandler(w http.ResponseWriter, r *http.Request) {

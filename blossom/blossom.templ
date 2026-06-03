@@ -214,10 +214,10 @@ templ blossomPage(loggedUser nostr.PubKey) {
 					</table>
 					<div class="flex justify-between">
 						<p class="text-sm text-stone-600 dark:text-stone-400 mt-4">
-							total blobs: { fmt.Sprintf("%d", total.count) }
+							<a href="/blossom/blobs" class="hover:underline underline-offset-4">total blobs: { fmt.Sprintf("%d", total.count) }</a>
 						</p>
 						<p class="text-sm text-stone-600 dark:text-stone-400 mt-4">
-							total size: { formatSize(total.size) }
+							<a href="/blossom/blobs" class="hover:underline underline-offset-4">total size: { formatSize(total.size) }</a>
 						</p>
 					</div>
 				</div>
@@ -305,9 +305,7 @@ templ blossomUserPage(loggedUser nostr.PubKey, targetUser nostr.PubKey) {
 				blobs for <nostr-name pubkey={ targetUser.Hex() }>{ nip19.EncodeNpub(targetUser) }</nostr-name>
 			</p>
 			<div
-				x-data={ `{
-				hasBlobs: false
-			}` }
+				x-data={ `{ hasBlobs: false }` }
 			>
 				<p class="text-sm text-stone-600 dark:text-stone-400" x-show="!hasBlobs">no blobs</p>
 				<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700" x-show="hasBlobs">
@@ -359,6 +357,82 @@ templ blossomUserPage(loggedUser nostr.PubKey, targetUser nostr.PubKey) {
 											type="button"
 											class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-xs cursor-pointer"
 											hx-delete={ "/blossom/b/" + blob.SHA256 + "?user=" + targetUser.Hex() }
+											hx-target="closest tr"
+											hx-swap="outerHTML"
+											hx-confirm={ "delete blob " + blob.SHA256[:16] + "...?" }
+										>delete</button>
+									}
+								</td>
+							</tr>
+						}
+						if hasBlobs {
+							<span x-init="hasBlobs = true"></span>
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	}
+}
+
+templ blossomAllBlobsPage(loggedUser nostr.PubKey) {
+	@layout.Layout(loggedUser, "blossom") {
+		<div class="max-w-5xl mx-auto">
+			<h1 class="text-4xl font-bold mb-4 font-[family-name:var(--primary-font)]">blobs</h1>
+			<p class="text-lg leading-relaxed text-gray-700 dark:text-gray-300 mb-8">
+				all blobs
+			</p>
+			<div
+				x-data={ `{
+				hasBlobs: false
+			}` }
+			>
+				<p class="text-sm text-stone-600 dark:text-stone-400" x-show="!hasBlobs">no blobs</p>
+				<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700" x-show="hasBlobs">
+					<thead class="bg-stone-50 dark:bg-stone-800">
+						<tr>
+							<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">hash</th>
+							<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">owner</th>
+							<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">type</th>
+							<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">size</th>
+							<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">upload date</th>
+							<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider"></th>
+						</tr>
+					</thead>
+					<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
+						{{ hasBlobs := false }}
+						for owner, blob := range BlobIndex.ListAllBlobs(ctx) {
+							{{ hasBlobs = true }}
+							<tr>
+								<td class="px-4 py-3 text-sm font-mono text-stone-900 dark:text-stone-100">
+									<a href={ templ.SafeURL(blob.URL) } target="_blank" class="hover:underline">
+										{ blob.SHA256[:16] }...
+									</a>
+								</td>
+								<td class="px-4 py-3 text-sm">
+									<a href={ "/blossom/u/" + nip19.EncodeNpub(owner) } class="text-sm font-medium light:text-stone-600 dark:text-stone-400 hover:underline underline-offset-4">
+										<nostr-name pubkey={ owner.Hex() }>{ owner.Hex() }</nostr-name>
+									</a>
+								</td>
+								<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+									{ blob.Type }
+								</td>
+								<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+									{ formatSize(blob.Size) }
+								</td>
+								<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+									if blob.Uploaded > nostr.Now() - 61 {
+										<span class="text-emerald-800">just now</span>
+									} else {
+										<span>{ blob.Uploaded.Time().Format(time.DateTime) }</span>
+									}
+								</td>
+								<td class="px-4 py-3 text-sm">
+									if global.Settings.Blossom.Enabled {
+										<button
+											type="button"
+											class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-xs cursor-pointer"
+											hx-delete={ "/blossom/b/" + blob.SHA256 + "?user=" + owner.Hex() }
 											hx-target="closest tr"
 											hx-swap="outerHTML"
 											hx-confirm={ "delete blob " + blob.SHA256[:16] + "...?" }
