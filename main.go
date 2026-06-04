@@ -137,6 +137,8 @@ func main() {
 	relay.Router().HandleFunc("/settings", settingsHandler)
 	relay.Router().HandleFunc("/clients", detailsHandler)
 	relay.Router().HandleFunc("/clients/{clientId}", clientDetailsHandler)
+	relay.Router().HandleFunc("GET /event/{db}/{id}", databaseEventJSONHandler)
+	relay.Router().HandleFunc("DELETE /database/{db}/{id}", deleteDatabaseEventHandler)
 	relay.Router().HandleFunc("/database", databaseHandler)
 	relay.Router().HandleFunc("/log", logHandler)
 	relay.Router().HandleFunc("/search/reindex", search.StreamingReindexHTML)
