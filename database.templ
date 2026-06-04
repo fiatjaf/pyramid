@@ -96,6 +96,14 @@ func deleteDatabaseEventHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// block deletion of events from relay's own key
+	for evt := range db.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+		if evt.PubKey == pyramid.AbsoluteKey {
+			http.Error(w, "cannot delete events issued by the relay's own key", 400)
+			return
+		}
+	}
+
 	if err := db.DeleteEvent(id); err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -366,11 +374,17 @@ templ databaseResults(results []dbResult, errMsg string) {
 								<td class="px-4 py-3">
 									<button
 										type="button"
-										class="cursor-pointer px-3 py-1 rounded-md text-xs font-medium text-white bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 transition"
-										hx-delete={ "/database/" + result.DatabaseName + "/" + result.Event.ID.Hex() }
-										hx-confirm="delete event from this database?"
-										hx-target="closest tr"
-										hx-swap="delete"
+										if result.Event.PubKey == pyramid.AbsoluteKey {
+											class="cursor-not-allowed px-3 py-1 rounded-md text-xs font-medium text-white bg-stone-400 dark:bg-stone-600 transition"
+											disabled
+											title="this is a system event issued by the relay directly"
+										} else {
+											class="cursor-pointer px-3 py-1 rounded-md text-xs font-medium text-white bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 transition"
+											hx-delete={ "/database/" + result.DatabaseName + "/" + result.Event.ID.Hex() }
+											hx-confirm="delete event from this database?"
+											hx-target="closest tr"
+											hx-swap="delete"
+										}
 									>delete</button>
 								</td>
 							</tr>
