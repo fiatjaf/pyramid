@@ -353,7 +353,7 @@ templ inviteTreeComponent(
 								class="cursor-pointer opacity-60 hover:opacity-100 rounded-lg text-xs font-semibold px-3 py-1 bg-gray-500/10 hover:bg-blue-600/10 hover:text-blue-700 text-gray-600 dark:text-gray-400"
 								x-text={ "requestingAccessTarget === '" + pubkey.Hex() + "' ? 'requesting...' : 'ask for access'" }
 							></button>
-						} else if loggedUserPending.Target == pubkey {
+						} else if loggedUserPending != nil && loggedUserPending.Target == pubkey {
 							<button
 								type="button"
 								@click.prevent={ "deleteAccessRequest('" + loggedUserPending.EventID.Hex() + "')" }

@@ -3,7 +3,7 @@ module github.com/fiatjaf/pyramid
 go 1.26.2
 
 require (
-	fiatjaf.com/nostr v0.0.0-20260603213821-5a135f5b863b
+	fiatjaf.com/nostr v0.0.0-20260604131054-d48b1f7c3359
 	fiatjaf.com/pomegranate v0.0.0-20260515185713-4cdb7e027855
 	fiatjaf.com/promenade v0.4.4-0.20260511003220-ce69ab3c4a4d
 	github.com/FastFilter/xorfilter v0.2.1
