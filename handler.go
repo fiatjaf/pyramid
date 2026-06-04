@@ -14,12 +14,14 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/nip05"
 	"fiatjaf.com/nostr/nip19"
 
+	"github.com/bep/debounce"
 	"github.com/fiatjaf/pyramid/blossom"
 	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
@@ -70,6 +72,8 @@ func actionHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", 302)
 }
 
+var relayMetadataUpdate = debounce.New(time.Minute)
+
 func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 	if !pyramid.IsRoot(loggedUser) {
@@ -81,6 +85,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 
 		var delayedRedirectTarget string
+
 		for k, v := range r.PostForm {
 			v[0] = strings.TrimSpace(v[0])
 
@@ -250,10 +255,13 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				// basic metadata of all relays
 			case "main_name":
 				global.Settings.RelayName = v[0]
+				relayMetadataUpdate(publishRelayMetadata)
 			case "main_description":
 				global.Settings.RelayDescription = v[0]
+				relayMetadataUpdate(publishRelayMetadata)
 			case "main_icon":
 				global.Settings.RelayIcon = v[0]
+				relayMetadataUpdate(publishRelayMetadata)
 			case "main_pinned":
 				global.Settings.Pinned = checkPinnedID(v[0], global.IL.Main)
 				global.CachePinnedEvent(global.RelayMain)

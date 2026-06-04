@@ -130,7 +130,11 @@ func changeRelayNameHandler(ctx context.Context, name string) error {
 	log.Info().Str("caller", caller.Hex()).Str("name", name).Msg("management changerelayname called")
 
 	global.Settings.RelayName = name
-	return global.SaveUserSettings()
+	if err := global.SaveUserSettings(); err != nil {
+		return err
+	}
+	go publishRelayMetadata()
+	return nil
 }
 
 func changeRelayDescriptionHandler(ctx context.Context, description string) error {
@@ -144,7 +148,11 @@ func changeRelayDescriptionHandler(ctx context.Context, description string) erro
 	log.Info().Str("caller", caller.Hex()).Str("description", description).Msg("management changerelaydescription called")
 
 	global.Settings.RelayDescription = description
-	return global.SaveUserSettings()
+	if err := global.SaveUserSettings(); err != nil {
+		return err
+	}
+	go publishRelayMetadata()
+	return nil
 }
 
 func changeRelayIconHandler(ctx context.Context, icon string) error {
@@ -158,7 +166,11 @@ func changeRelayIconHandler(ctx context.Context, icon string) error {
 	log.Info().Str("caller", caller.Hex()).Str("icon", icon).Msg("management changerelayicon called")
 
 	global.Settings.RelayIcon = icon
-	return global.SaveUserSettings()
+	if err := global.SaveUserSettings(); err != nil {
+		return err
+	}
+	go publishRelayMetadata()
+	return nil
 }
 
 func allowKindHandler(ctx context.Context, kind nostr.Kind) error {

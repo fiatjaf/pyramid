@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"iter"
 	"slices"
@@ -16,6 +17,7 @@ import (
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/nip29"
 	"fiatjaf.com/nostr/nip70"
+	"fiatjaf.com/nostr/sdk"
 	"github.com/mailru/easyjson"
 
 	"github.com/fiatjaf/pyramid/global"
@@ -683,4 +685,31 @@ func handleDeleted(ctx context.Context, deleted nostr.Event) {
 			paywall.RecomputeMemberPaywall(ctx, by)
 		}
 	}
+}
+
+func publishRelayMetadata() {
+	content, _ := json.Marshal(sdk.ProfileMetadata{
+		Name:        "relay: " + global.Settings.Domain,
+		DisplayName: global.Settings.RelayName,
+		About:       global.Settings.RelayDescription,
+		Picture:     global.Settings.RelayIcon,
+		Website:     global.Settings.HTTPScheme() + global.Settings.Domain,
+	})
+
+	evt := nostr.Event{
+		Kind:      0,
+		PubKey:    global.Settings.RelayInternalSecretKey.Public(),
+		CreatedAt: nostr.Now(),
+		Content:   string(content),
+		Tags: nostr.Tags{
+			{"-"},
+		},
+	}
+	evt.Sign(global.Settings.RelayInternalSecretKey)
+
+	global.IL.Main.ReplaceEvent(evt)
+	global.IL.System.ReplaceEvent(evt)
+	relay.BroadcastEvent(evt)
+
+	return
 }
