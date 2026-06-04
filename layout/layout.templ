@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/nip19"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
@@ -267,12 +268,12 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								</div>
 								if pyramid.IsMember(loggedUser) {
 									<a href="/u" class="light:text-stone-700 dark:text-stone-300 font-medium hover:underline">
-										<nostr-name title={ loggedUser.Hex() } pubkey={ loggedUser.Hex() }>
+										<nostr-name title={ loggedUser.Hex() } pubkey={ nip19.EncodeNprofile(loggedUser, []string{global.Settings.WSScheme() + global.Settings.Domain}) }>
 											{ loggedUser.Hex()[0:6] }
 										</nostr-name>
 									</a>
 								} else {
-									<nostr-name title={ loggedUser.Hex() } pubkey={ loggedUser.Hex() }>
+									<nostr-name title={ loggedUser.Hex() } pubkey={ nip19.EncodeNprofile(loggedUser, []string{global.Settings.WSScheme() + global.Settings.Domain}) }>
 										{ loggedUser.Hex()[0:6] }
 									</nostr-name>
 								}

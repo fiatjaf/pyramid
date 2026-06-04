@@ -16,7 +16,7 @@ templ ProfileLink(pubkey nostr.PubKey) {
 		href={ "/u/" + nip19.EncodeNpub(pubkey) }
 		class="text-sm font-medium light:text-stone-600 dark:text-stone-400 hover:underline underline-offset-4"
 	>
-		<nostr-name pubkey={ pubkey.Hex() }>{ pubkey.Hex() }</nostr-name>
+		<nostr-name pubkey={ nip19.EncodeNprofile(pubkey, []string{global.Settings.WSScheme() + global.Settings.Domain}) }>{ pubkey.Hex() }</nostr-name>
 	</a>
 }
 

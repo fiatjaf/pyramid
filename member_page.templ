@@ -33,7 +33,7 @@ templ memberPage(loggedUser nostr.PubKey, user nostr.PubKey, nip05 string, mainS
 								target="_blank"
 								class="text-sm font-medium light:text-stone-600 dark:text-stone-400 hover:underline underline-offset-4"
 							>
-								<nostr-name pubkey={ user.Hex() }>{ user.Hex() }</nostr-name>
+								<nostr-name pubkey={ nip19.EncodeNprofile(user, []string{global.Settings.WSScheme() + global.Settings.Domain}) }>{ user.Hex() }</nostr-name>
 							</a>
 						</code>
 					</div>
@@ -56,7 +56,7 @@ templ memberPage(loggedUser nostr.PubKey, user nostr.PubKey, nip05 string, mainS
 									for _, inviter := range pyramid.GetInviters(user) {
 										<div class="text-sm">
 											<a href={ templ.SafeURL("/u/" + inviter.Hex()) } class="light:bg-stone-100 dark:bg-stone-800 px-2 rounded hover:underline">
-												<nostr-name pubkey={ inviter.Hex() }>{ inviter.Hex() }</nostr-name>
+												<nostr-name pubkey={ nip19.EncodeNprofile(inviter, []string{global.Settings.WSScheme() + global.Settings.Domain}) }>{ inviter.Hex() }</nostr-name>
 											</a>
 										</div>
 									}
@@ -94,7 +94,7 @@ templ memberPage(loggedUser nostr.PubKey, user nostr.PubKey, nip05 string, mainS
 									{{ hasInvitees = true }}
 									<div class="text-sm">
 										<a href={ templ.SafeURL("/u/" + invitee.Hex()) } class="light:bg-stone-100 dark:bg-stone-800 px-2 rounded hover:underline">
-											<nostr-name pubkey={ invitee.Hex() }>{ invitee.Hex() }</nostr-name>
+											<nostr-name pubkey={ nip19.EncodeNprofile(invitee, []string{global.Settings.WSScheme() + global.Settings.Domain}) }>{ invitee.Hex() }</nostr-name>
 										</a>
 									</div>
 								}

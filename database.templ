@@ -318,7 +318,7 @@ templ databaseResults(results []dbResult, errMsg string) {
 										title="click to toggle"
 									>
 										<span :class="mode === 'name' ? '' : 'hidden'">
-											<nostr-name pubkey={ result.Event.PubKey.Hex() }>{ result.Event.PubKey.Hex() }</nostr-name>
+											<nostr-name pubkey={ nip19.EncodeNprofile(result.Event.PubKey, []string{global.Settings.WSScheme() + global.Settings.Domain}) }>{ result.Event.PubKey.Hex() }</nostr-name>
 										</span>
 										<code :class="mode === 'hex' ? '' : 'hidden'" class="text-xs">{ result.Event.PubKey.Hex() }</code>
 										<code :class="mode === 'npub' ? '' : 'hidden'" class="text-xs">{ nip19.EncodeNpub(result.Event.PubKey) }</code>
