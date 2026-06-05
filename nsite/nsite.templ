@@ -5,6 +5,7 @@ import (
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/nip19"
+	"fiatjaf.com/nostr/nip5a"
 
 	"context"
 	"github.com/fiatjaf/pyramid/blossom"
@@ -41,7 +42,7 @@ func getSites() iter.Seq[siteInfo] {
 					d := evt.Tags.GetD()
 					if !yield(siteInfo{
 						Event:     evt,
-						Subdomain: encodePubkeyB36(evt.PubKey) + d,
+						Subdomain: nip5a.PubKeyToBase36(evt.PubKey) + d,
 						Label:     d,
 						IsHosted:  hosted,
 					}) {

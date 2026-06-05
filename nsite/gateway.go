@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"fiatjaf.com/nostr"
-	"fiatjaf.com/nostr/nip19"
+	"fiatjaf.com/nostr/nip5a"
 	libblossom "fiatjaf.com/nostr/nipb0/blossom"
 	"github.com/fiatjaf/pyramid/blossom"
 	"github.com/fiatjaf/pyramid/global"
@@ -122,15 +122,9 @@ func resolveSite(host string) (nostr.PubKey, string, error) {
 		return nostr.ZeroPK, "", errSiteNotFound
 	}
 
-	if prefix, value, err := nip19.Decode(label); err == nil && prefix == "npub" {
-		if pubkey, ok := value.(nostr.PubKey); ok {
-			return pubkey, "", nil
-		}
-	}
-
-	pubkey, err := decodePubkeyB36(label[:50])
+	pubkey, identifier, _, err := nip5a.DecodeSiteURL(label)
 	if err != nil {
 		return nostr.ZeroPK, "", errSiteNotFound
 	}
-	return pubkey, label[50:], nil
+	return pubkey, identifier, nil
 }
