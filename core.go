@@ -120,7 +120,7 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		return true, "invalid report"
 	case 28934:
 		if pyramid.IsMember(event.PubKey) {
-			return true, "restricted: you are already a member of this relay"
+			return false, "you are already a member of this relay, but fine"
 		}
 
 		claim := event.Tags.Find("claim")
