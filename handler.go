@@ -544,6 +544,23 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 					global.Settings.Blossom.MaxUserUploadSize, _ = strconv.Atoi(v[0])
 					global.Settings.Blossom.MaxUserUploadSizeAtEachLevel = nil
 				}
+			case "nsite_enabled":
+				global.Settings.Nsite.Enabled = v[0] == "on"
+				go restartSoon()
+			case "nsite_domain":
+				domain, err := normalizeDomainInput(v[0])
+				if err != nil {
+					http.Error(w, err.Error(), 400)
+					return
+				}
+
+				if domain == global.Settings.Domain {
+					http.Error(w, "can't be the same as the relay root domain", 400)
+					return
+				}
+
+				global.Settings.Nsite.Domain = domain
+				go restartSoon()
 			case "operator_google_client_id":
 				global.Settings.Operator.GoogleClientID = v[0]
 				operator.SetupEnabled()

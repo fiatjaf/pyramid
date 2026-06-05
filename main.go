@@ -35,6 +35,7 @@ import (
 	"github.com/fiatjaf/pyramid/inbox"
 	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/moderated"
+	"github.com/fiatjaf/pyramid/nsite"
 	"github.com/fiatjaf/pyramid/operator"
 	"github.com/fiatjaf/pyramid/paywall"
 	"github.com/fiatjaf/pyramid/personal"
@@ -170,6 +171,7 @@ func main() {
 	operator.Init(relay)
 	favorites.Init()
 	inbox.Init()
+	nsite.Init()
 
 	// start background web-of-trust computation (needed by inbox and operator)
 	wot.StartBackgroundComputation()
@@ -507,6 +509,9 @@ func run(ctx context.Context) error {
 	mux.Handle("/paywall/", paywall.Handler)
 	mux.Handle("/paywall", paywall.Handler)
 
+	mux.Handle("/nsite/", nsite.Handler)
+	mux.Handle("/nsite", nsite.Handler)
+
 	mux.Handle("/po/", cors.AllowAll().Handler(operator.Handler))
 	mux.Handle("/po", cors.AllowAll().Handler(operator.Handler))
 
@@ -514,6 +519,7 @@ func run(ctx context.Context) error {
 	mux.Handle("/scheduled", scheduled)
 
 	mux.Handle("/", relay)
+
 	mainHandler := setupCheckMiddleware(mux)
 	externalHandler := ipBlockMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		host := strings.TrimSpace(r.Host)
@@ -525,6 +531,12 @@ func run(ctx context.Context) error {
 		// proxy to livekit server via subdomain
 		if groups.EmbeddedLiveKitAvailable() && host == strings.ToLower("livekit."+global.Settings.Domain) {
 			groups.LiveKitProxyHandler(w, r)
+			return
+		}
+
+		// nsite gateway
+		if nsite.MatchesHost(host) {
+			nsite.GatewayHandler(w, r)
 			return
 		}
 
@@ -604,11 +616,19 @@ func run(ctx context.Context) error {
 				hosts = append(hosts, domain)
 			}
 		}
+		if global.Settings.Nsite.Enabled && global.Settings.Nsite.Domain != "" {
+			hosts = append(hosts, global.Settings.Nsite.Domain)
+		}
 
 		manager := &autocert.Manager{
-			Prompt:     func(_ string) bool { return true },
-			HostPolicy: autocert.HostWhitelist(hosts...),
-			Cache:      autocert.DirCache("certs"),
+			Prompt: func(_ string) bool { return true },
+			HostPolicy: func(ctx context.Context, host string) error {
+				if nsite.MatchesHost(host) {
+					return nil
+				}
+				return autocert.HostWhitelist(hosts...)(ctx, host)
+			},
+			Cache: autocert.DirCache("certs"),
 		}
 
 		// HTTP server on 80 for ACME challenges and user access

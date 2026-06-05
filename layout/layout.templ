@@ -108,8 +108,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							<button
 								@click="open = !open"
 								class={ "cursor-pointer rounded-lg px-4 py-2 font-medium flex items-center gap-1 themed:text-[var(--text-color)] themed:hover:bg-[rgb(from_var(--text-color)_r_g_b_/10%)] light:hover:bg-stone-100 dark:hover:bg-stone-700",
-                                    templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", currentPage == "groups" || currentPage == "grasp" || currentPage == "blossom" || currentPage == "paywall" || currentPage == "stream" || currentPage == "operator"),
-                                    templ.KV("hidden", !(global.Settings.Groups.Enabled || global.Settings.Grasp.Enabled || global.Settings.Blossom.Enabled || global.Settings.Paywall.Enabled || global.Settings.Stream.Enabled || global.Settings.Operator.Enabled || pyramid.IsRoot(loggedUser))) }
+                                    templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", currentPage == "groups" || currentPage == "grasp" || currentPage == "blossom" || currentPage == "nsite" || currentPage == "paywall" || currentPage == "stream" || currentPage == "operator"),
+                                    templ.KV("hidden", !(global.Settings.Groups.Enabled || global.Settings.Grasp.Enabled || global.Settings.Blossom.Enabled || global.Settings.Nsite.Enabled || global.Settings.Paywall.Enabled || global.Settings.Stream.Enabled || global.Settings.Operator.Enabled || pyramid.IsRoot(loggedUser))) }
 							>
 								switch currentPage {
 									case "groups":
@@ -118,6 +118,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 										grasp
 									case "blossom":
 										blossom
+									case "nsite":
+										nsite
 									case "paywall":
 										paywall
 									case "stream":
@@ -149,6 +151,11 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								if global.Settings.Paywall.Enabled || pyramid.IsRoot(loggedUser) {
 									@NavLink("/blossom/", currentPage == "blossom") {
 										blossom
+									}
+								}
+								if global.Settings.Paywall.Enabled || pyramid.IsRoot(loggedUser) {
+									@NavLink("/nsite/", currentPage == "nsite") {
+										nsite
 									}
 								}
 								if global.Settings.Paywall.Enabled || pyramid.IsRoot(loggedUser) {

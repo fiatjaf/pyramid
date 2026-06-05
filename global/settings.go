@@ -114,6 +114,11 @@ type UserSettings struct {
 		MaxUserUploadSizeAtEachLevel []int `json:"max_user_upload_size_at_each_level,omitempty"`
 	} `json:"blossom"`
 
+	Nsite struct {
+		Enabled bool   `json:"enabled"`
+		Domain  string `json:"domain,omitempty"`
+	} `json:"nsite"`
+
 	Stream struct {
 		Enabled bool   `json:"enabled"`
 		Salt    string `json:"salt"`

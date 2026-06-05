@@ -1,0 +1,99 @@
+package nsite
+
+import (
+	"fiatjaf.com/nostr"
+
+	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
+	"github.com/fiatjaf/pyramid/pyramid"
+)
+
+templ nsitePage(loggedUser nostr.PubKey) {
+	@layout.Layout(loggedUser, "nsite") {
+		<div class="max-w-3xl mx-auto">
+			<h1 class="text-4xl font-bold mb-4 font-[family-name:var(--primary-font)]">nsite</h1>
+			<div class="space-y-4 text-gray-700 dark:text-gray-300">
+				<p class="text-sm">hosts static sites from nsite manifests stored in the relay.</p>
+			</div>
+			if global.Settings.Nsite.Enabled && global.Settings.Nsite.Domain != "" {
+				<div class="mt-8">
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">active sites</h3>
+					<p class="text-sm text-stone-600 dark:text-stone-400">
+						sites served at <code class="bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 rounded">*.{ global.Settings.Nsite.Domain }</code>
+					</p>
+				</div>
+			}
+			if pyramid.IsRoot(loggedUser) {
+				<div class="mt-24">
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">configuration</h3>
+					if !global.Settings.Nsite.Enabled {
+						<form method="POST" action="/nsite/enable">
+							<button
+								type="submit"
+								class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+							>
+								enable
+							</button>
+						</form>
+					} else {
+						<form
+							method="POST"
+							action="/settings"
+							class="space-y-4"
+							x-data={ `{
+								saved: false,
+								domain: ` + global.JSONString(global.Settings.Nsite.Domain) + `,
+								async saveSettings() {
+									const response = await fetch(this.$refs.form.action, {
+										method: 'POST',
+										body: new URLSearchParams(new FormData(this.$refs.form))
+									});
+									if (response.ok) {
+										this.saved = true;
+										setTimeout(() => this.saved = false, 2000);
+									}
+								}
+							}` }
+							x-ref="form"
+						>
+							<div>
+								<label class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+									base domain
+								</label>
+								<input
+									type="text"
+									name="nsite_domain"
+									x-model="domain"
+									placeholder="e.g. nsite.example.com"
+									@blur="saveSettings()"
+									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-md bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+								/>
+								<p class="text-xs text-stone-500 dark:text-stone-400 mt-2">
+									base domain under which nsites will be hosted. each site will be at { "<npub-or-pubkeyb36+dtag>.<base-domain>" }.
+								</p>
+							</div>
+							<div
+								x-show="saved"
+								x-transition
+								class="text-sm text-green-600 dark:text-green-400 font-medium"
+							>
+								saved!
+							</div>
+						</form>
+						<details class="mt-4">
+							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">disable nsite</summary>
+							<form class="my-4" method="POST" action="/nsite/disable">
+								<button
+									type="submit"
+									class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+								>
+									disable
+								</button>
+							</form>
+						</details>
+					}
+				</div>
+			}
+		</div>
+	}
+}
