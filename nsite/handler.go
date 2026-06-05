@@ -1,7 +1,6 @@
 package nsite
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 
@@ -10,9 +9,8 @@ import (
 )
 
 var (
-	log             = global.Log.With().Str("service", "nsite").Logger()
-	Handler         = &MuxHandler{}
-	errSiteNotFound = errors.New("site not found")
+	log     = global.Log.With().Str("service", "nsite").Logger()
+	Handler = &MuxHandler{}
 )
 
 func Init() {
@@ -32,6 +30,7 @@ func setupDisabled() {
 func setupEnabled() {
 	Handler.mux = http.NewServeMux()
 	Handler.mux.HandleFunc("POST /nsite/disable", disableHandler)
+	Handler.mux.HandleFunc("/nsite/caddy/ask", caddyAskHandler)
 	Handler.mux.HandleFunc("/nsite/", pageHandler)
 }
 
@@ -53,6 +52,22 @@ func MatchesHost(host string) bool {
 func pageHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
 	nsitePage(loggedUser).Render(r.Context(), w)
+}
+
+func caddyAskHandler(w http.ResponseWriter, r *http.Request) {
+	domain := r.URL.Query().Get("domain")
+	if domain == "" {
+		http.Error(w, "missing domain parameter", http.StatusBadRequest)
+		return
+	}
+
+	_, err := resolveSite(domain)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {

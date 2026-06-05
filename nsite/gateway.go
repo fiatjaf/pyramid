@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"fiatjaf.com/nostr"
-	"fiatjaf.com/nostr/nip5a"
 	libblossom "fiatjaf.com/nostr/nipb0/blossom"
 	"github.com/fiatjaf/pyramid/blossom"
 	"github.com/fiatjaf/pyramid/global"
@@ -21,25 +20,8 @@ import (
 // gatewayHandler serves nsite sites. it is not registered in the mux;
 // main.go calls it directly when the host matches an nsite subdomain.
 func GatewayHandler(w http.ResponseWriter, r *http.Request) {
-	pubkey, identifier, err := resolveSite(r.Host)
+	manifest, err := resolveSite(r.Host)
 	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	filter := nostr.Filter{Authors: []nostr.PubKey{pubkey}}
-	if identifier == "" {
-		filter.Kinds = []nostr.Kind{15128}
-	} else {
-		filter.Kinds = []nostr.Kind{35128}
-		filter.Tags = nostr.TagMap{"d": []string{identifier}}
-	}
-
-	var manifest nostr.Event
-	for evt := range global.IL.Main.QueryEvents(filter, 10) {
-		manifest = evt
-	}
-	if manifest.ID == nostr.ZeroID {
 		http.NotFound(w, r)
 		return
 	}
@@ -69,31 +51,30 @@ func sitePath(requestPath string) string {
 }
 
 func servePath(w http.ResponseWriter, r *http.Request, manifest nostr.Event, requestPath string) error {
-	var hash string
-	for tag := range manifest.Tags.FindAll("path") {
-		if len(tag) >= 3 && tag[1] == requestPath {
-			hash = strings.ToLower(tag[2])
-			break
-		}
+	pathTag := manifest.Tags.FindWithValue("path", requestPath)
+	if len(pathTag) < 3 {
+		return fmt.Errorf("path %s not found", requestPath)
 	}
 
+	hash := pathTag[2]
 	if _, err := hex.DecodeString(hash); err != nil || len(hash) != 64 {
-		return errSiteNotFound
+		return fmt.Errorf("invalid hash for %s: %s", requestPath, hash)
 	}
 
 	bd, err := blossom.BlobIndex.Get(r.Context(), hash)
 	if err != nil {
 		log.Warn().Err(err).Str("sha256", hash).Msg("failed to query blossom blob")
-		return errSiteNotFound
+		return fmt.Errorf("failed to query blossom blob %s: %w", hash, err)
 	}
 	if bd == nil {
-		return errSiteNotFound
+		return fmt.Errorf("blob not found for %s: %s", requestPath, hash)
 	}
 
 	ext := libblossom.GetExtension(bd.Type)
-	file, err := os.Open(filepath.Join(global.S.DataPath, "blossom-files", hash+ext))
+	fp := filepath.Join(global.S.DataPath, "blossom-files", hash+ext)
+	file, err := os.Open(fp)
 	if err != nil {
-		return errSiteNotFound
+		return fmt.Errorf("missing blossom file %s: %w", fp, err)
 	}
 	defer file.Close()
 
@@ -105,26 +86,8 @@ func servePath(w http.ResponseWriter, r *http.Request, manifest nostr.Event, req
 	if bd.Size > 0 {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", bd.Size))
 	}
+
 	w.Header().Set("ETag", hash)
 	_, err = io.Copy(w, file)
 	return err
-}
-
-func resolveSite(host string) (nostr.PubKey, string, error) {
-	domain := strings.Trim(strings.ToLower(global.Settings.Nsite.Domain), ".")
-	if host == domain {
-		return nostr.ZeroPK, "", errSiteNotFound
-	}
-
-	label := strings.TrimSuffix(host, "."+domain)
-	label = strings.TrimSuffix(label, ".")
-	if label == "" || strings.Contains(label, ".") {
-		return nostr.ZeroPK, "", errSiteNotFound
-	}
-
-	pubkey, identifier, _, err := nip5a.DecodeSiteURL(label)
-	if err != nil {
-		return nostr.ZeroPK, "", errSiteNotFound
-	}
-	return pubkey, identifier, nil
 }
