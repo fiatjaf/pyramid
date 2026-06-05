@@ -2,13 +2,8 @@ package nsite
 
 import (
 	"errors"
-	"fmt"
-	"math/big"
 	"net/http"
 	"strings"
-
-	"fiatjaf.com/nostr"
-	"fiatjaf.com/nostr/nip19"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
@@ -104,43 +99,4 @@ type MuxHandler struct {
 
 func (mh *MuxHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mh.mux.ServeHTTP(w, r)
-}
-
-func resolveSite(host string) (nostr.PubKey, string, error) {
-	domain := strings.Trim(strings.ToLower(global.Settings.Nsite.Domain), ".")
-	if host == domain {
-		return nostr.ZeroPK, "", errSiteNotFound
-	}
-
-	label := strings.TrimSuffix(host, "."+domain)
-	label = strings.TrimSuffix(label, ".")
-	if label == "" || strings.Contains(label, ".") {
-		return nostr.ZeroPK, "", errSiteNotFound
-	}
-
-	if prefix, value, err := nip19.Decode(label); err == nil && prefix == "npub" {
-		if pubkey, ok := value.(nostr.PubKey); ok {
-			return pubkey, "", nil
-		}
-	}
-
-	pubkey, err := decodePubkeyB36(label[:50])
-	if err != nil {
-		return nostr.ZeroPK, "", errSiteNotFound
-	}
-	return pubkey, label[50:], nil
-}
-
-func decodePubkeyB36(s string) (nostr.PubKey, error) {
-	n, ok := new(big.Int).SetString(s, 36)
-	if !ok {
-		return nostr.ZeroPK, fmt.Errorf("invalid base36 pubkey")
-	}
-	b := n.Bytes()
-	if len(b) > 32 {
-		return nostr.ZeroPK, fmt.Errorf("base36 pubkey too large")
-	}
-	var pubkey nostr.PubKey
-	copy(pubkey[32-len(b):], b)
-	return pubkey, nil
 }

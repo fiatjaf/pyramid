@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/nip19"
 	libblossom "fiatjaf.com/nostr/nipb0/blossom"
 	"github.com/fiatjaf/pyramid/blossom"
 	"github.com/fiatjaf/pyramid/global"
@@ -107,4 +108,29 @@ func servePath(w http.ResponseWriter, r *http.Request, manifest nostr.Event, req
 	w.Header().Set("ETag", hash)
 	_, err = io.Copy(w, file)
 	return err
+}
+
+func resolveSite(host string) (nostr.PubKey, string, error) {
+	domain := strings.Trim(strings.ToLower(global.Settings.Nsite.Domain), ".")
+	if host == domain {
+		return nostr.ZeroPK, "", errSiteNotFound
+	}
+
+	label := strings.TrimSuffix(host, "."+domain)
+	label = strings.TrimSuffix(label, ".")
+	if label == "" || strings.Contains(label, ".") {
+		return nostr.ZeroPK, "", errSiteNotFound
+	}
+
+	if prefix, value, err := nip19.Decode(label); err == nil && prefix == "npub" {
+		if pubkey, ok := value.(nostr.PubKey); ok {
+			return pubkey, "", nil
+		}
+	}
+
+	pubkey, err := decodePubkeyB36(label[:50])
+	if err != nil {
+		return nostr.ZeroPK, "", errSiteNotFound
+	}
+	return pubkey, label[50:], nil
 }

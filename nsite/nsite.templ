@@ -1,12 +1,57 @@
 package nsite
 
 import (
-	"fiatjaf.com/nostr"
+	"iter"
 
+	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/nip19"
+
+	"context"
+	"github.com/fiatjaf/pyramid/blossom"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
+
+type siteInfo struct {
+	Event     nostr.Event
+	Label     string
+	Subdomain string
+	IsHosted  bool
+}
+
+func getSites() iter.Seq[siteInfo] {
+	return func(yield func(siteInfo) bool) {
+		for evt := range global.IL.Main.QueryEvents(nostr.Filter{Kinds: []nostr.Kind{15128, 35128}}, 1_000) {
+			if firstPathTag := evt.Tags.Find("path"); len(firstPathTag) >= 3 {
+				_, err := blossom.BlobIndex.Get(context.Background(), firstPathTag[2])
+				hosted := err == nil
+
+				switch evt.Kind {
+				case 15128:
+					if !yield(siteInfo{
+						Event:     evt,
+						Subdomain: nip19.EncodeNpub(evt.PubKey),
+						Label:     "root",
+						IsHosted:  hosted,
+					}) {
+						return
+					}
+				case 35128:
+					d := evt.Tags.GetD()
+					if !yield(siteInfo{
+						Event:     evt,
+						Subdomain: encodePubkeyB36(evt.PubKey) + d,
+						Label:     d,
+						IsHosted:  hosted,
+					}) {
+						return
+					}
+				}
+			}
+		}
+	}
+}
 
 templ nsitePage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "nsite") {
@@ -17,10 +62,53 @@ templ nsitePage(loggedUser nostr.PubKey) {
 			</div>
 			if global.Settings.Nsite.Enabled && global.Settings.Nsite.Domain != "" {
 				<div class="mt-8">
-					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">active sites</h3>
-					<p class="text-sm text-stone-600 dark:text-stone-400">
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">sites</h3>
+					<p class="text-sm text-stone-600 dark:text-stone-400 mb-6">
 						sites served at <code class="bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 rounded">*.{ global.Settings.Nsite.Domain }</code>
 					</p>
+					{{ count := 0 }}
+					<div class="overflow-x-auto">
+						<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
+							<thead class="bg-stone-50 dark:bg-stone-800">
+								<tr>
+									<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">owner</th>
+									<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">site</th>
+									<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">hosted</th>
+								</tr>
+							</thead>
+							<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
+								for site := range getSites() {
+									{{ count++ }}
+									<tr>
+										<td class="px-4 py-3 text-sm">
+											@layout.ProfileLink(site.Event.PubKey)
+										</td>
+										<td class="px-4 py-3 text-sm font-medium text-stone-900 dark:text-stone-100">
+											if site.IsHosted {
+												<a
+													href={ global.Settings.HTTPScheme() + site.Subdomain + "." + global.Settings.Nsite.Domain }
+													target="_blank"
+													class="text-blue-600 dark:text-blue-400 hover:underline"
+												>{ site.Label }</a>
+											} else {
+												<span>{ site.Label }</span>
+											}
+										</td>
+										<td class="px-4 py-3 text-sm">
+											if site.IsHosted {
+												☑
+											} else {
+												☐
+											}
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+					if count == 0 {
+						<p class="text-sm text-stone-600 dark:text-stone-400">no sites created yet</p>
+					}
 				</div>
 			}
 			if pyramid.IsRoot(loggedUser) {
