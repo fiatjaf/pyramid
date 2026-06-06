@@ -25,8 +25,8 @@ func getSites() iter.Seq[siteInfo] {
 	return func(yield func(siteInfo) bool) {
 		for evt := range global.IL.Main.QueryEvents(nostr.Filter{Kinds: []nostr.Kind{15128, 35128}}, 1_000) {
 			if firstPathTag := evt.Tags.Find("path"); len(firstPathTag) >= 3 {
-				_, err := blossom.BlobIndex.Get(context.Background(), firstPathTag[2])
-				hosted := err == nil
+				bd, _ := blossom.BlobIndex.Get(context.Background(), firstPathTag[2])
+				hosted := bd != nil
 
 				switch evt.Kind {
 				case 15128:
