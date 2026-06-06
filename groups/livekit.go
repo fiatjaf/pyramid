@@ -176,9 +176,9 @@ func livekitWebhookHandler(w http.ResponseWriter, r *http.Request) {
 			evt := group.ToLiveKitParticipantsEvent()
 			group.mu.Unlock()
 
-			evt.Sign(State.secretKey)
-			State.DB.ReplaceEvent(evt)
-			State.broadcast(evt)
+			evt.Sign(global.Settings.RelayInternalSecretKey)
+			global.IL.Main.ReplaceEvent(evt)
+			hostRelay.BroadcastEvent(evt)
 			return
 		}
 	default:

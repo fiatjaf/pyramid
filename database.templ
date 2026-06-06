@@ -162,8 +162,6 @@ func databaseByName(name string) *mmm.IndexingLayer {
 		return global.IL.PendingAccess
 	case "personal":
 		return global.IL.Personal
-	case "groups":
-		return global.IL.Groups
 	case "inbox":
 		return global.IL.Inbox
 	case "secret":
@@ -239,7 +237,6 @@ templ databasePage(loggedUser nostr.PubKey, filterJSON string, errMsg string) {
 						@dbCheckbox("invites", "Invites")
 						@dbCheckbox("pending-access", "Pending Access")
 						@dbCheckbox("personal", "Personal")
-						@dbCheckbox("groups", "Groups")
 						@dbCheckbox("inbox", "Inbox")
 						@dbCheckbox("secret", "Secret")
 						@dbCheckbox("moderation-queue", "Moderation Queue")

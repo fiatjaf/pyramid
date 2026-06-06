@@ -1061,7 +1061,6 @@ func statsHandler(w http.ResponseWriter, r *http.Request) {
 	// compute stats for all IndexingLayer instances
 	mainStats, _ := global.IL.Main.ComputeStats(mmm.StatsOptions{})
 	systemStats, _ := global.IL.System.ComputeStats(mmm.StatsOptions{})
-	groupsStats, _ := global.IL.Groups.ComputeStats(mmm.StatsOptions{})
 	favoritesStats, _ := global.IL.Favorites.ComputeStats(mmm.StatsOptions{})
 	internalStats, _ := global.IL.Internal.ComputeStats(mmm.StatsOptions{})
 	personalStats, _ := global.IL.Personal.ComputeStats(mmm.StatsOptions{})
@@ -1070,7 +1069,7 @@ func statsHandler(w http.ResponseWriter, r *http.Request) {
 	uppermostStats, _ := global.IL.Uppermost.ComputeStats(mmm.StatsOptions{})
 	inboxStats, _ := global.IL.Inbox.ComputeStats(mmm.StatsOptions{})
 
-	StatsPage(loggedUser, mainStats, systemStats, groupsStats, favoritesStats, internalStats, personalStats, moderatedStats, popularStats, uppermostStats, inboxStats).Render(r.Context(), w)
+	StatsPage(loggedUser, mainStats, systemStats, favoritesStats, internalStats, personalStats, moderatedStats, popularStats, uppermostStats, inboxStats).Render(r.Context(), w)
 }
 
 func syncHandler(w http.ResponseWriter, r *http.Request) {

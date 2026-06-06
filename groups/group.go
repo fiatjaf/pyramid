@@ -75,7 +75,7 @@ func (s *GroupsState) NewGroup(id string) *Group {
 // loadGroupsFromDB loads all the group metadata from all the past action messages.
 func (s *GroupsState) loadGroupsFromDB() error {
 nextgroup:
-	for evt := range s.DB.QueryEvents(nostr.Filter{
+	for evt := range global.IL.Main.QueryEvents(nostr.Filter{
 		Kinds: []nostr.Kind{
 			nostr.KindSimpleGroupCreateGroup,
 		},
@@ -89,7 +89,7 @@ nextgroup:
 		group := s.NewGroup(id)
 
 		events := make([]nostr.Event, 0, 5000)
-		for event := range s.DB.QueryEvents(nostr.Filter{
+		for event := range global.IL.Main.QueryEvents(nostr.Filter{
 			Kinds: nip29.ModerationEventKinds,
 			Tags:  nostr.TagMap{"h": []string{id}},
 		}, 50000) {
@@ -114,7 +114,7 @@ nextgroup:
 
 		// load the last 50 event ids for "previous" tag checking
 		i := 49
-		for evt := range s.DB.QueryEvents(nostr.Filter{Tags: nostr.TagMap{"h": []string{id}}}, 50) {
+		for evt := range global.IL.Main.QueryEvents(nostr.Filter{Tags: nostr.TagMap{"h": []string{id}}}, 50) {
 			group.last50[i] = evt.ID
 			i--
 		}
@@ -128,7 +128,7 @@ nextgroup:
 			if err != nil {
 				return err
 			} else {
-				s.broadcast(updated)
+				hostRelay.BroadcastEvent(updated)
 			}
 		}
 	}
@@ -176,7 +176,7 @@ func (s *GroupsState) SyncGroupMetadataEvents(group *Group) iter.Seq2[nostr.Even
 		} {
 			// first check if we really have to update this
 			var current nostr.Event
-			for existing := range s.DB.QueryEvents(nostr.Filter{
+			for existing := range global.IL.Main.QueryEvents(nostr.Filter{
 				Kinds:   []nostr.Kind{updated.Kind},
 				Authors: []nostr.PubKey{s.publicKey},
 				Tags:    nostr.TagMap{"d": []string{group.Address.ID}},
@@ -188,13 +188,13 @@ func (s *GroupsState) SyncGroupMetadataEvents(group *Group) iter.Seq2[nostr.Even
 			}
 
 			// then create the new
-			if err := updated.Sign(s.secretKey); err != nil {
+			if err := updated.Sign(global.Settings.RelayInternalSecretKey); err != nil {
 				if !yield(nostr.Event{}, fmt.Errorf("failed to sign group metadata event %d: %w", updated.Kind, err)) {
 					return
 				}
 			}
 
-			if _, err := s.DB.ReplaceEvent(updated); err != nil {
+			if _, err := global.IL.Main.ReplaceEvent(updated); err != nil {
 				if !yield(nostr.Event{}, fmt.Errorf("failed to save group metadata event %d: %w", updated.Kind, err)) {
 					return
 				}

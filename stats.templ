@@ -12,7 +12,6 @@ templ StatsPage(
 	loggedUser nostr.PubKey,
 	mainStats,
 	systemStats,
-	groupsStats,
 	favoritesStats,
 	internalStats,
 	personalStats,
@@ -27,7 +26,6 @@ templ StatsPage(
 				@layout.SubSectionTitle("event statistics")
 				@statsTable("main", mainStats)
 				@statsTable("inbox", inboxStats)
-				@statsTable("groups", groupsStats)
 				@statsTable("popular", popularStats)
 				@statsTable("uppermost", uppermostStats)
 				@statsTable("favorites", favoritesStats)

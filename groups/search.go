@@ -1,6 +1,7 @@
 package groups
 
 import (
+	"context"
 	"fmt"
 	"iter"
 	"net/url"
@@ -124,7 +125,7 @@ func (group *Group) maybeInitSearchIndex() (bool, error) {
 
 	group.searchIndex = &bleve.BleveBackend{
 		Path:          groupSearchIndexPath(group.Address.ID),
-		RawEventStore: State.DB,
+		RawEventStore: global.IL.Main,
 
 		IndexableKinds: groupSearchIndexableKinds,
 		Languages:      []lingua.Language{group.language},
@@ -133,7 +134,7 @@ func (group *Group) maybeInitSearchIndex() (bool, error) {
 		return false, fmt.Errorf("failed to init group search index: %w", err)
 	}
 
-	for evt := range State.DB.QueryEvents(nostr.Filter{
+	for evt := range global.IL.Main.QueryEvents(nostr.Filter{
 		Kinds: groupSearchIndexableKinds,
 		Tags:  nostr.TagMap{"h": []string{group.Address.ID}},
 	}, 1_000) {
@@ -169,22 +170,14 @@ func (group *Group) removeSearchIndex() error {
 	return nil
 }
 
-func queryGroupSearch(filter nostr.Filter) iter.Seq[nostr.Event] {
+func QuerySearch(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 	maxLimit := filter.GetTheoreticalLimit()
 	if maxLimit == 0 || maxLimit > 40 {
 		maxLimit = 40
 	}
 
 	return func(yield func(nostr.Event) bool) {
-		groupIDs, hasGroupIDs := filter.Tags["h"]
-		if !hasGroupIDs {
-			groupIDs = make([]string, 0, State.Groups.Size())
-			for groupID := range State.Groups.Range {
-				groupIDs = append(groupIDs, groupID)
-			}
-		}
-
-		seen := make(map[nostr.ID]struct{}, maxLimit)
+		groupIDs, _ := filter.Tags["h"]
 		yielded := 0
 
 		for _, groupID := range groupIDs {
@@ -204,11 +197,6 @@ func queryGroupSearch(filter nostr.Filter) iter.Seq[nostr.Event] {
 
 			stop := false
 			for evt := range group.searchIndex.QueryEvents(filter, maxLimit-yielded) {
-				if _, exists := seen[evt.ID]; exists {
-					continue
-				}
-				seen[evt.ID] = struct{}{}
-
 				if !yield(evt) {
 					stop = true
 					break
@@ -233,7 +221,7 @@ func (group *Group) detectAndPersistLanguage() (lingua.Language, bool, error) {
 	content := strings.Builder{}
 	content.Grow(1_000)
 
-	for evt := range State.DB.QueryEvents(nostr.Filter{
+	for evt := range global.IL.Main.QueryEvents(nostr.Filter{
 		Kinds: groupSearchIndexableKinds,
 		Tags:  nostr.TagMap{"h": []string{group.Address.ID}},
 	}, 100) {

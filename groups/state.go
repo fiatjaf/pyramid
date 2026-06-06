@@ -6,7 +6,6 @@ import (
 	"sync/atomic"
 
 	"fiatjaf.com/nostr"
-	"fiatjaf.com/nostr/eventstore"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/puzpuzpuz/xsync/v3"
 )
@@ -18,38 +17,22 @@ const (
 
 type GroupsState struct {
 	Groups *xsync.MapOf[string, *Group]
-	DB     eventstore.Store
 
 	// events that just got deleted will be cached here such that someone doesn't rebroadcast them
 	deletedCache      [128]nostr.ID
 	deletedCacheIndex atomic.Uint32
 
 	publicKey nostr.PubKey
-	secretKey nostr.SecretKey
-
-	broadcast func(nostr.Event) int
 }
 
-type Options struct {
-	DB        eventstore.Store
-	SecretKey nostr.SecretKey
-	Broadcast func(nostr.Event) int
-}
-
-func NewGroupsState(opts Options) *GroupsState {
-	pubkey := opts.SecretKey.Public()
-
+func NewGroupsState() *GroupsState {
 	// we keep basic data about all groups in memory
 	groups := xsync.NewMapOf[string, *Group]()
 
 	state := &GroupsState{
 		Groups: groups,
-		DB:     opts.DB,
 
-		broadcast: opts.Broadcast,
-
-		publicKey: pubkey,
-		secretKey: opts.SecretKey,
+		publicKey: global.Settings.RelayInternalSecretKey.Public(),
 	}
 
 	// load all groups
@@ -71,7 +54,7 @@ func HandleEventSaved(event nostr.Event) {
 			if err != nil {
 				log.Error().Err(err).Stringer("event", event).Msg("failed to handle group event")
 			} else {
-				State.broadcast(updated)
+				hostRelay.BroadcastEvent(updated)
 			}
 		}
 	}
@@ -85,10 +68,10 @@ func (s *GroupsState) WipeGroup(groupId string) error {
 
 	// delete all events associated with this group
 	count := 0
-	for evt := range s.DB.QueryEvents(nostr.Filter{
+	for evt := range global.IL.Main.QueryEvents(nostr.Filter{
 		Tags: nostr.TagMap{"h": []string{groupId}},
 	}, 10000) {
-		if err := s.DB.DeleteEvent(evt.ID); err != nil {
+		if err := global.IL.Main.DeleteEvent(evt.ID); err != nil {
 			log.Warn().Err(err).Stringer("event", evt.ID).Msg("failed to delete event during group wipe")
 		} else {
 			count++

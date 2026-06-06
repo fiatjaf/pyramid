@@ -9,6 +9,7 @@ import (
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/nip29"
 
+	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
@@ -93,7 +94,7 @@ func RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg strin
 		// and they can't join if they have been kicked
 		var rem nostr.Event
 		var isRemoved bool
-		for removed := range State.DB.QueryEvents(nostr.Filter{
+		for removed := range global.IL.Main.QueryEvents(nostr.Filter{
 			Kinds: []nostr.Kind{nostr.KindSimpleGroupRemoveUser},
 			Tags: nostr.TagMap{
 				"p": []string{event.PubKey.Hex()},
@@ -197,9 +198,11 @@ func RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg strin
 			group.mu.RUnlock()
 		case nip29.DeleteEvent:
 			ineffective := true
-			for range State.DB.QueryEvents(nostr.Filter{IDs: a.Targets}, len(a.Targets)) {
-				ineffective = false
-				break
+			for target := range global.IL.Main.QueryEvents(nostr.Filter{IDs: a.Targets}, len(a.Targets)) {
+				if hTag := target.Tags.Find("h"); hTag[1] == groupId {
+					ineffective = false
+					break
+				}
 			}
 			if ineffective {
 				return true, "none of the targets exist in this relay"
@@ -209,7 +212,7 @@ func RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg strin
 			if !isPrimaryRole {
 				if del, ok := action.(nip29.DeleteEvent); ok {
 					authors := make([]nostr.PubKey, 0, len(del.Targets))
-					for target := range State.DB.QueryEvents(nostr.Filter{IDs: del.Targets}, len(del.Targets)) {
+					for target := range global.IL.Main.QueryEvents(nostr.Filter{IDs: del.Targets}, len(del.Targets)) {
 						if !slices.Contains(authors, target.PubKey) {
 							authors = append(authors, target.PubKey)
 						}

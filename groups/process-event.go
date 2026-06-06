@@ -5,6 +5,7 @@ import (
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/nip29"
+	"github.com/fiatjaf/pyramid/global"
 )
 
 func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) (groupsAffected []*Group) {
@@ -34,11 +35,11 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) (grou
 					nostr.Tag{"p", event.PubKey.Hex(), group.Roles[0].Name},
 				},
 			}
-			if err := addCreator.Sign(s.secretKey); err != nil {
+			if err := addCreator.Sign(global.Settings.RelayInternalSecretKey); err != nil {
 				log.Error().Err(err).Msg("failed to sign add-creator event")
 				return
 			}
-			if err := s.DB.SaveEvent(addCreator); err != nil {
+			if err := global.IL.Main.SaveEvent(addCreator); err != nil {
 				log.Error().Err(err).Msg("failed to save add-creator event")
 				return
 			}
@@ -47,7 +48,7 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) (grou
 				groupsAffected = nostr.AppendUnique(groupsAffected, affected)
 			}
 
-			s.broadcast(addCreator)
+			hostRelay.BroadcastEvent(addCreator)
 		} else {
 			group = s.GetGroupFromEvent(event)
 			groupsAffected = nostr.AppendUnique(groupsAffected, group)
@@ -65,7 +66,7 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) (grou
 				if err != nil {
 					continue
 				}
-				if err := s.DB.DeleteEvent(id); err != nil {
+				if err := global.IL.Main.DeleteEvent(id); err != nil {
 					log.Warn().Err(err).Stringer("event", id).Msg("failed to delete")
 				} else {
 					if err := group.deleteEventFromSearch(id); err != nil {
@@ -109,11 +110,11 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) (grou
 				nostr.Tag{"code", inviteCode},
 			},
 		}
-		if err := addUser.Sign(s.secretKey); err != nil {
+		if err := addUser.Sign(global.Settings.RelayInternalSecretKey); err != nil {
 			log.Error().Err(err).Msg("failed to sign add-user event")
 			return
 		}
-		if err := s.DB.SaveEvent(addUser); err != nil {
+		if err := global.IL.Main.SaveEvent(addUser); err != nil {
 			log.Error().Err(err).Msg("failed to add user who requested to join")
 			return
 		}
@@ -122,7 +123,7 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) (grou
 			groupsAffected = nostr.AppendUnique(groupsAffected, affected)
 		}
 
-		s.broadcast(addUser)
+		hostRelay.BroadcastEvent(addUser)
 	}
 
 	// react to leave request
@@ -138,12 +139,12 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) (grou
 					{"self-removal"},
 				},
 			}
-			if err := removeUser.Sign(s.secretKey); err != nil {
+			if err := removeUser.Sign(global.Settings.RelayInternalSecretKey); err != nil {
 				log.Error().Err(err).Msg("failed to sign remove-user event")
 				return
 			}
 
-			if err := s.DB.SaveEvent(removeUser); err != nil {
+			if err := global.IL.Main.SaveEvent(removeUser); err != nil {
 				log.Error().Err(err).Msg("failed to remove user who requested to leave")
 				return
 			}
@@ -152,7 +153,7 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) (grou
 				groupsAffected = nostr.AppendUnique(groupsAffected, affected)
 			}
 
-			s.broadcast(removeUser)
+			hostRelay.BroadcastEvent(removeUser)
 		}
 	}
 

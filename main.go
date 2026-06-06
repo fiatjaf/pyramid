@@ -190,10 +190,7 @@ func main() {
 		return global.IL.Main.CountEvents(filter)
 	}
 	relay.StoreEvent = func(ctx context.Context, event nostr.Event) error {
-		if event.Tags.Find("h") != nil {
-			// nip29 logic
-			return global.IL.Groups.SaveEvent(event)
-		} else if global.Settings.AcceptScheduledEvents && event.CreatedAt > nostr.Now()+60 {
+		if global.Settings.AcceptScheduledEvents && event.CreatedAt > nostr.Now()+60 {
 			// future scheduled events
 			scheduled.BroadcastEvent(event)
 			return global.IL.Scheduled.SaveEvent(event)
@@ -203,27 +200,21 @@ func main() {
 		}
 	}
 	relay.ReplaceEvent = func(ctx context.Context, event nostr.Event) error {
-		var err error
-		if event.Tags.Find("h") != nil {
-			// nip29 logic
-			_, err = global.IL.Groups.ReplaceEvent(event)
-		} else {
-			// normal logic
-			_, err = replaceOnMain(event)
-		}
+		_, err := replaceOnMain(event)
 		return err
 	}
 	relay.DeleteEvent = func(ctx context.Context, id nostr.ID) error {
-		// try to delete from everywhere
-		if err := deleteFromMain(id); err != nil {
-			return err
-		}
-		for evt := range global.IL.Groups.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+		for evt := range global.IL.Main.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+			if evt.Tags.Find("h") == nil {
+				continue
+			}
 			if evt.CreatedAt < nostr.Now()-60*60*2 /* 2 hours */ {
 				return errors.New("can't delete very old group message")
 			}
 		}
-		if err := global.IL.Groups.DeleteEvent(id); err != nil {
+
+		// try to delete from everywhere
+		if err := deleteFromMain(id); err != nil {
 			return err
 		}
 		if err := global.IL.Scheduled.DeleteEvent(id); err != nil {
@@ -291,7 +282,10 @@ func main() {
 		if event.Kind == nostr.KindDeletion {
 			for e := range event.Tags.FindAll("e") {
 				if eid, err := nostr.IDFromHex(e[1]); err == nil {
-					for evt := range global.IL.Groups.QueryEvents(nostr.Filter{IDs: []nostr.ID{eid}}, 1) {
+					for evt := range global.IL.Main.QueryEvents(nostr.Filter{IDs: []nostr.ID{eid}}, 1) {
+						if evt.Tags.Find("h") == nil {
+							continue
+						}
 						if evt.CreatedAt < nostr.Now()-60*60*2 /* 2 hours */ {
 							return true, "can't delete very old group message"
 						}

@@ -6,23 +6,33 @@ import (
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
+	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
-func Query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
+//go:inline
+func FilterQuery(ctx context.Context, filter nostr.Filter, query iter.Seq[nostr.Event]) iter.Seq[nostr.Event] {
+	// when a group is explicitly requested, request policy already checked access.
+	if len(filter.Tags["h"]) == 0 {
+		if global.Settings.Groups.Enabled && State != nil {
+			return query
+		} else {
+			return func(yield func(nostr.Event) bool) {}
+		}
+	}
+
 	return func(yield func(nostr.Event) bool) {
 		authed := khatru.GetAllAuthed(ctx)
 
-		var query iter.Seq[nostr.Event]
-		if filter.Search == "" {
-			query = State.DB.QueryEvents(filter, 1500)
-		} else {
-			query = queryGroupSearch(filter)
-		}
-
 		for evt := range query {
-			if hideEventFromReader(filter, evt, authed) {
-				continue
+			if evt.Tags.Find("h") != nil {
+				if !global.Settings.Groups.Enabled || State == nil {
+					continue
+				}
+
+				if hideEventFromReader(filter, evt, authed) {
+					continue
+				}
 			}
 
 			if !yield(evt) {
@@ -32,6 +42,7 @@ func Query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 	}
 }
 
+//go:inline
 func ShouldPreventBroadcast(evt nostr.Event, filter nostr.Filter, authed []nostr.PubKey) bool {
 	return hideEventFromReader(filter, evt, authed)
 }
