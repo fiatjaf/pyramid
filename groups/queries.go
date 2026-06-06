@@ -13,7 +13,7 @@ import (
 //go:inline
 func FilterQuery(ctx context.Context, filter nostr.Filter, query iter.Seq[nostr.Event]) iter.Seq[nostr.Event] {
 	// when a group is explicitly requested, request policy already checked access.
-	if len(filter.Tags["h"]) == 0 {
+	if len(filter.Tags["h"]) > 0 {
 		if global.Settings.Groups.Enabled && State != nil {
 			return query
 		} else {
