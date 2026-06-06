@@ -6,9 +6,12 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/eventstore"
 	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/sdk"
 	"github.com/kelseyhightower/envconfig"
@@ -84,9 +87,8 @@ func Init() error {
 		return fmt.Errorf("failed to ensure 'personal': %w", err)
 	}
 
-	IL.Groups, err = MMMM.EnsureLayer("groups")
-	if err != nil {
-		return fmt.Errorf("failed to ensure 'groups': %w", err)
+	if err := migrateGroupsLayer(); err != nil {
+		return fmt.Errorf("groups migration: %w", err)
 	}
 
 	IL.Favorites, err = MMMM.EnsureLayer("favorites")
@@ -166,6 +168,48 @@ func Init() error {
 	return nil
 }
 
+func migrateGroupsLayer() error {
+	groupsDir := filepath.Join(S.DataPath, "groups")
+	_, err := os.Stat(groupsDir)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	groupsLayer, err := MMMM.EnsureLayer("groups")
+	if err != nil {
+		return err
+	}
+
+	Log.Info().Msg("migrating events from groups layer to main")
+
+	filter := nostr.Filter{}
+	count := 0
+	for evt := range groupsLayer.QueryEvents(filter, 1_000_000) {
+		if err := IL.Main.SaveEvent(evt); err != nil && err != eventstore.ErrDupEvent {
+			Log.Warn().Err(err).Str("event_id", evt.ID.String()).Int("count", count).
+				Msg("failed to migrate event from groups")
+			panic(err)
+		} else {
+			count++
+		}
+	}
+
+	Log.Info().Int("count", count).Msg("migrated events from groups layer")
+
+	if err := MMMM.DropLayer("groups"); err != nil {
+		return fmt.Errorf("failed to drop groups layer: %w", err)
+	}
+
+	if err := os.Rename(groupsDir, groupsDir+".old"); err != nil {
+		Log.Warn().Err(err).Msg("failed to rename groups directory")
+	}
+
+	return nil
+}
+
 func End() {
 	MMMM.Close()
 }
@@ -183,7 +227,6 @@ var IL struct {
 	Invites       *mmm.IndexingLayer
 	PendingAccess *mmm.IndexingLayer
 	Personal      *mmm.IndexingLayer
-	Groups        *mmm.IndexingLayer
 	Inbox         *mmm.IndexingLayer
 
 	// only nip44-encrypted DMs for now
