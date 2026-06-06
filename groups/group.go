@@ -25,6 +25,7 @@ type Group struct {
 	hasLanguage bool
 }
 
+//go:inline
 func (g *Group) AnyOfTheseIsAMember(pubkeys []nostr.PubKey) bool {
 	g.mu.RLock()
 	defer g.mu.RUnlock()

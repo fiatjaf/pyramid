@@ -21,7 +21,6 @@ import (
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
 	"fiatjaf.com/nostr/nip11"
-	"fiatjaf.com/nostr/nip29"
 	"fiatjaf.com/nostr/sdk"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
@@ -255,17 +254,6 @@ func main() {
 					return groups.RequestAuthWhenNecessary(ctx, filter)
 				} else {
 					return true, "groups are disabled"
-				}
-			}
-
-			for _, nip29k := range nip29.MetadataEventKinds {
-				if idx := slices.Index(filter.Kinds, nip29k); idx != -1 {
-					// nip29 logic
-					if global.Settings.Groups.Enabled {
-						return groups.RequestAuthWhenNecessary(ctx, filter)
-					} else {
-						return true, "groups are disabled"
-					}
 				}
 			}
 

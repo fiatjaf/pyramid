@@ -25,12 +25,14 @@ func FilterQuery(ctx context.Context, filter nostr.Filter, query iter.Seq[nostr.
 		authed := khatru.GetAllAuthed(ctx)
 
 		for evt := range query {
-			if evt.Tags.Find("h") != nil {
+			group := State.GetGroupFromEvent(evt)
+
+			if group != nil {
 				if !global.Settings.Groups.Enabled || State == nil {
 					continue
 				}
 
-				if hideEventFromReader(filter, evt, authed) {
+				if hideEventFromReader(group, filter, evt, authed) {
 					continue
 				}
 			}
@@ -44,26 +46,26 @@ func FilterQuery(ctx context.Context, filter nostr.Filter, query iter.Seq[nostr.
 
 //go:inline
 func ShouldPreventBroadcast(evt nostr.Event, filter nostr.Filter, authed []nostr.PubKey) bool {
-	return hideEventFromReader(filter, evt, authed)
-}
-
-//go:inline
-func hideEventFromReader(filter nostr.Filter, evt nostr.Event, authed []nostr.PubKey) bool {
 	group := State.GetGroupFromEvent(evt)
 	if nil == group {
 		return true
 	}
 
+	return hideEventFromReader(group, filter, evt, authed)
+}
+
+//go:inline
+func hideEventFromReader(group *Group, filter nostr.Filter, evt nostr.Event, authed []nostr.PubKey) bool {
 	// the group's own members (which includes its admins) and relay admins are
 	// allowed to discover and read a hidden group's metadata
-	privileged := group.AnyOfTheseIsAMember(authed) || anyIsRelayRoot(authed)
+	if group.AnyOfTheseIsAMember(authed) || anyIsRelayRoot(authed) {
+		return false
+	}
 
 	if group.Hidden {
 		// 'hidden' works only by hiding the group from abrangent queries like listing all groups in a relay etc
 		if requestedGroupIds(filter) == nil && filter.IDs == nil {
-			if !privileged {
-				return true
-			}
+			return true
 		}
 
 		// if specific groups were requested then the 'hidden' field has no effect as the reader
@@ -76,27 +78,20 @@ func hideEventFromReader(filter nostr.Filter, evt nostr.Event, authed []nostr.Pu
 		// group metadata is still public -- UNLESS the group is also marked as hidden, that's a special case
 		if evt.Kind == nostr.KindSimpleGroupMetadata {
 			if group.Hidden {
-				// still allow reading for members and relay admins only
-				if privileged {
-					return false
-				}
-
 				return true
 			} else {
-				// metadata is allowed
-				// <pass>
-			}
-		} else {
-			// allow reading for members only
-			if group.AnyOfTheseIsAMember(authed) {
+				// metadata from private groups can be read
 				return false
 			}
+		} else {
+			return true
 		}
 	}
 
 	return false
 }
 
+//go:inline
 func anyIsRelayRoot(authed []nostr.PubKey) bool {
 	for _, pk := range authed {
 		if pyramid.IsRoot(pk) {
