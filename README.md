@@ -39,6 +39,8 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
   - anyone can leave anytime, breaking their links in the ladder
   - adding and dropping can be done through the web UI or using standard relay management tools
   - two-step standardized invite codes interface combined with event-based join requests also works
+  - non-members can sign into the relay homepage and request to join, members can approve or deny these requests
+  - a second root member can be added, creating a separate invite tree
 
 <br clear="all">
 
@@ -71,6 +73,7 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
     - groups can be private, in which case messages will only be shown to members of each group
     - invite code functionality also supported
     - pyramid root admin can see all the groups and moderate them
+    - integrated livekit server for audio and video chats
 
 <br clear="all">
 
@@ -81,10 +84,11 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
   - from relay metadata to numeric settings, for both the main relay and for all sub-relays
   - allow or disallow event kinds for custom operation
   - even the path under which each sub-relay listens can be (dangerously) changed
-  - owners can enable full NIP-50 search and automatic NIP-03 OpenTimeStamping
+  - owners can enable full NIP-50 search and event validation
   - smart defaults allow you to get started easily and learn later
   - some settings can be configured using standard relay management tools
   - everything kept in a JSON file that can be edited manually
+  - monitor system usage and connections
 
 <br clear="all">
 
@@ -101,7 +105,7 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
 
 - **statistics**
   - each member can view their own event count by kind, with a chart displaying usage trends on their account page
-  - usage statistics for the main relay and all subrelays are viewable to members on a dedicated tab stats tab
+  - usage statistics for the main relay and all subrelays are viewable to members on a dedicated stats tab
 
 - **community-linked NIP-05 nostr user addresses**
   - each member can claim their own user address by visiting the homepage
@@ -118,12 +122,13 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
   - relay members can view and delete their own media
   - relay owner can manage blobs through the included ftp(stfp) server
 
-- **paywall functionality**
-  - a special hashtag, amount (in satoshis) and period (in days) can be configured
-  - notes published by members with the `"-"` tag and the special hashtag are marked as "paid"
-  - these notes will only be shown to viewers who have zapped the specific member at least the specified amount in the past specified days
-  - normal zaps and nutzaps supported, sourced from the _inbox_ relay
+- **streaming server**
+  - members can livestream through pyramid from nostr streaming clients
 
+- **premium content**
+  - each member can keep a list of "subscribers"
+  - notes published as 'protected' are served only to the subscribers on the list
+  - this system can be integrated with a 3rd party payment processor of any kind
 ## community
 
-join the group of users at `pyramid.fiatjaf.com'Tnq7x2ZTgrPZWFrC` ([grimoire](https://grimoire.rocks/run?cmd=chat%20pyramid.fiatjaf.com%27Tnq7x2ZTgrPZWFrC), [Nostrord](https://web.nostrord.com/?relay=pyramid.fiatjaf.com&group=Tnq7x2ZTgrPZWFrC), [chachi](https://chachi.chat/pyramid.fiatjaf.com/Tnq7x2ZTgrPZWFrC)) to talk about your experience or complain about things.
+join the group of users at `pyramid.fiatjaf.com'Tnq7x2ZTgrPZWFrC` ([grimoire](https://grimoire.rocks/run?cmd=chat%20pyramid.fiatjaf.com%27Tnq7x2ZTgrPZWFrC), [Nostrord](https://web.nostrord.com/?relay=pyramid.fiatjaf.com&group=Tnq7x2ZTgrPZWFrC)) to talk about your experience or complain about things.
