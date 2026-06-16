@@ -85,7 +85,7 @@ func normalizeDomainInput(domain string) (string, error) {
 	}
 
 	// validate domain only contains letters, dots
-	if !domainRegex.MatchString(domain) {
+	if !domainRegex.MatchString(strings.Split(domain, ":")[0]) {
 		return "", fmt.Errorf("'%s' is an invalid domain", domain)
 	}
 
