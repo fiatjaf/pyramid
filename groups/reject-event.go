@@ -156,17 +156,8 @@ func RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg strin
 				return true, "no need to create invites in open groups"
 			}
 		case nip29.EditMetadata:
-			if group.Private {
-				if a.ClosedValue != nil && *a.ClosedValue == false {
-					return true, "can't make a private group open"
-				}
-				if a.PrivateValue != nil && *a.PrivateValue == false {
-					return true, "can't make a private group public"
-				}
-			}
-			if a.PrivateValue != nil && *a.PrivateValue == true &&
-				!(group.Closed || (a.ClosedValue != nil && *a.ClosedValue == true)) {
-				return true, "a private group must also be made closed"
+			if a.Private && !a.Closed {
+				return true, "a private group must also be closed"
 			}
 		case nip29.PutUser:
 			ineffective := true
