@@ -2,6 +2,7 @@ package stream
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 
@@ -30,6 +31,11 @@ func Init(relay *khatru.Relay) {
 	} else {
 		setupEnabled()
 	}
+}
+
+func Restart() {
+	setupDisabled()
+	setupEnabled()
 }
 
 func setupDisabled() {
@@ -110,7 +116,7 @@ func (mh *MuxHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func startRtmp(ctx context.Context, stream *rtmp.RtmpStream, hlsServer *hls.Server) error {
 	var rtmpListen net.Listener
-	rtmpListen, err := net.Listen("tcp", "0.0.0.0:1935")
+	rtmpListen, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", global.Settings.Stream.Port))
 	if err != nil {
 		return err
 	}

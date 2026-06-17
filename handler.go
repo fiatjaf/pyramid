@@ -34,6 +34,7 @@ import (
 	"github.com/fiatjaf/pyramid/popular"
 	"github.com/fiatjaf/pyramid/pyramid"
 	"github.com/fiatjaf/pyramid/search"
+	"github.com/fiatjaf/pyramid/stream"
 	"github.com/fiatjaf/pyramid/uppermost"
 	"github.com/pemistahl/lingua-go"
 )
@@ -186,6 +187,14 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Groups.LiveKitAPIKey = v[0]
 			case "livekit_api_secret":
 				global.Settings.Groups.LiveKitAPISecret = v[0]
+			case "stream_port":
+				global.Settings.Stream.Port, _ = strconv.Atoi(v[0])
+
+				defer func() {
+					if global.Settings.Stream.Enabled {
+						go stream.Restart()
+					}
+				}()
 			case "enable_search":
 				wasEnabled := global.Settings.Search.Enable
 				global.Settings.Search.Enable = v[0] == "on"

@@ -121,6 +121,7 @@ type UserSettings struct {
 
 	Stream struct {
 		Enabled bool   `json:"enabled"`
+		Port    int    `json:"port,omitempty"`
 		Salt    string `json:"salt"`
 	} `json:"stream"`
 
@@ -325,6 +326,7 @@ func loadUserSettings() error {
 
 	// Stream settings
 	Settings.Stream.Enabled = false
+	Settings.Stream.Port = 1935
 
 	// Operator settings
 	Settings.Operator.Enabled = false
