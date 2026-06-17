@@ -1,0 +1,73 @@
+package main
+
+import (
+	"fmt"
+	"net/http"
+
+	"fiatjaf.com/nostr"
+	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
+	"github.com/fiatjaf/pyramid/pyramid"
+)
+
+func databaseBlocksHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, ok := global.GetLoggedUser(r)
+	if !ok || !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	databaseBlocksPage(loggedUser).Render(r.Context(), w)
+}
+
+templ databaseBlocksPage(loggedUser nostr.PubKey) {
+	{{ nfree := 0 }}
+	@layout.Layout(loggedUser, "database") {
+		<div class="max-w-6xl mx-auto space-y-6">
+			<div class="flex items-center justify-between gap-4">
+				@layout.SubSectionTitle("database blocks")
+			</div>
+			<p class="text-lg leading-relaxed">
+				overview of all memory-mapped file blocks, both free and occupied by events.
+			</p>
+			<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 overflow-x-auto">
+				<table class="w-full text-sm">
+					<thead>
+						<tr class="text-left text-stone-500 dark:text-stone-400 border-b border-stone-200 dark:border-stone-700">
+							<th class="px-4 py-3">type</th>
+							<th class="px-4 py-3">start</th>
+							<th class="px-4 py-3">end</th>
+							<th class="px-4 py-3">size</th>
+						</tr>
+					</thead>
+					<tbody>
+						{{ var prevEnd uint64 = 0 }}
+						for start, size := range global.MMMM.AllFreeRanges() {
+							{{ nfree++ }}
+							if start > prevEnd {
+								<tr class="border-b border-stone-100 dark:border-stone-700 last:border-b-0">
+									<td class="px-4 py-3">
+										<span class="text-amber-600 dark:text-amber-400 font-medium">events</span>
+									</td>
+									<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", prevEnd) }</td>
+									<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", start) }</td>
+									<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", start - prevEnd) }</td>
+								</tr>
+							}
+							<tr class="border-b border-stone-100 dark:border-stone-700 last:border-b-0">
+								<td class="px-4 py-3">
+									<span class="text-green-600 dark:text-green-400 font-medium">free</span>
+								</td>
+								<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", start) }</td>
+								<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", start + uint64(size)) }</td>
+								<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", size) }</td>
+							</tr>
+							{{ prevEnd = start + uint64(size) }}
+						}
+					</tbody>
+				</table>
+			</div>
+			<div class="ml-4 text-sm">{ nfree } free blocks</div>
+		</div>
+	}
+}

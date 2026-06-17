@@ -140,6 +140,7 @@ func main() {
 	relay.Router().HandleFunc("GET /event/{db}/{id}", databaseEventJSONHandler)
 	relay.Router().HandleFunc("DELETE /database/{db}/{id}", deleteDatabaseEventHandler)
 	relay.Router().HandleFunc("/database", databaseHandler)
+	relay.Router().HandleFunc("/database/blocks", databaseBlocksHandler)
 	relay.Router().HandleFunc("/log", logHandler)
 	relay.Router().HandleFunc("/search/reindex", search.StreamingReindexHTML)
 	relay.Router().HandleFunc("/u", memberPageHandler)
