@@ -494,7 +494,11 @@ func (w *SFTPWriterAt) WriteAt(data []byte, offset int64) (n int, err error) {
 			if store == nil {
 				return 0, fmt.Errorf("invalid store: %s", w.path[0])
 			}
-			if err := store.SaveEvent(evt); err != nil {
+			if evt.Kind.IsAddressable() || evt.Kind.IsReplaceable() {
+				if _, err := store.ReplaceEvent(evt); err != nil {
+					return 0, fmt.Errorf("failed to replace: %w", err)
+				}
+			} else if err := store.SaveEvent(evt); err != nil {
 				return 0, fmt.Errorf("failed to save: %w", err)
 			}
 

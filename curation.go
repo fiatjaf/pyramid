@@ -74,7 +74,13 @@ func processReactions(ctx context.Context, event nostr.Event) {
 
 		// add to the qualified layers
 		if votes, ok := bestVotes[target]; ok && len(votes) >= uppermostThreshold {
-			if err := global.IL.Uppermost.SaveEvent(*targetEvent); err != nil && err != eventstore.ErrDupEvent {
+			var err error
+			if targetEvent.Kind.IsAddressable() || targetEvent.Kind.IsReplaceable() {
+				_, err = global.IL.Uppermost.ReplaceEvent(*targetEvent)
+			} else {
+				err = global.IL.Uppermost.SaveEvent(*targetEvent)
+			}
+			if err != nil && err != eventstore.ErrDupEvent {
 				log.Warn().Err(err).Msg("failed to save to uppermost layer")
 			} else {
 				// if promoted to uppermost, delete from popular
@@ -84,7 +90,13 @@ func processReactions(ctx context.Context, event nostr.Event) {
 			}
 		} else {
 			// only save to popular if not saved to uppermost
-			if err := global.IL.Popular.SaveEvent(*targetEvent); err != nil && err != eventstore.ErrDupEvent {
+			var err error
+			if targetEvent.Kind.IsAddressable() || targetEvent.Kind.IsReplaceable() {
+				_, err = global.IL.Popular.ReplaceEvent(*targetEvent)
+			} else {
+				err = global.IL.Popular.SaveEvent(*targetEvent)
+			}
+			if err != nil && err != eventstore.ErrDupEvent {
 				log.Warn().Err(err).Msg("failed to save to popular layer")
 			}
 		}

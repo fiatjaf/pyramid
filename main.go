@@ -314,7 +314,7 @@ func main() {
 		case 6, 7, 9321, 9735, 9802, 1, 1111, 1244:
 			processReactions(ctx, event)
 		case 0, 3, 10019:
-			global.IL.System.SaveEvent(event)
+			global.IL.System.ReplaceEvent(event)
 		case 1163:
 			// NIP-63 paywall event - already handled in basicRejectionLogic
 			// recompute user paywall to ensure consistency
