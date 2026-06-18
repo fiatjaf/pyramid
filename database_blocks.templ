@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"iter"
 	"net/http"
 
 	"fiatjaf.com/nostr"
@@ -20,8 +21,36 @@ func databaseBlocksHandler(w http.ResponseWriter, r *http.Request) {
 	databaseBlocksPage(loggedUser).Render(r.Context(), w)
 }
 
+func databaseBlocksDefragHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, ok := global.GetLoggedUser(r)
+	if !ok || !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	if err := global.MMMM.DefragmentOne(); err != nil {
+		global.Log.Error().Err(err).Msg("defragmentation error")
+		http.Error(w, "failed: "+err.Error(), 500)
+		return
+	}
+
+	justRows(1).Render(r.Context(), w)
+}
+
+templ justRows(limit int) {
+	{{ var prevEnd uint64 = 0 }}
+	{{ i := 0 }}
+	for start, size := range global.MMMM.AllFreeRanges() {
+		if i >= limit {
+			{{ break }}
+		}
+		{{ i++ }}
+		@databaseBlocksRowPair(start, size, prevEnd, i == 0)
+		{{ prevEnd = start + uint64(size) }}
+	}
+}
+
 templ databaseBlocksPage(loggedUser nostr.PubKey) {
-	{{ nfree := 0 }}
 	@layout.Layout(loggedUser, "database") {
 		<div class="max-w-6xl mx-auto space-y-6">
 			<div class="flex items-center justify-between gap-4">
@@ -31,6 +60,7 @@ templ databaseBlocksPage(loggedUser nostr.PubKey) {
 				overview of all memory-mapped file blocks, both free and occupied by events.
 			</p>
 			<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 overflow-x-auto">
+				{{ nfree := 0 }}
 				<table class="w-full text-sm">
 					<thead>
 						<tr class="text-left text-stone-500 dark:text-stone-400 border-b border-stone-200 dark:border-stone-700">
@@ -38,30 +68,37 @@ templ databaseBlocksPage(loggedUser nostr.PubKey) {
 							<th class="px-4 py-3">start</th>
 							<th class="px-4 py-3">end</th>
 							<th class="px-4 py-3">size</th>
+							<th class="px-4 py-3"></th>
 						</tr>
 					</thead>
-					<tbody>
+					{{
+						next, stop := iter.Pull2(global.MMMM.AllFreeRanges())
+						defer stop()
+					}}
+					<tbody id="first4">
 						{{ var prevEnd uint64 = 0 }}
-						for start, size := range global.MMMM.AllFreeRanges() {
+						{{ start, size, ok := next() }}
+						if ok {
 							{{ nfree++ }}
-							if start > prevEnd {
-								<tr class="border-b border-stone-100 dark:border-stone-700 last:border-b-0">
-									<td class="px-4 py-3">
-										<span class="text-amber-600 dark:text-amber-400 font-medium">events</span>
-									</td>
-									<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", prevEnd) }</td>
-									<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", start) }</td>
-									<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", start - prevEnd) }</td>
-								</tr>
+							@databaseBlocksRowPair(start, size, prevEnd, true)
+							{{ prevEnd = start + uint64(size) }}
+						}
+						// ---
+						{{ start, size, ok = next() }}
+						if ok {
+							{{ nfree++ }}
+							@databaseBlocksRowPair(start, size, prevEnd, false)
+							{{ prevEnd = start + uint64(size) }}
+						}
+					</tbody>
+					<tbody>
+						for  {
+							{{ start, size, ok := next() }}
+							if !ok {
+								{{ break }}
 							}
-							<tr class="border-b border-stone-100 dark:border-stone-700 last:border-b-0">
-								<td class="px-4 py-3">
-									<span class="text-green-600 dark:text-green-400 font-medium">free</span>
-								</td>
-								<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", start) }</td>
-								<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", start + uint64(size)) }</td>
-								<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", size) }</td>
-							</tr>
+							{{ nfree++ }}
+							@databaseBlocksRowPair(start, size, prevEnd, false)
 							{{ prevEnd = start + uint64(size) }}
 						}
 					</tbody>
@@ -70,4 +107,33 @@ templ databaseBlocksPage(loggedUser nostr.PubKey) {
 			<div class="ml-4 text-sm">{ nfree } free blocks</div>
 		</div>
 	}
+}
+
+templ databaseBlocksRowPair(start uint64, size uint32, prevEnd uint64, showDefrag bool) {
+	if start > prevEnd {
+		<tr class="border-b border-stone-100 dark:border-stone-700">
+			<td class="px-4 py-3">
+				<span class="text-amber-600 dark:text-amber-400 font-medium">events</span>
+			</td>
+			<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", prevEnd) }</td>
+			<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", start) }</td>
+			<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", start - prevEnd) }</td>
+			<td class="px-4 py-3"></td>
+		</tr>
+	}
+	<tr class="border-b border-stone-100 dark:border-stone-700 last:border-b-0 last:[form]:hidden">
+		<td class="px-4 py-3">
+			<span class="text-green-600 dark:text-green-400 font-medium">free</span>
+		</td>
+		<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", start) }</td>
+		<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", start + uint64(size)) }</td>
+		<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", size) }</td>
+		<td class="px-4 py-3">
+			if showDefrag {
+				<form hx-post="/database/blocks/defrag" hx-target="#first4" hx-swap="outerHTML">
+					<button type="submit" class="cursor-pointer text-xs px-2 py-1 bg-stone-200 dark:bg-stone-700 rounded hover:bg-stone-300 dark:hover:bg-stone-60">defragment</button>
+				</form>
+			}
+		</td>
+	</tr>
 }
