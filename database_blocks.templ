@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"iter"
 	"net/http"
 
 	"fiatjaf.com/nostr"
@@ -45,14 +44,14 @@ templ justRows(limit int) {
 			{{ break }}
 		}
 		{{ i++ }}
-		@databaseBlocksRowPair(start, size, prevEnd, i == 0)
+		@databaseBlocksRowPair(start, size, prevEnd, true)
 		{{ prevEnd = start + uint64(size) }}
 	}
 }
 
 templ databaseBlocksPage(loggedUser nostr.PubKey) {
 	@layout.Layout(loggedUser, "database") {
-		<div class="max-w-6xl mx-auto space-y-6">
+		<div class="max-w-6xl mx-auto space-y-6" x-data="{pristine: true}">
 			<div class="flex items-center justify-between gap-4">
 				@layout.SubSectionTitle("database blocks")
 			</div>
@@ -71,40 +70,21 @@ templ databaseBlocksPage(loggedUser nostr.PubKey) {
 							<th class="px-4 py-3"></th>
 						</tr>
 					</thead>
-					{{
-						next, stop := iter.Pull2(global.MMMM.AllFreeRanges())
-						defer stop()
-					}}
-					<tbody id="first4">
-						{{ var prevEnd uint64 = 0 }}
-						{{ start, size, ok := next() }}
-						if ok {
-							{{ nfree++ }}
-							@databaseBlocksRowPair(start, size, prevEnd, true)
-							{{ prevEnd = start + uint64(size) }}
-						}
-						// ---
-						{{ start, size, ok = next() }}
-						if ok {
-							{{ nfree++ }}
-							@databaseBlocksRowPair(start, size, prevEnd, false)
-							{{ prevEnd = start + uint64(size) }}
-						}
-					</tbody>
 					<tbody>
-						for  {
-							{{ start, size, ok := next() }}
-							if !ok {
-								{{ break }}
-							}
+						{{ var prevEnd uint64 = 0 }}
+						{{ first := true }}
+						for start, size := range global.MMMM.AllFreeRanges() {
 							{{ nfree++ }}
-							@databaseBlocksRowPair(start, size, prevEnd, false)
+							@databaseBlocksRowPair(start, size, prevEnd, first)
 							{{ prevEnd = start + uint64(size) }}
+							{{ first = false }}
 						}
 					</tbody>
 				</table>
 			</div>
-			<div class="ml-4 text-sm">{ nfree } free blocks</div>
+			if nfree > 1 {
+				<div class="ml-4 text-sm" x-show="pristine">{ nfree } free blocks</div>
+			}
 		</div>
 	}
 }
@@ -121,7 +101,7 @@ templ databaseBlocksRowPair(start uint64, size uint32, prevEnd uint64, showDefra
 			<td class="px-4 py-3"></td>
 		</tr>
 	}
-	<tr class="border-b border-stone-100 dark:border-stone-700 last:border-b-0 last:[form]:hidden">
+	<tr class="border-b border-stone-100 dark:border-stone-700 last:[&_form]:hidden">
 		<td class="px-4 py-3">
 			<span class="text-green-600 dark:text-green-400 font-medium">free</span>
 		</td>
@@ -130,7 +110,20 @@ templ databaseBlocksRowPair(start uint64, size uint32, prevEnd uint64, showDefra
 		<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", size) }</td>
 		<td class="px-4 py-3">
 			if showDefrag {
-				<form hx-post="/database/blocks/defrag" hx-target="#first4" hx-swap="outerHTML">
+				<form
+					x-data
+					x-on:submit.prevent="
+					fetch('/database/blocks/defrag', { method:'POST' })
+						.then(r => r.ok ? r.text() : Promise.reject())
+						.then(html=> {
+							let t = $el.closest('tbody'), rs = t.querySelectorAll('tr')
+							for (let i = 0; i < 4 && i < rs.length; i++) rs[i].remove()
+							t.insertAdjacentHTML('afterbegin', html)
+                            pristine = false
+						})
+						.catch(() => {})
+				"
+				>
 					<button type="submit" class="cursor-pointer text-xs px-2 py-1 bg-stone-200 dark:bg-stone-700 rounded hover:bg-stone-300 dark:hover:bg-stone-60">defragment</button>
 				</form>
 			}
