@@ -5,7 +5,7 @@ go 1.26.2
 require (
 	fiatjaf.com/nostr v0.0.0-20260618191753-5232b167dba7
 	fiatjaf.com/pomegranate v0.0.0-20260515185713-4cdb7e027855
-	fiatjaf.com/promenade v0.4.4-0.20260511003220-ce69ab3c4a4d
+	fiatjaf.com/promenade v0.4.4
 	github.com/FastFilter/xorfilter v0.2.1
 	github.com/a-h/templ v0.3.1020
 	github.com/bep/debounce v1.2.1

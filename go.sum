@@ -17,8 +17,8 @@ fiatjaf.com/nostr v0.0.0-20260618191753-5232b167dba7 h1:2ITXbpV9T9JtPxYBwrfwSl+j
 fiatjaf.com/nostr v0.0.0-20260618191753-5232b167dba7/go.mod h1:b1EIUDnd133Ie8Pg8O/biaKdFyCMz28aD4n64g1GqvM=
 fiatjaf.com/pomegranate v0.0.0-20260515185713-4cdb7e027855 h1:8Y7CD1yl3lYxMKFu0AoBfUAbZYLC1M6yYPd5evwnBsQ=
 fiatjaf.com/pomegranate v0.0.0-20260515185713-4cdb7e027855/go.mod h1:FgxPZvOhTQD8BhO63P3B0eOxZ3anRpydZ8kWjdFhZIc=
-fiatjaf.com/promenade v0.4.4-0.20260511003220-ce69ab3c4a4d h1:U3taZPQVuaVf+4es/h7pdCbK4jXjjECtX9GM4UDe0AU=
-fiatjaf.com/promenade v0.4.4-0.20260511003220-ce69ab3c4a4d/go.mod h1:yKOjC0LRqjzFgT+BpdIx3+DUDhwse7orTvNxDqmT01I=
+fiatjaf.com/promenade v0.4.4 h1:VsLqmqxZcl0/SPVZulHxhbXKw2QergLIJMS3U/7xw38=
+fiatjaf.com/promenade v0.4.4/go.mod h1:yKOjC0LRqjzFgT+BpdIx3+DUDhwse7orTvNxDqmT01I=
 github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 h1:L/gRVlceqvL25UVaW/CKtUDjefjrs0SPonmDGUVOYP0=
 github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161/go.mod h1:xomTg63KZ2rFqZQzSB4Vz2SUXa1BpHTVz9L5PTmPC4E=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
