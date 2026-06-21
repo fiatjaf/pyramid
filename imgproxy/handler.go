@@ -22,6 +22,7 @@ import (
 	"fiatjaf.com/nostr"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
+	"github.com/rs/cors"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -77,6 +78,7 @@ func setupEnabled() {
 	Handler.mux.HandleFunc("POST /imgproxy/disable", disableHandler)
 	Handler.mux.HandleFunc("POST /imgproxy/prepare", prepareHandler)
 	Handler.mux.HandleFunc("GET /imgproxy/log", logHandler)
+	Handler.mux.Handle("/imgproxy/secret", cors.AllowAll().Handler(http.HandlerFunc(secretHandler)))
 	Handler.mux.HandleFunc("/imgproxy/", pageHandler)
 }
 
@@ -93,21 +95,19 @@ func pageHandler(w http.ResponseWriter, r *http.Request) {
 		// decode special token from url
 		token, err := base64.RawURLEncoding.DecodeString(spl[2])
 		if err != nil || len(token) != 48 {
-			w.WriteHeader(http.StatusUnauthorized)
+			http.Error(w, "wrong size token", http.StatusUnauthorized)
 			return
 		}
 		mac := token[0:16]
 		pubkey := token[16 : 16+32]
 
-		b := hmac.New(sha256.New, baseSecret)
-		b.Write(pubkey)
-		pubkeySecret := b.Sum(nil)
+		pubkeySecret := pubkeySecretFor(pubkey)
 
 		h := hmac.New(sha256.New, pubkeySecret)
 		h.Write([]byte(path))
 		expected := h.Sum(nil)
 		if !bytes.Equal(expected[0:16], mac) {
-			w.WriteHeader(http.StatusUnauthorized)
+			http.Error(w, "mac doesn't match", http.StatusUnauthorized)
 			return
 		}
 
@@ -288,12 +288,17 @@ func disableImgproxyWithError(err error) {
 	setupDisabled()
 }
 
+//go:inline
+func pubkeySecretFor(pubkey []byte) []byte {
+	b := hmac.New(sha256.New, baseSecret)
+	b.Write(pubkey)
+	return b.Sum(nil)
+}
+
 func prepareURLPath(pubkey nostr.PubKey, options, sourceURL string) string {
 	path := "/" + options + "/" + base64.RawURLEncoding.EncodeToString([]byte(sourceURL)) + ".png"
 
-	b := hmac.New(sha256.New, baseSecret)
-	b.Write(pubkey[:])
-	pubkeySecret := b.Sum(nil)
+	pubkeySecret := pubkeySecretFor(pubkey[:])
 
 	h := hmac.New(sha256.New, pubkeySecret)
 	h.Write([]byte(path))
@@ -304,6 +309,40 @@ func prepareURLPath(pubkey nostr.PubKey, options, sourceURL string) string {
 	copy(token[16:48], pubkey[:])
 
 	return "/" + base64.RawURLEncoding.EncodeToString(token) + path
+}
+
+func secretHandler(w http.ResponseWriter, r *http.Request) {
+	auth := r.Header.Get("Authorization")
+	if !strings.HasPrefix(auth, "Nostr ") {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	evtj, err := base64.StdEncoding.DecodeString(auth[6:])
+	if err != nil {
+		http.Error(w, "invalid base64-encoded event", http.StatusUnauthorized)
+		return
+	}
+	var evt nostr.Event
+	if err := json.Unmarshal(evtj, &evt); err != nil {
+		http.Error(w, "invalid event", http.StatusUnauthorized)
+		return
+	}
+	if evt.Kind != 27235 {
+		http.Error(w, "invalid kind", http.StatusUnauthorized)
+		return
+	}
+	if !evt.VerifySignature() {
+		http.Error(w, "invalid signature", http.StatusUnauthorized)
+		return
+	}
+	if tag := evt.Tags.Find("u"); tag == nil || tag[1] != global.Settings.HTTPScheme()+global.Settings.Domain+r.URL.Path {
+		http.Error(w, "invalid url", http.StatusUnauthorized)
+		return
+	}
+
+	secret := pubkeySecretFor(evt.PubKey[:])
+	w.Write([]byte(hex.EncodeToString(secret)))
 }
 
 func prepareHandler(w http.ResponseWriter, r *http.Request) {
