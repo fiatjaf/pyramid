@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"fiatjaf.com/nostr"
+	"github.com/fiatjaf/pyramid/global"
 )
 
 // Current is the latest computed aggregated web-of-trust filter.
@@ -25,12 +25,12 @@ func StartBackgroundComputation() {
 		for {
 			wot, err := ComputeAggregated(ctx)
 			if err != nil {
-				nostr.InfoLogger.Println("failed to compute aggregated WoT:", err)
+				global.Log.Error().Err(err).Msg("failed to compute aggregated WoT")
 				time.Sleep(3 * time.Hour)
 			} else {
 				Current = wot
 				Computed = true
-				nostr.InfoLogger.Printf("computed aggregated WoT with %d entries", wot.Items)
+				global.Log.Info().Int("entries", wot.Items).Msg("computed aggregated WoT")
 				time.Sleep(48 * time.Hour)
 			}
 		}
