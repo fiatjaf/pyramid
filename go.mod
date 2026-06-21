@@ -11,6 +11,7 @@ require (
 	github.com/bep/debounce v1.2.1
 	github.com/blevesearch/bleve/v2 v2.4.4
 	github.com/btcsuite/btcd/btcec/v2 v2.3.6
+	github.com/buildkite/terminal-to-html/v3 v3.16.8
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-analyze/charts v0.5.21
 	github.com/gwuhaolin/livego v0.0.0-20241106020610-16c6af5d9031
@@ -18,6 +19,7 @@ require (
 	github.com/liamg/magic v0.0.1
 	github.com/livekit/protocol v1.43.5-0.20260114074149-a8bb8204ce69
 	github.com/mailru/easyjson v0.9.1
+	github.com/nxadm/tail v1.4.11
 	github.com/pemistahl/lingua-go v1.4.0
 	github.com/pkg/sftp v1.13.10
 	github.com/puzpuzpuz/xsync/v3 v3.5.1
@@ -28,6 +30,7 @@ require (
 	golang.org/x/crypto v0.48.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.19.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
@@ -182,6 +185,7 @@ require (
 	google.golang.org/grpc v1.77.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/ini.v1 v1.51.0 // indirect
+	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

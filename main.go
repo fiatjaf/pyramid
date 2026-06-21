@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"embed"
 	"errors"
+	"fmt"
 	"io"
 	"iter"
 	"net"
@@ -46,29 +47,36 @@ import (
 	"github.com/fiatjaf/pyramid/uppermost"
 	"github.com/fiatjaf/pyramid/wot"
 	"github.com/rs/cors"
+	"github.com/rs/zerolog"
 )
 
 var (
 	relay *khatru.Relay
-	log   = global.Log
+	log   zerolog.Logger
 )
 
 //go:embed static/*
 var static embed.FS
 
 func main() {
-	log.Info().Str("version", currentVersion).Msg("running pyramid")
-
 	if err := global.Init(); err != nil {
-		log.Fatal().Err(err).Msg("couldn't initialize")
+		fmt.Fprintf(os.Stderr, "couldn't initialize: %s\n", err)
+		os.Exit(7)
 		return
 	}
+
+	log = global.Log
+	log.Info().Str("version", currentVersion).Msg("running pyramid")
+
+	pyramid.AbsoluteKey = global.Settings.RelayInternalSecretKey.Public()
+
 	if global.Settings.Search.Enable {
 		if err := search.Init(); err != nil {
 			log.Fatal().Err(err).Msg("couldn't initialize search")
 			return
 		}
 	}
+
 	if global.Settings.ValidateSchema {
 		if err := setSchemaValidator(true); err != nil {
 			log.Error().Err(err).Msg("failed to load schema validator")
@@ -103,8 +111,6 @@ func main() {
 			time.Sleep(time.Hour * 6)
 		}
 	}()
-
-	pyramid.AbsoluteKey = global.Settings.RelayInternalSecretKey.Public()
 
 	if err := pyramid.LoadManagement(); err != nil {
 		log.Fatal().Err(err).Msg("failed to load members")
@@ -438,7 +444,6 @@ func start() {
 		ctx, cancelStartContext = context.WithCancelCause(context.Background())
 
 		ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
-
 		err := run(ctx)
 		cause := context.Cause(ctx)
 		cancel()

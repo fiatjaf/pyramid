@@ -1,6 +1,7 @@
 package imgproxy
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 const (
@@ -23,6 +25,8 @@ const (
 var (
 	log     = global.Log.With().Str("service", "imgproxy").Logger()
 	Handler = &MuxHandler{}
+
+	reverseProxy *httputil.ReverseProxy
 )
 
 var state = struct {
@@ -44,28 +48,29 @@ func Init() {
 }
 
 func setupDisabled() {
-	imgproxyReverseProxy = nil
+	reverseProxy = nil
 	Handler.mux = http.NewServeMux()
 	Handler.mux.HandleFunc("POST /imgproxy/enable", enableHandler)
-	Handler.mux.HandleFunc("POST /imgproxy/keys", saveKeysHandler)
+	Handler.mux.HandleFunc("GET /imgproxy/log", logHandler)
 	Handler.mux.HandleFunc("/imgproxy/", pageHandler)
 }
 
 func setupEnabled() {
-	target := &url.URL{Scheme: "http", Host: "localhost:8040"}
-	imgproxyReverseProxy = &httputil.ReverseProxy{
+	target := &url.URL{Scheme: "http", Host: "localhost:38040"}
+	reverseProxy = &httputil.ReverseProxy{
 		Rewrite: func(r *httputil.ProxyRequest) {
+			fmt.Println("in:", r.In.URL)
+
 			r.SetURL(target)
 			r.Out.URL.Path = strings.TrimPrefix(r.In.URL.Path, "/imgproxy")
 		},
 	}
 	Handler.mux = http.NewServeMux()
 	Handler.mux.HandleFunc("POST /imgproxy/disable", disableHandler)
-	Handler.mux.HandleFunc("POST /imgproxy/keys", saveKeysHandler)
+	Handler.mux.HandleFunc("POST /imgproxy/prepare", prepareHandler)
+	Handler.mux.HandleFunc("GET /imgproxy/log", logHandler)
 	Handler.mux.HandleFunc("/imgproxy/", pageHandler)
 }
-
-var imgproxyReverseProxy *httputil.ReverseProxy
 
 func pageHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/imgproxy/" && r.URL.Path != "/imgproxy" {
@@ -73,7 +78,7 @@ func pageHandler(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return
 		}
-		imgproxyReverseProxy.ServeHTTP(w, r)
+		reverseProxy.ServeHTTP(w, r)
 		return
 	}
 
@@ -145,25 +150,22 @@ func startImgproxy() {
 		return
 	}
 
-	logFile, err := os.OpenFile(filepath.Join(global.S.DataPath, "imgproxy.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		disableImgproxyWithError(err)
-		return
+	rotator := &lumberjack.Logger{
+		Filename:   filepath.Join(global.S.DataPath, "imgproxy.log"),
+		MaxSize:    10,
+		MaxBackups: 3,
+		MaxAge:     28,
+		Compress:   true,
 	}
 
 	cmd := exec.Command(imgproxyBinaryPath())
-	cmd.Stdout = logFile
-	cmd.Stderr = logFile
-	env := append(os.Environ(), "IMGPROXY_BIND=:8040")
-	if global.Settings.Imgproxy.Key != "" && global.Settings.Imgproxy.Salt != "" {
-		env = append(env,
-			"IMGPROXY_KEY="+global.Settings.Imgproxy.Key,
-			"IMGPROXY_SALT="+global.Settings.Imgproxy.Salt,
-		)
-	}
+	cmd.Stdout = rotator
+	cmd.Stderr = rotator
+	env := append(os.Environ(),
+		"IMGPROXY_BIND=:38040",
+	)
 	cmd.Env = env
 	if err := cmd.Start(); err != nil {
-		logFile.Close()
 		disableImgproxyWithError(err)
 		return
 	}
@@ -174,9 +176,8 @@ func startImgproxy() {
 	state.err = ""
 	state.mu.Unlock()
 
-	go func(cmd *exec.Cmd, logFile *os.File) {
+	go func(cmd *exec.Cmd) {
 		err := cmd.Wait()
-		logFile.Close()
 		if err == nil {
 			err = fmt.Errorf("imgproxy exited")
 		}
@@ -194,7 +195,7 @@ func startImgproxy() {
 		if err != nil && global.Settings.Imgproxy.Enabled {
 			disableImgproxyWithError(err)
 		}
-	}(cmd, logFile)
+	}(cmd)
 }
 
 func stopImgproxy() {
@@ -227,23 +228,55 @@ func disableImgproxyWithError(err error) {
 	setupDisabled()
 }
 
-func saveKeysHandler(w http.ResponseWriter, r *http.Request) {
+func prepareURL(options, sourceURL string) string {
+	// path := "/" + options + "/" + base64.RawURLEncoding.EncodeToString([]byte(sourceURL)) + ".png"
+	// if global.Settings.Imgproxy.Key == "" {
+	// 	return "/insecure/" + path
+	// }
+
+	// key, err := hex.DecodeString(global.Settings.Imgproxy.Key)
+	// if err != nil {
+	// 	return ""
+	// }
+	// mac := hmac.New(sha256.New, key)
+	// mac.Write([]byte(global.Settings.Imgproxy.Salt))
+	// mac.Write([]byte(path))
+	// signature := hex.EncodeToString(mac.Sum(nil))
+
+	// return "/" + signature + path
+	return ""
+}
+
+func prepareHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, _ := global.GetLoggedUser(r)
-	if !pyramid.IsRoot(loggedUser) {
+	if !pyramid.IsMember(loggedUser) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	global.Settings.Imgproxy.Key = strings.TrimSpace(r.PostFormValue("key"))
-	global.Settings.Imgproxy.Salt = strings.TrimSpace(r.PostFormValue("salt"))
-	if err := global.SaveUserSettings(); err != nil {
-		http.Error(w, "failed to save keys", http.StatusInternalServerError)
+	sourceURL := r.PostFormValue("url")
+	options := r.PostFormValue("options")
+	if sourceURL == "" || options == "" {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"error": "url and options are required"})
 		return
 	}
 
-	stopImgproxy()
-	go startImgproxy()
-	http.Redirect(w, r, "/imgproxy/", http.StatusSeeOther)
+	path := prepareURL(options, sourceURL)
+	fullURL := global.Settings.HTTPScheme() + global.Settings.Domain + "/imgproxy" + path
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"url": fullURL})
+}
+
+func logHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, ok := global.GetLoggedUser(r)
+	if !ok || !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	global.LogHandler(w, r, filepath.Join(global.S.DataPath, "imgproxy.log"))
 }
 
 type MuxHandler struct {

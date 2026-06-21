@@ -48,6 +48,7 @@ func setupEnabled() {
 	Handler.mux.HandleFunc("POST /groups/disable", disableHandler)
 	Handler.mux.HandleFunc("POST /groups/livekit/start", startEmbeddedLiveKitHandler)
 	Handler.mux.HandleFunc("POST /groups/livekit/stop", stopEmbeddedLiveKitHandler)
+	Handler.mux.HandleFunc("POST /groups/livekit/log", livekitLogHandler)
 	Handler.mux.HandleFunc("POST /groups/livekit/webhook", livekitWebhookHandler)
 	Handler.mux.HandleFunc("POST /groups/wipe/{groupId}", wipeGroupHandler)
 	Handler.mux.HandleFunc("/groups/{groupId}", func(w http.ResponseWriter, r *http.Request) {

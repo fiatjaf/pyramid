@@ -24,6 +24,7 @@ import (
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var LiveKitEmbedded bool
@@ -81,6 +82,16 @@ func startEmbeddedLiveKitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/groups/", 302)
+}
+
+func livekitLogHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, ok := global.GetLoggedUser(r)
+	if !ok || !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	global.LogHandler(w, r, filepath.Join(global.S.DataPath, "livekit.log"))
 }
 
 type livekitRelease struct {
@@ -154,17 +165,19 @@ keys:
   '` + apiKey + `': '` + apiSecret + `'
 `
 
-	cmd := exec.Command("./"+embeddedLiveKitBinaryPath, "--config-body", config)
-	logFile, err := os.OpenFile(filepath.Join(global.S.DataPath, "livekit.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		embeddedLiveKit.error = err.Error()
-		return err
+	rotator := &lumberjack.Logger{
+		Filename:   filepath.Join(global.S.DataPath, "livekit.log"),
+		MaxSize:    10,
+		MaxBackups: 3,
+		MaxAge:     28,
+		Compress:   true,
 	}
-	cmd.Stdout = logFile
-	cmd.Stderr = logFile
+
+	cmd := exec.Command("./"+embeddedLiveKitBinaryPath, "--config-body", config)
+	cmd.Stdout = rotator
+	cmd.Stderr = rotator
 
 	if err := cmd.Start(); err != nil {
-		logFile.Close()
 		embeddedLiveKit.error = err.Error()
 		return err
 	}
@@ -172,7 +185,6 @@ keys:
 	exited := make(chan error, 1)
 	go func() {
 		err := cmd.Wait()
-		logFile.Close()
 
 		embeddedLiveKit.mu.Lock()
 		defer embeddedLiveKit.mu.Unlock()

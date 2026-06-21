@@ -1,6 +1,7 @@
 package global
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,6 +17,9 @@ import (
 	"fiatjaf.com/nostr/sdk"
 	"github.com/kelseyhightower/envconfig"
 )
+
+//go:embed assets/*
+var assets embed.FS
 
 var (
 	S struct {
@@ -37,15 +41,15 @@ func Init() error {
 		return fmt.Errorf("envconfig: %w", err)
 	}
 
+	if err := InitLogging(S.DataPath); err != nil {
+		return fmt.Errorf("failed to initialize logging: %w", err)
+	}
 	if err := loadUserSettings(); err != nil {
 		return fmt.Errorf("user settings: %w", err)
 	}
 
 	if err := os.MkdirAll(S.DataPath, 0755); err != nil {
 		return fmt.Errorf("failed to create data directory '%s'", S.DataPath)
-	}
-	if err := InitLogging(S.DataPath); err != nil {
-		Log.Warn().Err(err).Msg("failed to initialize log file")
 	}
 
 	// databases

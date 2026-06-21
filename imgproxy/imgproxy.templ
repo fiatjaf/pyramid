@@ -1,12 +1,8 @@
 package imgproxy
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"fiatjaf.com/nostr"
 
-	"encoding/base64"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
 	"github.com/fiatjaf/pyramid/pyramid"
@@ -15,46 +11,90 @@ import (
 templ imgproxyPage(loggedUser nostr.PubKey, running bool, errMsg string) {
 	@layout.Layout(loggedUser, "imgproxy") {
 		<div class="max-w-3xl mx-auto">
-			<h1 class="text-4xl font-bold mb-4 font-[family-name:var(--primary-font)]">imgproxy</h1>
-			<div class="space-y-4 text-gray-700 dark:text-gray-300">
-				<p class="text-lg leading-relaxed">
-					an on-demand image processing server.
-				</p>
-			</div>
-			<div class="mt-8">
-				<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">status</h3>
-				<div class="space-y-2 text-sm text-stone-600 dark:text-stone-400">
-					if global.Settings.Imgproxy.Enabled {
-						if running {
-							<div>running</div>
-						} else {
-							<div>starting</div>
-						}
-					} else {
-						<div>disabled</div>
-					}
-					if errMsg != "" {
-						<div class="text-red-600 dark:text-red-400">error: { errMsg }</div>
-					}
-				</div>
+			<div class="flex items-center justify-between mb-4">
+				<h1 class="text-4xl font-bold font-[family-name:var(--primary-font)]">imgproxy</h1>
 			</div>
 			if global.Settings.Imgproxy.Enabled && running {
+				<p class="mb-4">running at <span class="font-mono">{ global.Settings.HTTPScheme() + global.Settings.Domain + "/imgproxy/" }</span></p>
+			} else {
+				if running {
+					<p class="mb-4">starting</p>
+				} else {
+					<p class="mb-4">disabled</p>
+				}
+			}
+			if errMsg != "" {
+				<p class="text-red-600 dark:text-red-400 mb-4">{ errMsg }</p>
+			}
+			if pyramid.IsMember(loggedUser) {
 				<div class="mt-8">
-					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">access</h3>
-					<div class="text-sm text-stone-600 dark:text-stone-400 space-y-2">
-						<div>send requests to <span class="font-mono">{ global.Settings.HTTPScheme() + global.Settings.Domain + "/imgproxy/" }</span></div>
-						if global.Settings.Imgproxy.Key == "" {
-							<div class="text-amber-600 dark:text-amber-400">insecure mode: anyone can abuse this server</div>
-						}
-					</div>
-				</div>
-				<div class="mt-8">
-					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">example signed URL</h3>
-					<div class="text-sm space-y-2 text-stone-600 dark:text-stone-400">
-						<div class="font-mono text-xs break-all bg-stone-100 dark:bg-stone-800 p-3 rounded select-all">
-							{ global.Settings.HTTPScheme() + global.Settings.Domain + "/imgproxy" + prepareURL("rs:fill:300", "https://picsum.photos/id/803/536/354.jpg") }
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">prepare signed URL</h3>
+					<form
+						x-data="{
+							sourceURL: '',
+							options: '',
+							loading: false,
+							resultURL: null,
+							error: null,
+							async prepareUrl() {
+								if (!this.sourceURL.trim() || !this.options.trim()) {
+									this.error = 'source URL and processing options required';
+									return;
+								}
+								this.loading = true;
+								this.resultURL = null;
+								this.error = null;
+								try {
+									const response = await fetch('./prepare', {
+										method: 'POST',
+										headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+										body: 'url=' + encodeURIComponent(this.sourceURL.trim()) + '&options=' + encodeURIComponent(this.options.trim())
+									});
+									const data = await response.json();
+									if (response.ok && !data.error) {
+										this.resultURL = data.url;
+									} else {
+										this.error = data.error || 'failed to prepare URL';
+									}
+								} catch (err) {
+									this.error = 'network error: ' + err.message;
+								} finally {
+									this.loading = false;
+								}
+							}
+						}"
+						@submit.prevent="prepareUrl()"
+					>
+						<div class="space-y-3">
+							<div class="flex items-center gap-2">
+								<input
+									type="text"
+									placeholder="source URL..."
+									class="flex-1 px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 text-sm focus:outline-none focus:ring-2 focus:ring-stone-500"
+									x-model="sourceURL"
+									@input="resultURL = null"
+								/>
+								<input
+									type="text"
+									placeholder="processing options (e.g. rs:fill:300)"
+									class="flex-1 px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 text-sm focus:outline-none focus:ring-2 focus:ring-stone-500"
+									x-model="options"
+									@input="resultURL = null"
+								/>
+								<button
+									type="submit"
+									:disabled="loading"
+									class="cursor-pointer px-4 py-2 rounded themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] themed:text-white light:bg-stone-200 light:hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+								>prepare</button>
+							</div>
+							<div x-show="error" x-transition class="text-red-600 dark:text-red-400 text-sm">
+								<span x-text="error"></span>
+							</div>
+							<div x-show="resultURL" x-transition>
+								<div class="font-mono text-xs break-all bg-stone-100 dark:bg-stone-900 p-3 rounded select-all" x-text="resultURL"></div>
+							</div>
 						</div>
-					</div>
+					</form>
 				</div>
 			}
 			if pyramid.IsRoot(loggedUser) {
@@ -83,56 +123,13 @@ templ imgproxyPage(loggedUser nostr.PubKey, running bool, errMsg string) {
 						</details>
 					}
 					if global.Settings.Imgproxy.Enabled {
-						<details>
-							<summary class="cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">key & salt</summary>
-							<form method="POST" action="/imgproxy/keys" class="mt-4 space-y-4 max-w-lg">
-								<div>
-									<label class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">IMGPROXY_KEY</label>
-									<input
-										type="text"
-										name="key"
-										value={ global.Settings.Imgproxy.Key }
-										class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-stone-500"
-									/>
-								</div>
-								<div>
-									<label class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">IMGPROXY_SALT</label>
-									<input
-										type="text"
-										name="salt"
-										value={ global.Settings.Imgproxy.Salt }
-										class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-stone-500"
-									/>
-								</div>
-								<button
-									type="submit"
-									class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
-								>
-									save
-								</button>
-							</form>
+						<details class="mt-4">
+							<summary class="cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">view logs</summary>
+							<a href="/imgproxy/log" target="_blank" class="mt-4 inline-block text-sm cursor-pointer hover:underline text-stone-600 dark:text-stone-400">/log</a>
 						</details>
 					}
 				</div>
 			}
 		</div>
 	}
-}
-
-func prepareURL(options, sourceURL string) string {
-	path := "/" + options + "/" + base64.RawURLEncoding.EncodeToString([]byte(sourceURL)) + ".png"
-	if global.Settings.Imgproxy.Key == "" {
-		return "/insecure/" + path
-	}
-
-	key, err := hex.DecodeString(global.Settings.Imgproxy.Key)
-	if err != nil {
-		return ""
-	}
-	mac := hmac.New(sha256.New, key)
-	mac.Write([]byte(global.Settings.Imgproxy.Salt))
-	mac.Write([]byte(path))
-	signature := hex.EncodeToString(mac.Sum(nil))
-
-	return "/" + signature + path
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"slices"
@@ -18,6 +19,8 @@ import (
 	"fiatjaf.com/nostr/nip11"
 	"fiatjaf.com/nostr/nip19"
 	"github.com/bep/debounce"
+	"github.com/buildkite/terminal-to-html/v3"
+	"github.com/nxadm/tail"
 )
 
 var FiveSecondsDebouncer = debounce.New(time.Second * 5)
@@ -175,4 +178,35 @@ func RandomString(size int) string {
 		panic(err)
 	}
 	return base64.RawURLEncoding.EncodeToString(buf)
+}
+
+func LogHandler(w http.ResponseWriter, r *http.Request, logFile string) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming not supported", 500)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	terminalCSS, _ := assets.ReadFile("assets/terminal.css")
+
+	_, _ = io.WriteString(w, "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>log</title><style>body{color:white;background:#333;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;margin:12px;} .line{white-space:pre;}\n"+string(terminalCSS)+"</style></head><body>")
+	flusher.Flush()
+
+	t, err := tail.TailFile(logFile, tail.Config{Follow: true, ReOpen: true})
+	if err != nil {
+		Log.Error().Err(err).Msg("failed to tail imgproxy.log")
+	}
+
+	for line := range t.Lines {
+		_, _ = io.WriteString(w, "<div class=\"line\">"+terminal.Render([]byte(html.EscapeString(line.Text)))+"</div>\n")
+		flusher.Flush()
+		if r.Context().Err() != nil {
+			return
+		}
+	}
 }

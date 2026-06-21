@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
-	"html"
 	"io"
 	"net/http"
 	"net/url"
@@ -624,58 +622,7 @@ func logHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "streaming not supported", 500)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-
-	_, _ = io.WriteString(w, "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>log</title><style>body{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;margin:12px;} .line{white-space:pre;}</style></head><body>")
-
-	writeLine := func(line string) {
-		_, _ = io.WriteString(w, "<div class=\"line\">"+html.EscapeString(line)+"</div>\n")
-	}
-
-	if global.LogFilePath != "" {
-		file, err := os.Open(global.LogFilePath)
-		if err == nil {
-			scanner := bufio.NewScanner(file)
-			buf := make([]byte, 0, 64*1024)
-			scanner.Buffer(buf, 1024*1024)
-			for scanner.Scan() {
-				writeLine(scanner.Text())
-			}
-			file.Close()
-		}
-	}
-	flusher.Flush()
-
-	stream, unsubscribe := global.SubscribeLogStream(256)
-	defer unsubscribe()
-
-	var pending string
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case chunk, ok := <-stream:
-			if !ok {
-				return
-			}
-			pending += string(chunk)
-			lines := strings.Split(pending, "\n")
-			for i := 0; i < len(lines)-1; i++ {
-				writeLine(lines[i])
-			}
-			pending = lines[len(lines)-1]
-			flusher.Flush()
-		}
-	}
+	global.LogHandler(w, r, filepath.Join(global.S.DataPath, "log"))
 }
 
 func iconHandler(w http.ResponseWriter, r *http.Request) {

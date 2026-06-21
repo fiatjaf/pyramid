@@ -126,9 +126,7 @@ type UserSettings struct {
 	} `json:"stream"`
 
 	Imgproxy struct {
-		Enabled bool   `json:"enabled"`
-		Key     string `json:"key,omitempty"`
-		Salt    string `json:"salt,omitempty"`
+		Enabled bool `json:"enabled"`
 	} `json:"imgproxy"`
 
 	Popular struct {
