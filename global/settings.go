@@ -126,7 +126,8 @@ type UserSettings struct {
 	} `json:"stream"`
 
 	Imgproxy struct {
-		Enabled bool `json:"enabled"`
+		Enabled    bool   `json:"enabled"`
+		BaseSecret string `json:"base_secret"`
 	} `json:"imgproxy"`
 
 	Popular struct {

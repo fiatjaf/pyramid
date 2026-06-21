@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"html"
 	"io"
 	"net/http"
 	"slices"
@@ -203,7 +202,7 @@ func LogHandler(w http.ResponseWriter, r *http.Request, logFile string) {
 	}
 
 	for line := range t.Lines {
-		_, _ = io.WriteString(w, "<div class=\"line\">"+terminal.Render([]byte(html.EscapeString(line.Text)))+"</div>\n")
+		_, _ = io.WriteString(w, "<div class=\"line\">"+terminal.Render([]byte(line.Text))+"</div>\n")
 		flusher.Flush()
 		if r.Context().Err() != nil {
 			return

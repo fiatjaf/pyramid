@@ -1,17 +1,25 @@
 package imgproxy
 
 import (
+	"bytes"
+	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 
+	"fiatjaf.com/nostr"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -26,7 +34,8 @@ var (
 	log     = global.Log.With().Str("service", "imgproxy").Logger()
 	Handler = &MuxHandler{}
 
-	reverseProxy *httputil.ReverseProxy
+	imgproxySocketClient *http.Client
+	baseSecret, _        = hex.DecodeString(global.Settings.Imgproxy.BaseSecret)
 )
 
 var state = struct {
@@ -48,7 +57,7 @@ func Init() {
 }
 
 func setupDisabled() {
-	reverseProxy = nil
+	imgproxySocketClient = nil
 	Handler.mux = http.NewServeMux()
 	Handler.mux.HandleFunc("POST /imgproxy/enable", enableHandler)
 	Handler.mux.HandleFunc("GET /imgproxy/log", logHandler)
@@ -56,15 +65,14 @@ func setupDisabled() {
 }
 
 func setupEnabled() {
-	target := &url.URL{Scheme: "http", Host: "localhost:38040"}
-	reverseProxy = &httputil.ReverseProxy{
-		Rewrite: func(r *httputil.ProxyRequest) {
-			fmt.Println("in:", r.In.URL)
+	socketFile, _ := filepath.Abs(filepath.Join(global.S.DataPath, "imgproxy.sock"))
 
-			r.SetURL(target)
-			r.Out.URL.Path = strings.TrimPrefix(r.In.URL.Path, "/imgproxy")
+	imgproxySocketClient = &http.Client{Transport: &http.Transport{
+		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return (&net.Dialer{}).DialContext(ctx, "unix", socketFile)
 		},
-	}
+	}}
+
 	Handler.mux = http.NewServeMux()
 	Handler.mux.HandleFunc("POST /imgproxy/disable", disableHandler)
 	Handler.mux.HandleFunc("POST /imgproxy/prepare", prepareHandler)
@@ -78,7 +86,47 @@ func pageHandler(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return
 		}
-		reverseProxy.ServeHTTP(w, r)
+
+		spl := strings.Split(r.URL.Path, "/")
+		path := "/" + strings.Join(spl[3:], "/")
+
+		// decode special token from url
+		token, err := base64.RawURLEncoding.DecodeString(spl[2])
+		if err != nil || len(token) != 48 {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		mac := token[0:16]
+		pubkey := token[16 : 16+32]
+
+		b := hmac.New(sha256.New, baseSecret)
+		b.Write(pubkey)
+		pubkeySecret := b.Sum(nil)
+
+		h := hmac.New(sha256.New, pubkeySecret)
+		h.Write([]byte(path))
+		expected := h.Sum(nil)
+		if !bytes.Equal(expected[0:16], mac) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		imgproxyURL := "http://imgproxy/insecure" + path
+		resp, err := imgproxySocketClient.Get(imgproxyURL)
+		if err != nil {
+			log.Error().Err(err).Msg("imgproxy request failed")
+			w.WriteHeader(http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+
+		for k, v := range resp.Header {
+			for _, hv := range v {
+				w.Header().Add(k, hv)
+			}
+		}
+		w.WriteHeader(resp.StatusCode)
+		io.Copy(w, resp.Body)
 		return
 	}
 
@@ -99,6 +147,12 @@ func enableHandler(w http.ResponseWriter, r *http.Request) {
 	if err := global.SaveUserSettings(); err != nil {
 		http.Error(w, "failed to save settings", http.StatusInternalServerError)
 		return
+	}
+
+	if global.Settings.Imgproxy.BaseSecret == "" {
+		baseSecret = make([]byte, 16)
+		rand.Read(baseSecret)
+		global.Settings.Imgproxy.BaseSecret = hex.EncodeToString(baseSecret)
 	}
 
 	setupEnabled()
@@ -161,8 +215,14 @@ func startImgproxy() {
 	cmd := exec.Command(imgproxyBinaryPath())
 	cmd.Stdout = rotator
 	cmd.Stderr = rotator
+
+	socketFile, _ := filepath.Abs(filepath.Join(global.S.DataPath, "imgproxy.sock"))
 	env := append(os.Environ(),
-		"IMGPROXY_BIND=:38040",
+		"IMGPROXY_BIND="+socketFile,
+		"IMGPROXY_NETWORK=unix",
+		"IMGPROXY_TIMEOUT=5",
+		"IMGPROXY_USER_AGENT=imgproxy/pyramid",
+		"IMGPROXY_USE_ETAG=true",
 	)
 	cmd.Env = env
 	if err := cmd.Start(); err != nil {
@@ -228,23 +288,22 @@ func disableImgproxyWithError(err error) {
 	setupDisabled()
 }
 
-func prepareURL(options, sourceURL string) string {
-	// path := "/" + options + "/" + base64.RawURLEncoding.EncodeToString([]byte(sourceURL)) + ".png"
-	// if global.Settings.Imgproxy.Key == "" {
-	// 	return "/insecure/" + path
-	// }
+func prepareURLPath(pubkey nostr.PubKey, options, sourceURL string) string {
+	path := "/" + options + "/" + base64.RawURLEncoding.EncodeToString([]byte(sourceURL)) + ".png"
 
-	// key, err := hex.DecodeString(global.Settings.Imgproxy.Key)
-	// if err != nil {
-	// 	return ""
-	// }
-	// mac := hmac.New(sha256.New, key)
-	// mac.Write([]byte(global.Settings.Imgproxy.Salt))
-	// mac.Write([]byte(path))
-	// signature := hex.EncodeToString(mac.Sum(nil))
+	b := hmac.New(sha256.New, baseSecret)
+	b.Write(pubkey[:])
+	pubkeySecret := b.Sum(nil)
 
-	// return "/" + signature + path
-	return ""
+	h := hmac.New(sha256.New, pubkeySecret)
+	h.Write([]byte(path))
+	mac := h.Sum(nil)
+
+	token := make([]byte, 48)
+	copy(token[0:16], mac)
+	copy(token[16:48], pubkey[:])
+
+	return "/" + base64.RawURLEncoding.EncodeToString(token) + path
 }
 
 func prepareHandler(w http.ResponseWriter, r *http.Request) {
@@ -262,7 +321,7 @@ func prepareHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	path := prepareURL(options, sourceURL)
+	path := prepareURLPath(loggedUser, options, sourceURL)
 	fullURL := global.Settings.HTTPScheme() + global.Settings.Domain + "/imgproxy" + path
 
 	w.Header().Set("Content-Type", "application/json")
