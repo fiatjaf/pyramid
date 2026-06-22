@@ -13,6 +13,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -91,6 +92,7 @@ func pageHandler(w http.ResponseWriter, r *http.Request) {
 
 		spl := strings.Split(r.URL.Path, "/")
 		path := "/" + strings.Join(spl[3:], "/")
+		decodedPath, _ := url.PathUnescape(path)
 
 		// decode special token from url
 		token, err := base64.RawURLEncoding.DecodeString(spl[2])
@@ -104,7 +106,7 @@ func pageHandler(w http.ResponseWriter, r *http.Request) {
 		pubkeySecret := pubkeySecretFor(pubkey)
 
 		h := hmac.New(sha256.New, pubkeySecret)
-		h.Write([]byte(path))
+		h.Write([]byte(decodedPath))
 		expected := h.Sum(nil)
 		if !bytes.Equal(expected[0:16], mac) {
 			http.Error(w, "mac doesn't match", http.StatusUnauthorized)
@@ -296,19 +298,29 @@ func pubkeySecretFor(pubkey []byte) []byte {
 }
 
 func prepareURLPath(pubkey nostr.PubKey, options, sourceURL string) string {
-	path := "/" + options + "/" + base64.RawURLEncoding.EncodeToString([]byte(sourceURL)) + ".png"
+	decodedURL, _ := url.PathUnescape(sourceURL)
+	encoded := strings.NewReplacer(
+		"%", "%25",
+		"/", "%2F",
+		"?", "%3F",
+		"@", "%40",
+	).Replace(decodedURL)
+
+	imgproxyPath := "/" + options + "/plain/" + encoded + "@avif"
+	macPath := "/" + options + "/plain/" + decodedURL + "@avif"
 
 	pubkeySecret := pubkeySecretFor(pubkey[:])
 
 	h := hmac.New(sha256.New, pubkeySecret)
-	h.Write([]byte(path))
+	h.Write([]byte(macPath))
 	mac := h.Sum(nil)
 
 	token := make([]byte, 48)
 	copy(token[0:16], mac)
 	copy(token[16:48], pubkey[:])
 
-	return "/" + base64.RawURLEncoding.EncodeToString(token) + path
+	full := "/" + base64.RawURLEncoding.EncodeToString(token) + imgproxyPath
+	return full
 }
 
 func secretHandler(w http.ResponseWriter, r *http.Request) {
