@@ -38,6 +38,19 @@ func (g *Group) AnyOfTheseIsAMember(pubkeys []nostr.PubKey) bool {
 	return false
 }
 
+// IsMemberOfAnyGroup returns whether the pubkey is a member of any group on this relay
+func IsMemberOfAnyGroup(pubkey nostr.PubKey) bool {
+	if State == nil {
+		return false
+	}
+	for _, group := range State.Groups.Range {
+		if group.AnyOfTheseIsAMember([]nostr.PubKey{pubkey}) {
+			return true
+		}
+	}
+	return false
+}
+
 func (g *Group) IsPrimaryRole(member nostr.PubKey) bool {
 	roles, _ := g.Members[member]
 	for _, role := range roles {

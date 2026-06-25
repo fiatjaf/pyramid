@@ -551,6 +551,10 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 					global.Settings.Blossom.MaxUserUploadSize, _ = strconv.Atoi(v[0])
 					global.Settings.Blossom.MaxUserUploadSizeAtEachLevel = nil
 				}
+			case "blossom_allow_group_members":
+				global.Settings.Blossom.AllowGroupMembers = v[0] == "on"
+			case "blossom_max_group_member_upload_size":
+				global.Settings.Blossom.MaxGroupMemberUploadSize, _ = strconv.Atoi(v[0])
 			case "nsite_enabled":
 				global.Settings.Nsite.Enabled = v[0] == "on"
 				go restartSoon()

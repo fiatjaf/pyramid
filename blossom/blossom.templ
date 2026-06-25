@@ -2,6 +2,7 @@ package blossom
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"fiatjaf.com/nostr"
@@ -242,6 +243,8 @@ templ blossomPage(loggedUser nostr.PubKey) {
 							x-data={ `{
 								saved: false,
 								maxUserUploadSize: ` + global.JSONString(global.Settings.GetMaxUserUploadSizeDisplay()) + `,
+								allowGroupMembers: ` + strconv.FormatBool(global.Settings.Blossom.AllowGroupMembers) + `,
+								maxGroupMemberUploadSize: ` + strconv.Itoa(global.Settings.Blossom.MaxGroupMemberUploadSize) + `,
 								async saveSettings() {
 									const response = await fetch(this.$refs.form.action, {
 										method: 'POST',
@@ -269,6 +272,40 @@ templ blossomPage(loggedUser nostr.PubKey) {
 								/>
 								<p class="text-xs text-stone-500 dark:text-stone-400 mt-2">
 									use a single number (0 = unlimited) or slash-separated values per pyramid level (e.g. "100/50/25")
+								</p>
+							</div>
+							<div>
+								<label class="flex items-center cursor-pointer">
+									<input type="hidden" name="blossom_allow_group_members" :value="allowGroupMembers ? 'on' : 'off'"/>
+									<input
+										type="checkbox"
+										x-model="allowGroupMembers"
+										@change="saveSettings()"
+										class="rounded text-blue-500 focus:ring-blue-500"
+									/>
+									<span class="text-sm font-medium text-stone-700 dark:text-stone-300 ml-2">
+										allow members of any group to upload
+									</span>
+								</label>
+								<p class="text-xs text-stone-500 dark:text-stone-400 mt-2">
+									group members are not part of the pyramid; this lets anyone in a nip-29 group upload blobs
+								</p>
+							</div>
+							<div x-show="allowGroupMembers" x-transition>
+								<label for="blossom_max_group_member_upload_size" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+									max total upload per group member (in megabytes)
+								</label>
+								<input
+									type="text"
+									id="blossom_max_group_member_upload_size"
+									name="blossom_max_group_member_upload_size"
+									x-model="maxGroupMemberUploadSize"
+									placeholder="e.g. 50"
+									@blur="saveSettings()"
+									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-md bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+								/>
+								<p class="text-xs text-stone-500 dark:text-stone-400 mt-2">
+									a single number (0 = unlimited)
 								</p>
 							</div>
 							<div
