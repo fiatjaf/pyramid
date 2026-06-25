@@ -343,6 +343,16 @@ templ inviteTreeComponent(
 								online
 							</span>
 						}
+						for _, rid := range member.Roles {
+							if role, ok := pyramid.Roles.Load(rid); ok {
+								<span
+									class="ml-2 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium"
+									style={ "--role-hue: " + role.Color + "; color: hsl(var(--role-hue, 0), 50%, 30%); background-color: hsl(var(--role-hue, 0), 50%, 90%); outline: 1px solid hsl(var(--role-hue, 0), 50%, 80%);" }
+								>
+									{ role.Label }
+								</span>
+							}
+						}
 					</span>
 					if global.Settings.AllowAccessRequest && loggedUser != nostr.ZeroPK && !pyramid.IsMember(loggedUser) {
 						if loggedUserPending == nil && (pendingAccessCounts[pubkey] < (pyramid.GetMaxInvitesFor(pubkey) - pyramid.GetInviteCount(pubkey))*2) {

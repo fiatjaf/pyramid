@@ -370,8 +370,12 @@ func publishMembershipChange(pubkey nostr.PubKey, added bool) {
 			CreatedAt: nostr.Now(),
 			Tags:      nostr.Tags{{"-"}},
 		}
-		for m := range pyramid.Members.Range {
-			relayMembersList.Tags = append(relayMembersList.Tags, nostr.Tag{"member", m.Hex()})
+		for m, member := range pyramid.Members.Range {
+			memberTag := nostr.Tag{"member", m.Hex()}
+			for _, rid := range member.Roles {
+				memberTag = append(memberTag, rid)
+			}
+			relayMembersList.Tags = append(relayMembersList.Tags, memberTag)
 			roomCreationPermissionList.Tags = append(roomCreationPermissionList.Tags, nostr.Tag{"p", m.Hex()})
 		}
 		relayMembersList.Sign(global.Settings.RelayInternalSecretKey)

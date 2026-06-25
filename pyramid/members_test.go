@@ -20,11 +20,11 @@ func TestApplyAction(t *testing.T) {
 	AbsoluteKey = nostr.MustPubKeyFromHex("0707070707070707070707070707070707070707070707070707070707070707")
 	Members.Clear()
 
-	applyAction(ActionInvite, user1, user2)
-	applyAction(ActionInvite, user1, user3)
-	applyAction(ActionInvite, user2, user4)
-	applyAction(ActionInvite, user3, user4)
-	applyAction(ActionInvite, user4, user5)
+	applyAction(managementAction{Type: ActionInvite, Author: user1.Hex(), Target: user2.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user1.Hex(), Target: user3.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user2.Hex(), Target: user4.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user3.Hex(), Target: user4.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user4.Hex(), Target: user5.Hex()})
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		user2: {user1},
@@ -33,7 +33,7 @@ func TestApplyAction(t *testing.T) {
 		user5: {user4},
 	}, getMembersMap())
 
-	applyAction(ActionDrop, user2, user4)
+	applyAction(managementAction{Type: ActionDrop, Author: user2.Hex(), Target: user4.Hex()})
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		user2: {user1},
@@ -42,16 +42,16 @@ func TestApplyAction(t *testing.T) {
 		user5: {user4},
 	}, getMembersMap())
 
-	applyAction(ActionDrop, user3, user4)
+	applyAction(managementAction{Type: ActionDrop, Author: user3.Hex(), Target: user4.Hex()})
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		user2: {user1},
 		user3: {user1},
 	}, getMembersMap())
 
-	applyAction(ActionInvite, user2, user4)
-	applyAction(ActionInvite, user3, user4)
-	applyAction(ActionInvite, user4, user5)
+	applyAction(managementAction{Type: ActionInvite, Author: user2.Hex(), Target: user4.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user3.Hex(), Target: user4.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user4.Hex(), Target: user5.Hex()})
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		user2: {user1},
@@ -60,8 +60,8 @@ func TestApplyAction(t *testing.T) {
 		user5: {user4},
 	}, getMembersMap())
 
-	applyAction(ActionDrop, user2, user4)
-	applyAction(ActionDrop, user3, user5)
+	applyAction(managementAction{Type: ActionDrop, Author: user2.Hex(), Target: user4.Hex()})
+	applyAction(managementAction{Type: ActionDrop, Author: user3.Hex(), Target: user5.Hex()})
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		user2: {user1},
@@ -73,15 +73,15 @@ func TestApplyAction(t *testing.T) {
 func TestSpecificFailureCase(t *testing.T) {
 	Members.Clear()
 
-	applyAction(ActionInvite, AbsoluteKey, nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"))
-	applyAction(ActionInvite, nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"), nostr.MustPubKeyFromHex("00ce6537d4ff04531a6caeab2ca0b254f5f570b49d6a3d4e7b716d16b922d8ca"))
-	applyAction(ActionInvite, nostr.MustPubKeyFromHex("00ce6537d4ff04531a6caeab2ca0b254f5f570b49d6a3d4e7b716d16b922d8ca"), nostr.MustPubKeyFromHex("63fe6318dc58583cfe16810f86dd09e18bfd76aabc24a0081ce2856f330504ed"))
-	applyAction(ActionInvite, nostr.MustPubKeyFromHex("63fe6318dc58583cfe16810f86dd09e18bfd76aabc24a0081ce2856f330504ed"), nostr.MustPubKeyFromHex("82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2"))
-	applyAction(ActionInvite, nostr.MustPubKeyFromHex("00ce6537d4ff04531a6caeab2ca0b254f5f570b49d6a3d4e7b716d16b922d8ca"), nostr.MustPubKeyFromHex("82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2"))
-	applyAction(ActionInvite, nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"), nostr.MustPubKeyFromHex("f4db5270bd991b17bea1e6d035f45dee392919c29474bbac10342d223c74e0d0"))
-	applyAction(ActionInvite, nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"), nostr.MustPubKeyFromHex("fa984bd7dbb282f07e16e7ae87b26a2a7b9b90b7246a44771f0cf5ae58018f52"))
-	applyAction(ActionInvite, nostr.MustPubKeyFromHex("fa984bd7dbb282f07e16e7ae87b26a2a7b9b90b7246a44771f0cf5ae58018f52"), nostr.MustPubKeyFromHex("63fe6318dc58583cfe16810f86dd09e18bfd76aabc24a0081ce2856f330504ed"))
-	applyAction(ActionDrop, nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"), nostr.MustPubKeyFromHex("00ce6537d4ff04531a6caeab2ca0b254f5f570b49d6a3d4e7b716d16b922d8ca"))
+	applyAction(managementAction{Type: ActionInvite, Author: AbsoluteKey.Hex(), Target: nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d").Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d").Hex(), Target: nostr.MustPubKeyFromHex("00ce6537d4ff04531a6caeab2ca0b254f5f570b49d6a3d4e7b716d16b922d8ca").Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: nostr.MustPubKeyFromHex("00ce6537d4ff04531a6caeab2ca0b254f5f570b49d6a3d4e7b716d16b922d8ca").Hex(), Target: nostr.MustPubKeyFromHex("63fe6318dc58583cfe16810f86dd09e18bfd76aabc24a0081ce2856f330504ed").Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: nostr.MustPubKeyFromHex("63fe6318dc58583cfe16810f86dd09e18bfd76aabc24a0081ce2856f330504ed").Hex(), Target: nostr.MustPubKeyFromHex("82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2").Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: nostr.MustPubKeyFromHex("00ce6537d4ff04531a6caeab2ca0b254f5f570b49d6a3d4e7b716d16b922d8ca").Hex(), Target: nostr.MustPubKeyFromHex("82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2").Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d").Hex(), Target: nostr.MustPubKeyFromHex("f4db5270bd991b17bea1e6d035f45dee392919c29474bbac10342d223c74e0d0").Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d").Hex(), Target: nostr.MustPubKeyFromHex("fa984bd7dbb282f07e16e7ae87b26a2a7b9b90b7246a44771f0cf5ae58018f52").Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: nostr.MustPubKeyFromHex("fa984bd7dbb282f07e16e7ae87b26a2a7b9b90b7246a44771f0cf5ae58018f52").Hex(), Target: nostr.MustPubKeyFromHex("63fe6318dc58583cfe16810f86dd09e18bfd76aabc24a0081ce2856f330504ed").Hex()})
+	applyAction(managementAction{Type: ActionDrop, Author: nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d").Hex(), Target: nostr.MustPubKeyFromHex("00ce6537d4ff04531a6caeab2ca0b254f5f570b49d6a3d4e7b716d16b922d8ca").Hex()})
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		nostr.MustPubKeyFromHex("82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2"): {
@@ -101,7 +101,7 @@ func TestSpecificFailureCase(t *testing.T) {
 		},
 	}, getMembersMap())
 
-	applyAction(ActionDrop, nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"), nostr.MustPubKeyFromHex("82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2"))
+	applyAction(managementAction{Type: ActionDrop, Author: nostr.MustPubKeyFromHex("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d").Hex(), Target: nostr.MustPubKeyFromHex("82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2").Hex()})
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		nostr.MustPubKeyFromHex("63fe6318dc58583cfe16810f86dd09e18bfd76aabc24a0081ce2856f330504ed"): {
@@ -130,12 +130,12 @@ func TestMultipleRoots(t *testing.T) {
 	AbsoluteKey = nostr.MustPubKeyFromHex("0909090909090909090909090909090909090909090909090909090909090909")
 	Members.Clear()
 
-	applyAction(ActionInvite, AbsoluteKey, root1)
-	applyAction(ActionInvite, AbsoluteKey, root2)
-	applyAction(ActionInvite, root1, userA)
-	applyAction(ActionInvite, root1, userB)
-	applyAction(ActionInvite, root2, userC)
-	applyAction(ActionInvite, userA, userD)
+	applyAction(managementAction{Type: ActionInvite, Author: AbsoluteKey.Hex(), Target: root1.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: AbsoluteKey.Hex(), Target: root2.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: root1.Hex(), Target: userA.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: root1.Hex(), Target: userB.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: root2.Hex(), Target: userC.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: userA.Hex(), Target: userD.Hex()})
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		root1: {AbsoluteKey},
@@ -146,7 +146,7 @@ func TestMultipleRoots(t *testing.T) {
 		userD: {userA},
 	}, getMembersMap())
 
-	applyAction(ActionDrop, root1, userA)
+	applyAction(managementAction{Type: ActionDrop, Author: root1.Hex(), Target: userA.Hex()})
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		root1: {AbsoluteKey},
@@ -155,9 +155,9 @@ func TestMultipleRoots(t *testing.T) {
 		userC: {root2},
 	}, getMembersMap())
 
-	applyAction(ActionInvite, root2, userA)
-	applyAction(ActionInvite, userA, userB)
-	applyAction(ActionInvite, userA, userD)
+	applyAction(managementAction{Type: ActionInvite, Author: root2.Hex(), Target: userA.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: userA.Hex(), Target: userB.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: userA.Hex(), Target: userD.Hex()})
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		root1: {AbsoluteKey},
@@ -168,7 +168,7 @@ func TestMultipleRoots(t *testing.T) {
 		userD: {userA},
 	}, getMembersMap())
 
-	applyAction(ActionDrop, AbsoluteKey, root1)
+	applyAction(managementAction{Type: ActionDrop, Author: AbsoluteKey.Hex(), Target: root1.Hex()})
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		root2: {AbsoluteKey},
@@ -178,7 +178,7 @@ func TestMultipleRoots(t *testing.T) {
 		userD: {userA},
 	}, getMembersMap())
 
-	applyAction(ActionDrop, root2, userA)
+	applyAction(managementAction{Type: ActionDrop, Author: root2.Hex(), Target: userA.Hex()})
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		root2: {AbsoluteKey},
@@ -200,19 +200,19 @@ func TestRemovingOneself(t *testing.T) {
 	AbsoluteKey = nostr.MustPubKeyFromHex("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b")
 	Members.Clear()
 
-	applyAction(ActionInvite, user1, user2)
-	applyAction(ActionInvite, user1, user3)
-	applyAction(ActionInvite, user2, user4)
-	applyAction(ActionInvite, user3, user4)
-	applyAction(ActionInvite, user4, user5)
-	applyAction(ActionInvite, user2, user5)
-	applyAction(ActionInvite, user5, user6)
-	applyAction(ActionInvite, user6, user7)
-	applyAction(ActionInvite, user6, user8)
-	applyAction(ActionInvite, user7, user9)
-	applyAction(ActionInvite, user8, user9)
-	applyAction(ActionInvite, user4, user9)
-	applyAction(ActionInvite, user4, user8)
+	applyAction(managementAction{Type: ActionInvite, Author: user1.Hex(), Target: user2.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user1.Hex(), Target: user3.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user2.Hex(), Target: user4.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user3.Hex(), Target: user4.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user4.Hex(), Target: user5.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user2.Hex(), Target: user5.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user5.Hex(), Target: user6.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user6.Hex(), Target: user7.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user6.Hex(), Target: user8.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user7.Hex(), Target: user9.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user8.Hex(), Target: user9.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user4.Hex(), Target: user9.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user4.Hex(), Target: user8.Hex()})
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		user2: {user1},
@@ -225,7 +225,7 @@ func TestRemovingOneself(t *testing.T) {
 		user9: {user7, user8, user4},
 	}, getMembersMap())
 
-	applyAction(ActionLeave, user4, user4)
+	applyAction(managementAction{Type: ActionLeave, Author: user4.Hex(), Target: user4.Hex()})
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		user2: {user1},
@@ -237,7 +237,7 @@ func TestRemovingOneself(t *testing.T) {
 		user9: {user7, user8},
 	}, getMembersMap())
 
-	applyAction(ActionLeave, user5, user5)
+	applyAction(managementAction{Type: ActionLeave, Author: user5.Hex(), Target: user5.Hex()})
 
 	require.Equal(t, map[nostr.PubKey][]nostr.PubKey{
 		user2: {user1},
@@ -271,29 +271,29 @@ func TestGetLevel(t *testing.T) {
 	require.Equal(t, math.MaxInt, GetLevel(root1))
 
 	// setup tree: AbsoluteKey -> root1, root2 -> userA, userB -> userC -> userD
-	applyAction(ActionInvite, AbsoluteKey, root1)
-	applyAction(ActionInvite, AbsoluteKey, root2)
+	applyAction(managementAction{Type: ActionInvite, Author: AbsoluteKey.Hex(), Target: root1.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: AbsoluteKey.Hex(), Target: root2.Hex()})
 
 	// root users are level 0
 	require.Equal(t, 0, GetLevel(root1))
 	require.Equal(t, 0, GetLevel(root2))
 
-	applyAction(ActionInvite, root1, userA)
-	applyAction(ActionInvite, root2, userB)
+	applyAction(managementAction{Type: ActionInvite, Author: root1.Hex(), Target: userA.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: root2.Hex(), Target: userB.Hex()})
 
 	// users invited by roots are level 1
 	require.Equal(t, 1, GetLevel(userA))
 	require.Equal(t, 1, GetLevel(userB))
 
-	applyAction(ActionInvite, userA, userC)
-	applyAction(ActionInvite, userC, userD)
+	applyAction(managementAction{Type: ActionInvite, Author: userA.Hex(), Target: userC.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: userC.Hex(), Target: userD.Hex()})
 
 	// level 2 and 3
 	require.Equal(t, 2, GetLevel(userC))
 	require.Equal(t, 3, GetLevel(userD))
 
 	// test multiple parents: userD also invited by root1 (shorter path)
-	applyAction(ActionInvite, root1, userD)
+	applyAction(managementAction{Type: ActionInvite, Author: root1.Hex(), Target: userD.Hex()})
 
 	// userD should now be level 1 (shortest path via root1)
 	require.Equal(t, 1, GetLevel(userD))
@@ -311,8 +311,8 @@ func TestDuplicateInviteBySamePubkey(t *testing.T) {
 	global.S.DataPath = t.TempDir()
 
 	// setup: AbsoluteKey -> user1 -> user2
-	applyAction(ActionInvite, AbsoluteKey, user1)
-	applyAction(ActionInvite, user1, user2)
+	applyAction(managementAction{Type: ActionInvite, Author: AbsoluteKey.Hex(), Target: user1.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: user1.Hex(), Target: user2.Hex()})
 
 	// user1 tries to invite user2 again - should fail
 	err := AddAction(ActionInvite, user1, user2)
@@ -345,11 +345,11 @@ func TestGetMaxInvitesFor(t *testing.T) {
 	Members.Clear()
 
 	// setup tree: AbsoluteKey -> root1 -> userA -> userB -> userC -> userD
-	applyAction(ActionInvite, AbsoluteKey, root1)
-	applyAction(ActionInvite, root1, userA)
-	applyAction(ActionInvite, userA, userB)
-	applyAction(ActionInvite, userB, userC)
-	applyAction(ActionInvite, userC, userD)
+	applyAction(managementAction{Type: ActionInvite, Author: AbsoluteKey.Hex(), Target: root1.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: root1.Hex(), Target: userA.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: userA.Hex(), Target: userB.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: userB.Hex(), Target: userC.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: userC.Hex(), Target: userD.Hex()})
 
 	// test with MaxInvitesPerPerson (flat limit)
 	global.Settings.MaxInvitesAtEachLevel = nil
@@ -378,7 +378,7 @@ func TestGetMaxInvitesFor(t *testing.T) {
 
 	// test level beyond array length returns 0
 	userE := nostr.PubKey{'E'}
-	applyAction(ActionInvite, userD, userE)
+	applyAction(managementAction{Type: ActionInvite, Author: userD.Hex(), Target: userE.Hex()})
 	// userE is level 5, adjusted level 4, gets 1 invite (5th element in array)
 	require.Equal(t, 1, GetMaxInvitesFor(userE))
 

@@ -20,21 +20,36 @@ import (
 var (
 	AbsoluteKey nostr.PubKey
 	Members     = xsync.NewMapOf[nostr.PubKey, Member]()
+	Roles       = xsync.NewMapOf[string, Role]()
 )
 
 type Member struct {
 	Parents []nostr.PubKey
 	Removed bool
+	Roles   []string
+}
+
+type Role struct {
+	ID          string
+	Label       string
+	Description string
+	Color       string
+	Order       int
 }
 
 type Action string
 
 const (
-	ActionInvite  = "invite"
-	ActionDrop    = "drop"
-	ActionLeave   = "leave"
-	ActionDisable = "disable"
-	ActionEnable  = "enable"
+	ActionInvite       = "invite"
+	ActionDrop         = "drop"
+	ActionLeave        = "leave"
+	ActionDisable      = "disable"
+	ActionEnable       = "enable"
+	ActionCreateRole   = "createrole"
+	ActionEditRole     = "editrole"
+	ActionDeleteRole   = "deleterole"
+	ActionAssignRole   = "assignrole"
+	ActionUnassignRole = "unassignrole"
 )
 
 func IsMember(pubkey nostr.PubKey) bool {
@@ -45,6 +60,19 @@ func IsMember(pubkey nostr.PubKey) bool {
 func IsRoot(pubkey nostr.PubKey) bool {
 	member, _ := Members.Load(pubkey)
 	return slices.Contains(member.Parents, AbsoluteKey)
+}
+
+func MemberHasRole(pubkey nostr.PubKey, roleID string) bool {
+	member, ok := Members.Load(pubkey)
+	if !ok {
+		return false
+	}
+	for _, rid := range member.Roles {
+		if rid == roleID {
+			return true
+		}
+	}
+	return false
 }
 
 func HasRootUsers() bool {
@@ -212,10 +240,15 @@ func HasSingleRootAncestor(ancestor nostr.PubKey, target nostr.PubKey) bool {
 }
 
 type managementAction struct {
-	Type   Action          `json:"type"`
-	Author string          `json:"author"`
-	Target string          `json:"target"`
-	When   nostr.Timestamp `json:"when"`
+	Type      Action          `json:"type"`
+	Author    string          `json:"author"`
+	Target    string          `json:"target"`
+	RoleID    string          `json:"role_id,omitempty"`
+	RoleLabel string          `json:"role_label,omitempty"`
+	RoleDesc  string          `json:"role_desc,omitempty"`
+	RoleColor string          `json:"role_color,omitempty"`
+	RoleOrder int             `json:"role_order,omitempty"`
+	When      nostr.Timestamp `json:"when"`
 }
 
 func AddAction(type_ Action, author nostr.PubKey, target nostr.PubKey) error {
@@ -257,7 +290,45 @@ func AddAction(type_ Action, author nostr.PubKey, target nostr.PubKey) error {
 		}
 	}
 
-	return appendActionToFile(type_, author, target)
+	return appendActionToFile(managementAction{
+		Type:   type_,
+		Author: author.Hex(),
+		Target: target.Hex(),
+		When:   nostr.Now(),
+	})
+}
+
+func AddRoleAction(type_ Action, author nostr.PubKey, roleID, label, desc, color string, order int) error {
+	if !IsRoot(author) {
+		return fmt.Errorf("only root users can manage roles")
+	}
+	return appendActionToFile(managementAction{
+		Type:      type_,
+		Author:    author.Hex(),
+		Target:    roleID,
+		RoleID:    roleID,
+		RoleLabel: label,
+		RoleDesc:  desc,
+		RoleColor: color,
+		RoleOrder: order,
+		When:      nostr.Now(),
+	})
+}
+
+func AddRoleAssignmentAction(type_ Action, author nostr.PubKey, target nostr.PubKey, roleID string) error {
+	if !IsRoot(author) {
+		return fmt.Errorf("only root users can assign roles")
+	}
+	if !IsMember(target) {
+		return fmt.Errorf("target is not a member")
+	}
+	return appendActionToFile(managementAction{
+		Type:   type_,
+		Author: author.Hex(),
+		Target: target.Hex(),
+		RoleID: roleID,
+		When:   nostr.Now(),
+	})
 }
 
 func LoadManagement() error {
@@ -278,23 +349,70 @@ func LoadManagement() error {
 			return err
 		}
 
-		author, err := nostr.PubKeyFromHexCheap(action.Author)
-		if err != nil {
-			return err
-		}
-
-		target, err := nostr.PubKeyFromHexCheap(action.Target)
-		if err != nil {
-			return err
-		}
-
-		applyAction(action.Type, author, target)
+		applyAction(action)
 	}
 	return scanner.Err()
 }
 
-func applyAction(type_ Action, author nostr.PubKey, target nostr.PubKey) {
+func applyAction(action managementAction) {
+	type_ := action.Type
+	author, _ := nostr.PubKeyFromHexCheap(action.Author)
+	target, _ := nostr.PubKeyFromHexCheap(action.Target)
+
 	switch type_ {
+	case ActionCreateRole:
+		Roles.Store(action.RoleID, Role{
+			ID:          action.RoleID,
+			Label:       action.RoleLabel,
+			Description: action.RoleDesc,
+			Color:       action.RoleColor,
+			Order:       action.RoleOrder,
+		})
+		return
+	case ActionEditRole:
+		Roles.Compute(action.RoleID, func(role Role, loaded bool) (Role, bool) {
+			role.Label = action.RoleLabel
+			role.Description = action.RoleDesc
+			role.Color = action.RoleColor
+			role.Order = action.RoleOrder
+			return role, false
+		})
+		return
+	case ActionDeleteRole:
+		Roles.Delete(action.RoleID)
+		// also remove from all members
+		for pk, member := range Members.Range {
+			for i, rid := range member.Roles {
+				if rid == action.RoleID {
+					member.Roles = append(member.Roles[:i], member.Roles[i+1:]...)
+					break
+				}
+			}
+			Members.Store(pk, member)
+		}
+		return
+	case ActionAssignRole:
+		Members.Compute(target, func(member Member, loaded bool) (Member, bool) {
+			for _, rid := range member.Roles {
+				if rid == action.RoleID {
+					return member, false // already assigned
+				}
+			}
+			member.Roles = append(member.Roles, action.RoleID)
+			return member, false
+		})
+		return
+	case ActionUnassignRole:
+		Members.Compute(target, func(member Member, loaded bool) (Member, bool) {
+			for i, rid := range member.Roles {
+				if rid == action.RoleID {
+					member.Roles = append(member.Roles[:i], member.Roles[i+1:]...)
+					break
+				}
+			}
+			return member, false
+		})
+		return
 	case ActionInvite:
 		Members.Compute(target, func(member Member, loaded bool) (newMember Member, delete bool) {
 			member.Parents = append(member.Parents, author)
@@ -364,18 +482,13 @@ func applyAction(type_ Action, author nostr.PubKey, target nostr.PubKey) {
 	}
 }
 
-func appendActionToFile(type_ Action, author, target nostr.PubKey) error {
-	action := managementAction{
-		Type:   type_,
-		Author: author.Hex(),
-		Target: target.Hex(),
-		When:   nostr.Now(),
-	}
+func appendActionToFile(action managementAction) error {
 	b, err := json.Marshal(action)
 	if err != nil {
 		return err
 	}
-	file, err := os.OpenFile(filepath.Join(global.S.DataPath, "management.jsonl"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(
+		filepath.Join(global.S.DataPath, "management.jsonl"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}

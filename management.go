@@ -210,6 +210,82 @@ func allowKindHandler(ctx context.Context, kind nostr.Kind) error {
 	return global.SaveUserSettings()
 }
 
+func createRoleHandler(ctx context.Context, id, label, description string, color, order int) error {
+	caller, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+	if id == "" {
+		return fmt.Errorf("role id is required")
+	}
+	if _, exists := pyramid.Roles.Load(id); exists {
+		return fmt.Errorf("role '%s' already exists", id)
+	}
+	if color < 0 || color > 360 {
+		return fmt.Errorf("color must be between 0 and 360")
+	}
+	return pyramid.AddRoleAction(pyramid.ActionCreateRole, caller, id, label, description, strconv.Itoa(color), order)
+}
+
+func editRoleHandler(ctx context.Context, id, label, description string, color, order int) error {
+	caller, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+	if _, exists := pyramid.Roles.Load(id); !exists {
+		return fmt.Errorf("role '%s' does not exist", id)
+	}
+	if color < 0 || color > 360 {
+		return fmt.Errorf("color must be between 0 and 360")
+	}
+	return pyramid.AddRoleAction(pyramid.ActionEditRole, caller, id, label, description, strconv.Itoa(color), order)
+}
+
+func deleteRoleHandler(ctx context.Context, id string) error {
+	caller, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+	if _, exists := pyramid.Roles.Load(id); !exists {
+		return fmt.Errorf("role '%s' does not exist", id)
+	}
+	return pyramid.AddRoleAction(pyramid.ActionDeleteRole, caller, id, "", "", "", 0)
+}
+
+func assignRoleHandler(ctx context.Context, pubkey nostr.PubKey, roleID string) error {
+	caller, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+	if _, exists := pyramid.Roles.Load(roleID); !exists {
+		return fmt.Errorf("role '%s' does not exist", roleID)
+	}
+	if !pyramid.IsMember(pubkey) {
+		return fmt.Errorf("pubkey is not a member")
+	}
+	if pyramid.MemberHasRole(pubkey, roleID) {
+		return fmt.Errorf("member already has role '%s'", roleID)
+	}
+	return pyramid.AddRoleAssignmentAction(pyramid.ActionAssignRole, caller, pubkey, roleID)
+}
+
+func unassignRoleHandler(ctx context.Context, pubkey nostr.PubKey, roleID string) error {
+	caller, ok := khatru.GetAuthed(ctx)
+	if !ok {
+		return fmt.Errorf("not authenticated")
+	}
+	if _, exists := pyramid.Roles.Load(roleID); !exists {
+		return fmt.Errorf("role '%s' does not exist", roleID)
+	}
+	if !pyramid.IsMember(pubkey) {
+		return fmt.Errorf("pubkey is not a member")
+	}
+	if !pyramid.MemberHasRole(pubkey, roleID) {
+		return fmt.Errorf("member does not have role '%s'", roleID)
+	}
+	return pyramid.AddRoleAssignmentAction(pyramid.ActionUnassignRole, caller, pubkey, roleID)
+}
+
 func listAllowedKindsHandler(ctx context.Context) ([]nostr.Kind, error) {
 	if global.Settings.AllowedKindsSpec == "all" {
 		return []nostr.Kind{}, nil

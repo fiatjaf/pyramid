@@ -367,6 +367,11 @@ func main() {
 	relay.ManagementAPI.ListBlockedIPs = listBlockedIPsHandler
 	relay.ManagementAPI.BlockIP = blockIPHandler
 	relay.ManagementAPI.UnblockIP = unblockIPHandler
+	relay.ManagementAPI.CreateRole = createRoleHandler
+	relay.ManagementAPI.EditRole = editRoleHandler
+	relay.ManagementAPI.DeleteRole = deleteRoleHandler
+	relay.ManagementAPI.AssignRole = assignRoleHandler
+	relay.ManagementAPI.UnassignRole = unassignRoleHandler
 	relay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
 		// prevent flotilla from doing its negentropy here as it is incompatible with our groups approach
 		if strings.Contains(r.Header.Get("User-Agent"), "aiohttp") || strings.Contains(r.Referer(), "flotilla") {
