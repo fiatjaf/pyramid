@@ -112,6 +112,8 @@ type UserSettings struct {
 		Enabled                      bool  `json:"enabled"`
 		MaxUserUploadSize            int   `json:"max_user_upload_size,omitempty"` // in megabytes, 0 means unlimited
 		MaxUserUploadSizeAtEachLevel []int `json:"max_user_upload_size_at_each_level,omitempty"`
+		AllowGroupMembers            bool  `json:"allow_group_members,omitempty"`          // allow members of any nip-29 group to use blossom
+		MaxGroupMemberUploadSize     int   `json:"max_group_member_upload_size,omitempty"` // in megabytes, 0 means unlimited
 	} `json:"blossom"`
 
 	Nsite struct {
@@ -324,6 +326,9 @@ func loadUserSettings() error {
 	Settings.Popular.HTTPBasePath = "popular"
 	Settings.Uppermost.HTTPBasePath = "uppermost"
 	Settings.Moderated.HTTPBasePath = "moderated"
+
+	// Blossom settings
+	Settings.Blossom.MaxGroupMemberUploadSize = 1
 
 	// FTP settings
 	Settings.FTP.Enabled = false

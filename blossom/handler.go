@@ -14,6 +14,7 @@ import (
 	"fiatjaf.com/nostr/khatru/blossom"
 
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/groups"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
@@ -75,13 +76,22 @@ func setupEnabled() {
 		if auth == nil {
 			return true, "authentication required", 401
 		}
-		if !pyramid.IsMember(auth.PubKey) {
-			return true, "only pyramid members can upload blobs", 403
+		isMember := pyramid.IsMember(auth.PubKey)
+		isGroupMember := global.Settings.Blossom.AllowGroupMembers &&
+			groups.IsMemberOfAnyGroup(auth.PubKey)
+		if !isMember && !isGroupMember {
+			return true, "only pyramid or group members can upload blobs", 403
 		}
 
 		// check user upload size limit
 		if !pyramid.IsRoot(auth.PubKey) {
-			maxSize := pyramid.GetMaxBlossomUploadSizeFor(auth.PubKey) * 1024 * 1024
+			// Pyramid members use the tree based limit, group-only members use the flat group limit
+			var maxSize int
+			if isMember {
+				maxSize = pyramid.GetMaxBlossomUploadSizeFor(auth.PubKey) * 1024 * 1024
+			} else {
+				maxSize = global.Settings.Blossom.MaxGroupMemberUploadSize * 1024 * 1024
+			}
 			if maxSize > 0 {
 				if size > maxSize {
 					return true, "upload by itself exceeds user storage limit", 413
