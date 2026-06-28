@@ -13,6 +13,7 @@ import (
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
 	"fiatjaf.com/nostr/nip11"
+	"fiatjaf.com/nostr/nip45/hyperloglog"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
@@ -98,6 +99,15 @@ func setupEnabled() {
 	}
 	Relay.Count = func(ctx context.Context, filter nostr.Filter) (uint32, error) {
 		return global.IL.Inbox.CountEvents(filter)
+	}
+	Relay.CountHLL = func(ctx context.Context, filter nostr.Filter, offset int) (uint32, *hyperloglog.HyperLogLog, error) {
+		hll := hyperloglog.New(offset)
+		count := uint32(0)
+		for evt := range global.IL.Inbox.QueryEvents(filter, global.Settings.Limits.MaxQueryLimit) {
+			hll.Add(evt.PubKey)
+			count++
+		}
+		return count, hll, nil
 	}
 	Relay.StoreEvent = func(ctx context.Context, event nostr.Event) error {
 		if slices.Contains(secretKinds, event.Kind) {

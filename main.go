@@ -22,6 +22,7 @@ import (
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
 	"fiatjaf.com/nostr/nip11"
+	"fiatjaf.com/nostr/nip45/hyperloglog"
 	"fiatjaf.com/nostr/sdk"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
@@ -197,6 +198,15 @@ func main() {
 	relay.Count = func(ctx context.Context, filter nostr.Filter) (uint32, error) {
 		// ignore groups in this case for now
 		return global.IL.Main.CountEvents(filter)
+	}
+	relay.CountHLL = func(ctx context.Context, filter nostr.Filter, offset int) (uint32, *hyperloglog.HyperLogLog, error) {
+		hll := hyperloglog.New(offset)
+		count := uint32(0)
+		for evt := range global.IL.Main.QueryEvents(filter, global.Settings.Limits.MaxQueryLimit) {
+			hll.Add(evt.PubKey)
+			count++
+		}
+		return count, hll, nil
 	}
 	relay.StoreEvent = func(ctx context.Context, event nostr.Event) error {
 		if global.Settings.AcceptScheduledEvents && event.CreatedAt > nostr.Now()+60 {
