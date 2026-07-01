@@ -36,27 +36,27 @@ func reclaimBlobsFromEvent(ctx context.Context, id nostr.ID) {
 		return
 	}
 
-	// collect the text to scan: content plus every tag value
-	var sb strings.Builder
-	sb.WriteString(event.Content)
-	for _, tag := range event.Tags {
-		for _, v := range tag {
-			sb.WriteByte(' ')
-			sb.WriteString(v)
-		}
-	}
-
 	// match blob urls that point to this server: <domain>/<sha256>
 	re := regexp.MustCompile(regexp.QuoteMeta(domain) + `/([0-9a-f]{64})`)
 
-	seen := make(map[string]struct{})
-	for _, m := range re.FindAllStringSubmatch(sb.String(), -1) {
-		sha256 := m[1]
-		if _, ok := seen[sha256]; ok {
+	candidates := extractBlobs(re, event)
+	if len(candidates) == 0 {
+		return
+	}
+
+	// a blob stays if any other event by the same author still references it;
+	// ownership events (24242) live in the blossom layer, so scanning main by
+	// author only sees the author's real content events
+	for evt := range global.IL.Main.QueryEvents(nostr.Filter{Authors: []nostr.PubKey{event.PubKey}}, 100_000) {
+		if evt.ID == id {
 			continue
 		}
-		seen[sha256] = struct{}{}
+		for sha256 := range extractBlobs(re, evt) {
+			delete(candidates, sha256)
+		}
+	}
 
+	for sha256 := range candidates {
 		// remove the author's ownership link for this blob
 		if err := BlobIndex.Delete(ctx, sha256, event.PubKey); err != nil {
 			log.Warn().Err(err).Str("sha256", sha256).Msg("failed to release blob ownership on event deletion")
@@ -70,4 +70,23 @@ func reclaimBlobsFromEvent(ctx context.Context, id nostr.ID) {
 			}
 		}
 	}
+}
+
+// extractBlobs returns the set of blob sha256s referenced by an event, found in
+// its content or any tag value as a url pointing to this server.
+func extractBlobs(re *regexp.Regexp, event nostr.Event) map[string]struct{} {
+	var sb strings.Builder
+	sb.WriteString(event.Content)
+	for _, tag := range event.Tags {
+		for _, v := range tag {
+			sb.WriteByte(' ')
+			sb.WriteString(v)
+		}
+	}
+
+	blobs := make(map[string]struct{})
+	for _, m := range re.FindAllStringSubmatch(sb.String(), -1) {
+		blobs[m[1]] = struct{}{}
+	}
+	return blobs
 }
