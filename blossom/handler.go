@@ -43,6 +43,8 @@ func Init(relay *khatru.Relay) {
 }
 
 func setupDisabled() {
+	global.ReclaimBlobsFromEvent = nil
+
 	Handler.mux = http.NewServeMux()
 	Handler.mux.HandleFunc("POST /blossom/enable", enableHandler)
 	Handler.mux.HandleFunc("GET /blossom/blobs", blobsPageHandler)
@@ -71,6 +73,8 @@ func setupEnabled() {
 		return file, nil, nil
 	}
 	Server.DeleteBlob = deleteBlob
+
+	global.ReclaimBlobsFromEvent = reclaimBlobsFromEvent
 
 	Server.RejectUpload = func(ctx context.Context, auth *nostr.Event, size int, ext string) (bool, string, int) {
 		if auth == nil {
