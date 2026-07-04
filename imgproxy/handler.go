@@ -91,29 +91,39 @@ func pageHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		spl := strings.Split(r.URL.Path, "/")
-		path := "/" + strings.Join(spl[3:], "/")
-		decodedPath, _ := url.PathUnescape(path)
 
 		// decode special token from url
 		token, err := base64.RawURLEncoding.DecodeString(spl[2])
-		if err != nil || len(token) != 48 {
-			http.Error(w, "wrong size token", http.StatusUnauthorized)
-			return
+
+		imgproxyURL := ""
+		if err == nil && len(token) == 48 {
+			// token mode: validate mac against the path that follows
+			path := "/" + strings.Join(spl[3:], "/")
+			decodedPath, _ := url.PathUnescape(path)
+
+			mac := token[0:16]
+			pubkey := token[16 : 16+32]
+
+			pubkeySecret := pubkeySecretFor(pubkey)
+
+			h := hmac.New(sha256.New, pubkeySecret)
+			h.Write([]byte(decodedPath))
+			expected := h.Sum(nil)
+			if !bytes.Equal(expected[0:16], mac) {
+				http.Error(w, "mac doesn't match", http.StatusUnauthorized)
+				return
+			}
+
+			imgproxyURL = "http://imgproxy/insecure" + path
+		} else {
+			// no token: only allowed if request origin matches one of the configured domains
+			if !global.OriginAllowed(r, global.Settings.Imgproxy.AllowedDomains) {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			imgproxyURL = "http://imgproxy/insecure/" + strings.Join(spl[2:], "/")
 		}
-		mac := token[0:16]
-		pubkey := token[16 : 16+32]
 
-		pubkeySecret := pubkeySecretFor(pubkey)
-
-		h := hmac.New(sha256.New, pubkeySecret)
-		h.Write([]byte(decodedPath))
-		expected := h.Sum(nil)
-		if !bytes.Equal(expected[0:16], mac) {
-			http.Error(w, "mac doesn't match", http.StatusUnauthorized)
-			return
-		}
-
-		imgproxyURL := "http://imgproxy/insecure" + path
 		resp, err := imgproxySocketClient.Get(imgproxyURL)
 		if err != nil {
 			log.Error().Err(err).Msg("imgproxy request failed")

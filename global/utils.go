@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -58,6 +59,39 @@ func PubKeyFromInput(input string) nostr.PubKey {
 func JSONString(v any) string {
 	b, _ := json.Marshal(v)
 	return unsafe.String(unsafe.SliceData(b), len(b))
+}
+
+// OriginAllowed checks whether the request's Origin or Referer host matches one of
+// the allowed domains (one domain per line, case-insensitive). Returns the matched
+// domain when allowed and an empty string otherwise.
+func OriginAllowed(r *http.Request, allowedDomains []string) bool {
+	host := ""
+	if origin := r.Header.Get("Origin"); origin != "" {
+		if u, err := url.Parse(origin); err == nil {
+			host = u.Host
+		}
+	}
+	if host == "" {
+		if ref := r.Header.Get("Referer"); ref != "" {
+			if u, err := url.Parse(ref); err == nil {
+				host = u.Host
+			}
+		}
+	}
+	host = strings.ToLower(strings.TrimSpace(host))
+	if host == "" {
+		return false
+	}
+	for _, d := range allowedDomains {
+		d = strings.ToLower(strings.TrimSpace(d))
+		if d == "" {
+			continue
+		}
+		if host == d || strings.HasSuffix(host, "."+d) {
+			return true
+		}
+	}
+	return false
 }
 
 func CleanupRelay(relay *khatru.Relay) {
@@ -169,6 +203,22 @@ func ParseKinds(spec string, defaultKinds []nostr.Kind) ([]nostr.Kind, error) {
 
 	slices.Sort(kinds)
 	return kinds, nil
+}
+
+// ParseDomainsTextarea splits a textarea value into a cleaned list of non-empty
+// domains (one per line), also removing duplicates.
+func ParseDomainsTextarea(value string) []string {
+	var out []string
+	for _, line := range strings.Split(value, "\n") {
+		d := strings.ToLower(strings.TrimSpace(line))
+		if d == "" {
+			continue
+		}
+		if !slices.Contains(out, d) {
+			out = append(out, d)
+		}
+	}
+	return out
 }
 
 func RandomString(size int) string {

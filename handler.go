@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,6 +23,7 @@ import (
 
 	"github.com/bep/debounce"
 	"github.com/fiatjaf/pyramid/blossom"
+	"github.com/fiatjaf/pyramid/corsproxy"
 	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/groups"
@@ -582,6 +585,23 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				if v[0] == "members" || v[0] == "wot" || v[0] == "" {
 					global.Settings.Operator.RegistrationFilter = v[0]
 				}
+				//
+				// imgproxy / cors-proxy domain filter textareas
+			case "imgproxy_allowed_domains":
+				global.Settings.Imgproxy.AllowedDomains = global.ParseDomainsTextarea(v[0])
+			case "cors_enabled":
+				global.Settings.CorsProxy.Enabled = v[0] == "on"
+				if global.Settings.CorsProxy.Enabled && global.Settings.CorsProxy.BaseSecret == "" {
+					secret := make([]byte, 16)
+					if _, err := rand.Read(secret); err != nil {
+						http.Error(w, "failed to generate secret: "+err.Error(), 500)
+						return
+					}
+					global.Settings.CorsProxy.BaseSecret = hex.EncodeToString(secret)
+				}
+				corsproxy.Setup()
+			case "cors_allowed_domains":
+				global.Settings.CorsProxy.AllowedDomains = global.ParseDomainsTextarea(v[0])
 			}
 		}
 

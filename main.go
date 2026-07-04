@@ -28,6 +28,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/fiatjaf/pyramid/blossom"
+	"github.com/fiatjaf/pyramid/corsproxy"
 	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/global/relays"
@@ -179,6 +180,7 @@ func main() {
 	stream.Init(relay)
 	operator.Init(relay)
 	imgproxy.Init()
+	corsproxy.Init()
 	favorites.Init()
 	inbox.Init()
 	nsite.Init()
@@ -502,6 +504,9 @@ func run(ctx context.Context) error {
 
 	mux.Handle("/imgproxy/", imgproxy.Handler)
 	mux.Handle("/imgproxy", imgproxy.Handler)
+
+	mux.Handle("/corsproxy/", corsproxy.Handler)
+	mux.Handle("/corsproxy", corsproxy.Handler)
 
 	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath+"/", inbox.Relay)
 	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath, inbox.Relay)

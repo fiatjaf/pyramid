@@ -1,4 +1,4 @@
-package imgproxy
+package corsproxy
 
 import (
 	"strings"
@@ -10,37 +10,29 @@ import (
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
-templ imgproxyPage(loggedUser nostr.PubKey, running bool, errMsg string) {
-	@layout.Layout(loggedUser, "imgproxy") {
+templ corsProxyPage(loggedUser nostr.PubKey) {
+	@layout.Layout(loggedUser, "cors-proxy") {
 		<div class="max-w-3xl mx-auto">
 			<div class="flex items-center justify-between mb-4">
-				<h1 class="text-4xl font-bold font-[family-name:var(--primary-font)]">imgproxy</h1>
+				<h1 class="text-4xl font-bold font-[family-name:var(--primary-font)]">cors proxy</h1>
 			</div>
-			if global.Settings.Imgproxy.Enabled && running {
-				<p class="mb-4">running at <span class="font-mono">{ global.Settings.HTTPScheme() + global.Settings.Domain + "/imgproxy/" }</span></p>
+			if global.Settings.CorsProxy.Enabled {
+				<p class="mb-4">running at <span class="font-mono">{ global.Settings.HTTPScheme() + global.Settings.Domain + "/corsproxy/" }</span></p>
 			} else {
-				if running {
-					<p class="mb-4">starting</p>
-				} else {
-					<p class="mb-4">disabled</p>
-				}
+				<p class="mb-4">disabled</p>
 			}
-			if errMsg != "" {
-				<p class="text-red-600 dark:text-red-400 mb-4">{ errMsg }</p>
-			}
-			if pyramid.IsMember(loggedUser) {
+			if pyramid.IsMember(loggedUser) && global.Settings.CorsProxy.Enabled {
 				<div class="mt-8">
 					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">prepare signed URL</h3>
 					<form
 						x-data="{
 							sourceURL: '',
-							options: '',
 							loading: false,
 							resultURL: null,
 							error: null,
 							async prepareUrl() {
-								if (!this.sourceURL.trim() || !this.options.trim()) {
-									this.error = 'source URL and processing options required';
+								if (!this.sourceURL.trim()) {
+									this.error = 'source URL required';
 									return;
 								}
 								this.loading = true;
@@ -50,7 +42,7 @@ templ imgproxyPage(loggedUser nostr.PubKey, running bool, errMsg string) {
 									const response = await fetch('./prepare', {
 										method: 'POST',
 										headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-										body: 'url=' + encodeURIComponent(this.sourceURL.trim()) + '&options=' + encodeURIComponent(this.options.trim())
+										body: 'url=' + encodeURIComponent(this.sourceURL.trim())
 									});
 									const data = await response.json();
 									if (response.ok && !data.error) {
@@ -76,13 +68,6 @@ templ imgproxyPage(loggedUser nostr.PubKey, running bool, errMsg string) {
 									x-model="sourceURL"
 									@input="resultURL = null"
 								/>
-								<input
-									type="text"
-									placeholder="processing options (e.g. rs:fill:300)"
-									class="flex-1 px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 text-sm focus:outline-none focus:ring-2 focus:ring-stone-500"
-									x-model="options"
-									@input="resultURL = null"
-								/>
 								<button
 									type="submit"
 									:disabled="loading"
@@ -102,8 +87,9 @@ templ imgproxyPage(loggedUser nostr.PubKey, running bool, errMsg string) {
 			if pyramid.IsRoot(loggedUser) {
 				<div class="mt-24">
 					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">configuration</h3>
-					if !global.Settings.Imgproxy.Enabled {
-						<form method="POST" action="/imgproxy/enable">
+					if !global.Settings.CorsProxy.Enabled {
+						<form method="POST" action="/settings">
+							<input type="hidden" name="cors_enabled" value="on"/>
 							<button
 								type="submit"
 								class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
@@ -113,8 +99,8 @@ templ imgproxyPage(loggedUser nostr.PubKey, running bool, errMsg string) {
 						</form>
 					} else {
 						<details>
-							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">disable imgproxy</summary>
-							<form class="my-4" method="POST" action="/imgproxy/disable">
+							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">disable cors proxy</summary>
+							<form class="my-4" method="POST" action="/corsproxy/disable">
 								<button
 									type="submit"
 									class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
@@ -124,13 +110,13 @@ templ imgproxyPage(loggedUser nostr.PubKey, running bool, errMsg string) {
 							</form>
 						</details>
 					}
-					if global.Settings.Imgproxy.Enabled {
+					if global.Settings.CorsProxy.Enabled {
 						<form
 							method="POST"
 							action="/settings"
 							class="mt-6"
 							x-data={ `{
-								allowedDomains: ` + global.JSONString(strings.Join(global.Settings.Imgproxy.AllowedDomains, "\n")) + `,
+								allowedDomains: ` + global.JSONString(strings.Join(global.Settings.CorsProxy.AllowedDomains, "\n")) + `,
 								saved: false,
 								async saveSettings() {
 									const response = await fetch(this.$refs.form.action, {
@@ -148,10 +134,10 @@ templ imgproxyPage(loggedUser nostr.PubKey, running bool, errMsg string) {
 							<details>
 								<summary class="cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">allowed domains</summary>
 								<div class="mt-4">
-									<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="imgproxy_allowed_domains">allowed domains (alternative to per-user tokens)</label>
+									<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="cors_allowed_domains">allowed domains (alternative to per-user tokens)</label>
 									<textarea
-										name="imgproxy_allowed_domains"
-										id="imgproxy_allowed_domains"
+										name="cors_allowed_domains"
+										id="cors_allowed_domains"
 										placeholder="example.com
 sub.example.com
 another.org"
@@ -172,11 +158,6 @@ another.org"
 								</div>
 							</details>
 						</form>
-
-						<details class="mt-4">
-							<summary class="cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">view logs</summary>
-							<a href="/imgproxy/log" target="_blank" class="mt-4 inline-block text-sm cursor-pointer hover:underline text-stone-600 dark:text-stone-400">/log</a>
-						</details>
 					}
 				</div>
 			}
