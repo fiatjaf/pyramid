@@ -61,6 +61,10 @@ var (
 var static embed.FS
 
 func main() {
+	// apply a staged backup (settings + membership + on-disk data) before the
+	// store and settings are read; the event layers are imported after Init
+	restorePreInit()
+
 	if err := global.Init(); err != nil {
 		fmt.Fprintf(os.Stderr, "couldn't initialize: %s\n", err)
 		os.Exit(7)
@@ -119,6 +123,27 @@ func main() {
 		return
 	}
 
+	if err := bootstrapFromEnv(); err != nil {
+		log.Fatal().Err(err).Msg("env bootstrap failed")
+		return
+	}
+	applyPlatformEnvOverrides()
+
+	// generate the export token eagerly so the file always exists: the backup
+	// pipeline reads it via `cat` and the admin UI needs it present too,
+	// otherwise the first export races token creation
+	if _, err := ensureExportToken(); err != nil {
+		log.Warn().Err(err).Msg("could not pre-generate export token")
+	}
+
+	// import event layers from a staged backup, if any (companions were already
+	// put in place by restorePreInit before global.Init read them). Synchronous
+	// on purpose: the relay must come up clean, serving the restored data — it
+	// is "down, restoring" until the import completes (mmm fsyncs every
+	// SaveEvent, so large layers take a while; progress is logged). The import
+	// is idempotent, so an interrupted restore resumes on the next boot.
+	restorePostInit()
+
 	// init main relay
 	relay = global.NewRelay()
 	relays.MainRelay = relay
@@ -148,6 +173,8 @@ func main() {
 	relay.Router().HandleFunc("GET /clients/{clientId}", clientDetailsHandler)
 	relay.Router().HandleFunc("GET /event/{db}/{id}", databaseEventJSONHandler)
 	relay.Router().HandleFunc("DELETE /database/{db}/{id}", deleteDatabaseEventHandler)
+	relay.Router().HandleFunc("GET /export", exportHandler)
+	relay.Router().HandleFunc("POST /restore", restoreHandler)
 	relay.Router().HandleFunc("GET /database", databaseHandler)
 	relay.Router().HandleFunc("GET /database/blocks", databaseBlocksHandler)
 	relay.Router().HandleFunc("POST /database/blocks/defrag", databaseBlocksDefragHandler)

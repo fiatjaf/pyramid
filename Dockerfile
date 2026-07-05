@@ -30,11 +30,14 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 COPY . .
 COPY --from=tailwind-builder /app/static ./static
 
+# VERSION can be passed in for builds from trees without .git (e.g. rsync'd sources)
+ARG VERSION=""
+
 # build
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     templ generate && \
-    VERSION=$(git describe --tags --exact-match 2>/dev/null || echo "$(git describe --tags --abbrev=0)-$(git rev-parse --short=8 HEAD)") && \
+    VERSION=${VERSION:-$(git describe --tags --exact-match 2>/dev/null || echo "$(git describe --tags --abbrev=0 2>/dev/null || echo dev)-$(git rev-parse --short=8 HEAD 2>/dev/null || echo unknown)")} && \
     CC=musl-gcc go build -tags=libsecp256k1 -ldflags="-X main.currentVersion=$VERSION -linkmode external -extldflags \"-static\"" -o ./pyramid-exe
 
 # final image
@@ -51,6 +54,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         git \
         ca-certificates \
+        curl \
         tzdata && \
     rm -rf /var/lib/apt/lists/*
 

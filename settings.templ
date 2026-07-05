@@ -868,6 +868,37 @@ all
 						} finally {
 							this.restarting = false;
 						}
+					},
+					restoring: false,
+					restoreResult: '',
+					triggerRestore() {
+						this.$refs.restoreFile.click();
+					},
+					async uploadRestore(ev) {
+						const file = ev.target.files[0];
+						if (!file) return;
+						if (!confirm('stage "' + file.name + '" as a restore? applying it REPLACES this relay entirely (settings, signing key, membership, events, media) with the backup. it only takes effect after you fully restart the pyramid process. continue?')) {
+							ev.target.value = '';
+							return;
+						}
+						this.restoring = true;
+						this.restoreResult = 'uploading backup...';
+						const fd = new FormData();
+						fd.append('file', file);
+						try {
+							const response = await fetch('/restore', { method: 'POST', body: fd });
+							const result = await response.text();
+							if (response.ok) {
+								this.restoreResult = 'backup staged. now FULLY RESTART the pyramid process (restart the container/service) to apply it — the restart button above does NOT count. the relay will be offline while it imports.';
+							} else {
+								this.restoreResult = 'restore failed: ' + result;
+							}
+						} catch (error) {
+							this.restoreResult = 'restore failed: ' + error.message;
+						} finally {
+							this.restoring = false;
+							ev.target.value = '';
+						}
 					}
 				}` }
 			>
@@ -911,6 +942,35 @@ all
 						<div class="text-right text-sm text-stone-700 dark:text-stone-200 mt-2">
 							<a href="/database" target="_blank" class="cursor-pointer hover:underline hover:text-stone-400">/database</a>
 						</div>
+					</div>
+				</div>
+				<div class="mt-4 bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-4">
+					<div class="text-sm font-medium text-stone-700 dark:text-stone-300">backup</div>
+					<div class="mt-1 text-sm text-stone-600 dark:text-stone-400">
+						download a full relay backup — every event layer, settings, the membership log, git repositories and any blossom media — as a single .tar.gz. this includes the relay&#39;s internal signing key, so keep it private.
+					</div>
+					<button
+						type="button"
+						onclick="window.location.href='/export'"
+						class="mt-3 cursor-pointer inline-block px-4 py-2 rounded bg-stone-700 hover:bg-stone-800 text-white font-medium"
+					>
+						download backup
+					</button>
+					<div class="mt-4 pt-4 border-t border-stone-200 dark:border-stone-700">
+						<div class="text-sm text-stone-600 dark:text-stone-400">
+							restore from a backup .tar.gz. this replaces the relay entirely with the backup (settings, signing key, membership, events, media). it is staged now and applied when you fully restart the pyramid process.
+						</div>
+						<input type="file" x-ref="restoreFile" accept=".gz,.tgz,application/gzip" class="hidden" @change="uploadRestore($event)"/>
+						<button
+							type="button"
+							@click="triggerRestore()"
+							:disabled="restoring"
+							class="mt-3 cursor-pointer inline-block px-4 py-2 rounded bg-stone-700 hover:bg-stone-800 disabled:bg-stone-400 text-white font-medium"
+						>
+							<span x-show="!restoring">restore from backup</span>
+							<span x-show="restoring">restoring...</span>
+						</button>
+						<div x-show="restoreResult" x-text="restoreResult" class="mt-2 text-sm text-stone-600 dark:text-stone-400"></div>
 					</div>
 				</div>
 				<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
