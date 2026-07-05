@@ -392,6 +392,14 @@ func loadUserSettings() error {
 				return fmt.Errorf("failed to save initial settings: %w", err)
 			}
 
+			// KindIsAllowed must be usable before the first settings edit,
+			// otherwise the first event received segfaults the relay
+			if kindIsAllowed, err := BuildKindIsAllowedFunction(Settings.AllowedKindsSpec, SupportedKindsDefault); err != nil {
+				return err
+			} else {
+				KindIsAllowed = kindIsAllowed
+			}
+
 			return nil
 		}
 
