@@ -62,9 +62,21 @@ func JSONString(v any) string {
 }
 
 // OriginAllowed checks whether the request's Origin or Referer host matches one of
-// the allowed domains (one domain per line, case-insensitive). Returns the matched
-// domain when allowed and an empty string otherwise.
+// the allowed domains (one domain per line, case-insensitive). If allowedDomains is
+// empty, all requests are allowed. Returns the matched domain when allowed and an
+// empty string otherwise.
 func OriginAllowed(r *http.Request, allowedDomains []string) bool {
+	hasAllowed := false
+	for _, d := range allowedDomains {
+		if strings.TrimSpace(d) != "" {
+			hasAllowed = true
+			break
+		}
+	}
+	if !hasAllowed {
+		return true
+	}
+
 	host := ""
 	if origin := r.Header.Get("Origin"); origin != "" {
 		if u, err := url.Parse(origin); err == nil {

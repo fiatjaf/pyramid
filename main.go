@@ -28,7 +28,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/fiatjaf/pyramid/blossom"
-	"github.com/fiatjaf/pyramid/corsproxy"
 	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/global/relays"
@@ -37,6 +36,7 @@ import (
 	"github.com/fiatjaf/pyramid/imgproxy"
 	"github.com/fiatjaf/pyramid/inbox"
 	"github.com/fiatjaf/pyramid/internal"
+	"github.com/fiatjaf/pyramid/linkpreview"
 	"github.com/fiatjaf/pyramid/moderated"
 	"github.com/fiatjaf/pyramid/nsite"
 	"github.com/fiatjaf/pyramid/operator"
@@ -180,7 +180,7 @@ func main() {
 	stream.Init(relay)
 	operator.Init(relay)
 	imgproxy.Init()
-	corsproxy.Init()
+	linkpreview.Init()
 	favorites.Init()
 	inbox.Init()
 	nsite.Init()
@@ -505,8 +505,9 @@ func run(ctx context.Context) error {
 	mux.Handle("/imgproxy/", imgproxy.Handler)
 	mux.Handle("/imgproxy", imgproxy.Handler)
 
-	mux.Handle("/corsproxy/", corsproxy.Handler)
-	mux.Handle("/corsproxy", corsproxy.Handler)
+	mux.Handle("/linkpreview/", linkpreview.Handler)
+	mux.Handle("/linkpreview", linkpreview.Handler)
+	mux.Handle("POST /link/preview", linkpreview.Handler)
 
 	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath+"/", inbox.Relay)
 	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath, inbox.Relay)

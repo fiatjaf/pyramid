@@ -128,16 +128,15 @@ type UserSettings struct {
 	} `json:"stream"`
 
 	Imgproxy struct {
-		Enabled        bool     `json:"enabled"`
-		BaseSecret     string   `json:"base_secret"`
-		AllowedDomains []string `json:"allowed_domains,omitempty"`
+		Enabled    bool   `json:"enabled"`
+		BaseSecret string `json:"base_secret"`
 	} `json:"imgproxy"`
 
-	CorsProxy struct {
+	LinkPreview struct {
 		Enabled        bool     `json:"enabled"`
 		BaseSecret     string   `json:"base_secret"`
 		AllowedDomains []string `json:"allowed_domains,omitempty"`
-	} `json:"cors_proxy"`
+	} `json:"link_preview"`
 
 	Popular struct {
 		RelayMetadata
@@ -352,8 +351,8 @@ func loadUserSettings() error {
 	// Imgproxy settings
 	Settings.Imgproxy.Enabled = false
 
-	// CorsProxy settings
-	Settings.CorsProxy.Enabled = false
+	// LinkPreview settings
+	Settings.LinkPreview.Enabled = false
 
 	// theme defaults
 	Settings.Theme.TextColor = "#ffffff"

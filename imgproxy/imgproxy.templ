@@ -1,8 +1,6 @@
 package imgproxy
 
 import (
-	"strings"
-
 	"fiatjaf.com/nostr"
 
 	"github.com/fiatjaf/pyramid/global"
@@ -124,60 +122,10 @@ templ imgproxyPage(loggedUser nostr.PubKey, running bool, errMsg string) {
 							</form>
 						</details>
 					}
-					if global.Settings.Imgproxy.Enabled {
-						<form
-							method="POST"
-							action="/settings"
-							class="mt-6"
-							x-data={ `{
-								allowedDomains: ` + global.JSONString(strings.Join(global.Settings.Imgproxy.AllowedDomains, "\n")) + `,
-								saved: false,
-								async saveSettings() {
-									const response = await fetch(this.$refs.form.action, {
-										method: 'POST',
-										body: new URLSearchParams(new FormData(this.$refs.form))
-									});
-									if (response.ok) {
-										this.saved = true;
-										setTimeout(() => this.saved = false, 2000)
-									}
-								}
-							}` }
-							x-ref="form"
-						>
-							<details>
-								<summary class="cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">allowed domains</summary>
-								<div class="mt-4">
-									<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="imgproxy_allowed_domains">allowed domains (alternative to per-user tokens)</label>
-									<textarea
-										name="imgproxy_allowed_domains"
-										id="imgproxy_allowed_domains"
-										placeholder="example.com
-sub.example.com
-another.org"
-										class="w-full px-3 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 h-24 font-mono text-sm"
-										x-model="allowedDomains"
-										@blur="saveSettings()"
-									></textarea>
-									<p class="text-xs text-stone-500 dark:text-stone-400">
-										one domain per line. requests whose origin host matches one of these (or a subdomain thereof) skip the per-user token check.
-									</p>
-									<div
-										x-show="saved"
-										x-transition
-										class="text-sm text-green-600 dark:text-green-400 font-medium"
-									>
-										saved!
-									</div>
-								</div>
-							</details>
-						</form>
-
-						<details class="mt-4">
-							<summary class="cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">view logs</summary>
-							<a href="/imgproxy/log" target="_blank" class="mt-4 inline-block text-sm cursor-pointer hover:underline text-stone-600 dark:text-stone-400">/log</a>
-						</details>
-					}
+					<details class="mt-4">
+						<summary class="cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">view logs</summary>
+						<a href="/imgproxy/log" target="_blank" class="mt-4 inline-block text-sm cursor-pointer hover:underline text-stone-600 dark:text-stone-400">/log</a>
+					</details>
 				</div>
 			}
 		</div>

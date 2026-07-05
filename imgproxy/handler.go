@@ -115,13 +115,6 @@ func pageHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			imgproxyURL = "http://imgproxy/insecure" + path
-		} else {
-			// no token: only allowed if request origin matches one of the configured domains
-			if !global.OriginAllowed(r, global.Settings.Imgproxy.AllowedDomains) {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
-				return
-			}
-			imgproxyURL = "http://imgproxy/insecure/" + strings.Join(spl[2:], "/")
 		}
 
 		resp, err := imgproxySocketClient.Get(imgproxyURL)
