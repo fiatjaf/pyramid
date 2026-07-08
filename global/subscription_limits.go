@@ -3,6 +3,8 @@ package global
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
@@ -15,6 +17,40 @@ type trackedConnection struct {
 }
 
 var subscriptionTracker = xsync.NewMapOf[string, trackedConnection]()
+
+type debouncedRejectionLogger struct {
+	mu    sync.Mutex
+	count int
+	timer *time.Timer
+}
+
+var rejectionDebouncer = xsync.NewMapOf[string, *debouncedRejectionLogger]()
+
+func logRejectionDebounced(ip, client string) {
+	rejectionDebouncer.Compute(ip, func(d *debouncedRejectionLogger, loaded bool) (*debouncedRejectionLogger, bool) {
+		if !loaded {
+			d = &debouncedRejectionLogger{}
+		}
+		d.mu.Lock()
+		d.count++
+		if d.timer == nil {
+			d.timer = time.AfterFunc(5*time.Second, func() {
+				d.mu.Lock()
+				c := d.count
+				d.count = 0
+				d.timer = nil
+				d.mu.Unlock()
+				Log.Info().
+					Str("ip", ip).
+					Str("client", client).
+					Int("count", c).
+					Msg("subscriptions rejected")
+			})
+		}
+		d.mu.Unlock()
+		return d, false
+	})
+}
 
 func NewRelay() *khatru.Relay {
 	relay := khatru.NewRelay()
@@ -71,18 +107,10 @@ func RejectTooManyOpenSubscriptions(ctx context.Context, _ nostr.Filter) (bool, 
 	}
 
 	if v, _ := subscriptionTracker.Load(ip); v.subscriptions >= Settings.Limits.MaxSubscriptionsOpen {
-		Log.Info().
-			Str("ip", ip).
-			Int("subs", v.subscriptions).
-			Str("client", client).
-			Msg("rejected subscription due to max number of subscriptions reached")
+		logRejectionDebounced(ip, client)
 		return true, fmt.Sprintf("already %d subscriptions from this IP", v.subscriptions)
 	} else if v.cost >= Settings.Limits.MaxTotalCostOpen {
-		Log.Info().
-			Str("ip", ip).
-			Int("cost", v.cost).
-			Str("client", client).
-			Msg("rejected subscription due to max cost reached")
+		logRejectionDebounced(ip, client)
 		return true, fmt.Sprintf("there are subscriptions from this IP with a total filter cost of %d", v.cost)
 	}
 
