@@ -42,6 +42,7 @@ import (
 	"github.com/fiatjaf/pyramid/operator"
 	"github.com/fiatjaf/pyramid/paywall"
 	"github.com/fiatjaf/pyramid/personal"
+	"github.com/fiatjaf/pyramid/pg"
 	"github.com/fiatjaf/pyramid/popular"
 	"github.com/fiatjaf/pyramid/pyramid"
 	"github.com/fiatjaf/pyramid/search"
@@ -591,6 +592,20 @@ func run(ctx context.Context) error {
 	}))
 
 	g, ctx := errgroup.WithContext(ctx)
+
+	// start pgwire server
+	pgSrv := &pg.Server{
+		Log:   log.With().Str("module", "pgwire").Logger(),
+		Store: global.IL.Main,
+		Host:  global.S.Host,
+		Port:  5433,
+	}
+	g.Go(func() error {
+		if err := pgSrv.Start(ctx); err != nil {
+			return fmt.Errorf("pgwire: %w", err)
+		}
+		return nil
+	})
 
 	// copy here as we'll modify it
 	port := global.S.Port
