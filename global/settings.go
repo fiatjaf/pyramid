@@ -244,7 +244,7 @@ func (rm RelayMetadata) GetPageURL() string {
 }
 
 func (us UserSettings) HTTPScheme() string {
-	if strings.HasPrefix(us.Domain, "127.0.0.1") || strings.HasPrefix(us.Domain, "0.0.0.0") || strings.HasPrefix(us.Domain, "localhost") {
+	if strings.HasPrefix(us.Domain, "127.0.0.1") || strings.HasPrefix(us.Domain, "0.0.0.0") || strings.HasPrefix(us.Domain, "localhost") || strings.HasSuffix(us.Domain, "i2p") || strings.HasSuffix(us.Domain, "onion") {
 		return "http://"
 	} else {
 		return "https://"
