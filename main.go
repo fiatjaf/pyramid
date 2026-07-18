@@ -595,10 +595,26 @@ func run(ctx context.Context) error {
 
 	// start pgwire server
 	pgSrv := &pg.Server{
-		Log:   log.With().Str("module", "pgwire").Logger(),
-		Store: global.IL.Main,
-		Host:  global.S.Host,
-		Port:  5433,
+		Log:  log.With().Str("module", "pgwire").Logger(),
+		Host: global.S.Host,
+		Port: 5433,
+		Layers: []pg.Layer{
+			{Name: "system", Description: "system settings", Store: global.IL.System},
+			{Name: "main", Description: "main relay events", Store: global.IL.Main},
+			{Name: "internal", Description: "internal bookkeeping", Store: global.IL.Internal},
+			{Name: "invites", Description: "invites", Store: global.IL.Invites},
+			{Name: "pending_access", Description: "pending-access queue", Store: global.IL.PendingAccess},
+			{Name: "personal", Description: "personal relay events", Store: global.IL.Personal},
+			{Name: "inbox", Description: "user inboxes", Store: global.IL.Inbox},
+			{Name: "secret", Description: "encrypted DMs", Store: global.IL.Secret},
+			{Name: "moderation_queue", Description: "moderation-queue", Store: global.IL.ModerationQueue},
+			{Name: "moderated", Description: "moderated events", Store: global.IL.Moderated},
+			{Name: "popular", Description: "popular feed", Store: global.IL.Popular},
+			{Name: "uppermost", Description: "uppermost algo", Store: global.IL.Uppermost},
+			{Name: "scheduled", Description: "scheduled events", Store: global.IL.Scheduled},
+			{Name: "blossom", Description: "blossom blobs", Store: global.IL.Blossom},
+			{Name: "operator", Description: "operator registrations", Store: global.IL.OperatorBucket},
+		},
 	}
 	g.Go(func() error {
 		if err := pgSrv.Start(ctx); err != nil {

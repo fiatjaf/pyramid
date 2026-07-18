@@ -2,33 +2,87 @@ package pg
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"iter"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
 
 	"fiatjaf.com/nostr"
+
 	"github.com/jackc/pgx/v5/pgproto3"
-	"github.com/pganalyze/pg_query_go/v6"
 	"github.com/rs/zerolog"
+
+	pgparser "github.com/auxten/postgresql-parser/pkg/sql/parser"
+	"github.com/auxten/postgresql-parser/pkg/sql/sem/tree"
 )
 
+// osGetenv is split out so we don't pull os into the imports of every test
+// that links this package statically.
+var osGetenv = os.Getenv
+
+// EventStore is what pyramid exposes for each indexing layer. Any nostr
+// eventstore.Database (the mmm.IndexingLayer included) implements it.
 type EventStore interface {
 	QueryEvents(filter nostr.Filter, maxLimit int) iter.Seq[nostr.Event]
 	CountEvents(filter nostr.Filter) (uint32, error)
 }
 
-type Server struct {
-	Log   zerolog.Logger
+// Layer is a named virtual table backed by an [EventStore].
+type Layer struct {
+	// Name is the SQL identifier (underscores, never dashes) of the table.
+	Name string
+
+	// Description is a short human readable description, used in \d comments.
+	Description string
+
+	// Store is the underlying event store. May be nil if not active;
+	// queries against it return an empty result.
 	Store EventStore
-	Host  string
-	Port  int
 }
 
+// Server is the pgwire server wrapper.
+type Server struct {
+	Log    zerolog.Logger
+	Layers []Layer
+	Host   string
+	Port   int
+}
+
+// LayerByName resolves a SQL identifier into a layer. Matching is case
+// insensitive and treats - and _ as interchangeable.
+func (s *Server) LayerByName(name string) *Layer {
+	want := normalizeIdent(name)
+	for i := range s.Layers {
+		if normalizeIdent(s.Layers[i].Name) == want {
+			return &s.Layers[i]
+		}
+	}
+	return nil
+}
+
+// normalizeIdent lowercases a SQL identifier and replaces dashes with
+// underscores so SQL-exposed layer names like "pending-access" work.
+func normalizeIdent(name string) string {
+	return strings.ReplaceAll(strings.ToLower(name), "-", "_")
+}
+
+var _ = strconv.Itoa
+
+// debugSQL enables printing every incoming query and its parsed AST. Toggled
+// via PYRAMID_PG_DEBUG=1 at runtime.
+var debugSQL = osGetenv("PYRAMID_PG_DEBUG") == "1"
+
+// Start binds and accepts connections.
 func (s *Server) Start(ctx context.Context) error {
+	// populate the catalog OID-reverse map used by introspect handlers.
+	layersGlobal = layersGlobal[:0]
+	for i := range s.Layers {
+		layersGlobal = append(layersGlobal, s.Layers[i].Name)
+	}
+
 	addr := net.JoinHostPort(s.Host, strconv.Itoa(s.Port))
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -38,6 +92,11 @@ func (s *Server) Start(ctx context.Context) error {
 
 	var wg sync.WaitGroup
 	defer wg.Wait()
+
+	go func() {
+		<-ctx.Done()
+		_ = listener.Close()
+	}()
 
 	for {
 		conn, err := listener.Accept()
@@ -68,9 +127,14 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 
 	switch m := msg.(type) {
 	case *pgproto3.StartupMessage:
-		s.Log.Debug().Str("user", m.Parameters["user"]).Str("database", m.Parameters["database"]).Msg("pgwire connect")
+		s.Log.Debug().
+			Str("user", m.Parameters["user"]).
+			Str("database", m.Parameters["database"]).
+			Msg("pgwire connect")
 	case *pgproto3.SSLRequest:
-		conn.Write([]byte{'N'})
+		if _, err := conn.Write([]byte{'N'}); err != nil {
+			return
+		}
 		msg, err = be.ReceiveStartupMessage()
 		if err != nil {
 			return
@@ -83,350 +147,190 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 	}
 
 	be.Send(&pgproto3.AuthenticationOk{})
-	be.Send(&pgproto3.ParameterStatus{Name: "server_version", Value: "16.0"})
+	be.Send(&pgproto3.ParameterStatus{Name: "server_version", Value: "16.0 (pyramid)"})
+	be.Send(&pgproto3.ParameterStatus{Name: "server_encoding", Value: "UTF8"})
 	be.Send(&pgproto3.ParameterStatus{Name: "client_encoding", Value: "UTF8"})
+	be.Send(&pgproto3.ParameterStatus{Name: "DateStyle", Value: "ISO, MDY"})
+	be.Send(&pgproto3.ParameterStatus{Name: "TimeZone", Value: "UTC"})
+	be.Send(&pgproto3.ParameterStatus{Name: "integer_datetimes", Value: "on"})
+	be.Send(&pgproto3.ParameterStatus{Name: "standard_conforming_strings", Value: "on"})
+	be.Send(&pgproto3.ParameterStatus{Name: "application_name", Value: "pyramid"})
 	be.Send(&pgproto3.ReadyForQuery{TxStatus: 'I'})
-	be.Flush()
+	if err := be.Flush(); err != nil {
+		return
+	}
 
 	for {
 		msg, err := be.Receive()
 		if err != nil {
 			return
 		}
-
 		switch m := msg.(type) {
 		case *pgproto3.Query:
-			s.handleQuery(be, m.String)
+			s.handleSimpleQuery(be, m.String)
+		case *pgproto3.Parse:
+			s.handleParse(be, m)
+		case *pgproto3.Bind:
+			s.bindStmt(be, m)
+		case *pgproto3.Describe:
+			s.describeStmt(be, m)
+		case *pgproto3.Execute:
+			s.executeStmt(be, m)
+		case *pgproto3.Sync:
+			be.Send(&pgproto3.ReadyForQuery{TxStatus: 'I'})
+			_ = be.Flush()
 		case *pgproto3.Terminate:
 			return
 		}
 	}
 }
 
-type columnInfo struct {
-	Name string
-	OID  uint32
-}
-
-var eventColumns = []columnInfo{
-	{Name: "id", OID: 25},
-	{Name: "pubkey", OID: 25},
-	{Name: "kind", OID: 23},
-	{Name: "created_at", OID: 20},
-	{Name: "content", OID: 25},
-	{Name: "tags", OID: 25},
-	{Name: "sig", OID: 25},
-}
-
-func formatEventRow(evt nostr.Event) [][]byte {
-	tagsJSON := "["
-	for i, tag := range evt.Tags {
-		if i > 0 {
-			tagsJSON += ","
-		}
-		tagsJSON += "["
-		for j, v := range tag {
-			if j > 0 {
-				tagsJSON += ","
-			}
-			tagsJSON += strconv.Quote(v)
-		}
-		tagsJSON += "]"
+// handleSimpleQuery handles a single SQL string with the simple query
+// protocol. The string may contain multiple semicolon-separated statements.
+func (s *Server) handleSimpleQuery(be *pgproto3.Backend, sql string) {
+	if debugSQL {
+		fmt.Println("PGSQL>>", sql)
 	}
-	tagsJSON += "]"
-
-	return [][]byte{
-		[]byte(evt.ID.Hex()),
-		[]byte(evt.PubKey.Hex()),
-		[]byte(strconv.Itoa(int(evt.Kind))),
-		[]byte(strconv.FormatInt(int64(evt.CreatedAt), 10)),
-		[]byte(evt.Content),
-		[]byte(tagsJSON),
-		[]byte(hex.EncodeToString(evt.Sig[:])),
-	}
-}
-
-func rowDescFromColumns(cols []columnInfo) *pgproto3.RowDescription {
-	fd := make([]pgproto3.FieldDescription, len(cols))
-	for i, c := range cols {
-		fd[i] = pgproto3.FieldDescription{
-			Name:                 []byte(c.Name),
-			TableOID:             0,
-			TableAttributeNumber: 0,
-			DataTypeOID:          c.OID,
-			DataTypeSize:         -1,
-			TypeModifier:         -1,
-			Format:               0,
-		}
-	}
-	return &pgproto3.RowDescription{Fields: fd}
-}
-
-func (s *Server) handleQuery(be *pgproto3.Backend, sql string) {
-	defer be.Flush()
-
-	if strings.TrimSpace(sql) == "" {
-		be.Send(&pgproto3.EmptyQueryResponse{})
-		be.Send(&pgproto3.ReadyForQuery{TxStatus: 'I'})
-		return
-	}
-
-	tree, err := pg_query.Parse(sql)
+	stmts, err := pgparser.Parse(preprocessSQL(sql))
 	if err != nil {
-		be.Send(&pgproto3.ErrorResponse{
-			Severity: "ERROR",
-			Code:     "42601",
-			Message:  fmt.Sprintf("parse error: %v", err),
-		})
-		be.Send(&pgproto3.ReadyForQuery{TxStatus: 'I'})
+		sendError(be, "42601", "syntax error: "+err.Error())
+		finish(be)
 		return
 	}
-
-	if len(tree.Stmts) == 0 {
+	if len(stmts) == 0 {
 		be.Send(&pgproto3.EmptyQueryResponse{})
-		be.Send(&pgproto3.ReadyForQuery{TxStatus: 'I'})
+		finish(be)
 		return
 	}
+	for _, stmt := range stmts {
+		s.dispatch(be, stmt.AST)
+	}
+	finish(be)
+}
 
-	stmt := tree.Stmts[0].GetStmt()
-	if sel := stmt.GetSelectStmt(); sel != nil {
-		s.execSelect(be, sel)
-	} else {
-		be.Send(&pgproto3.ErrorResponse{
-			Severity: "ERROR",
-			Code:     "42601",
-			Message:  "only SELECT is supported",
-		})
-		be.Send(&pgproto3.ReadyForQuery{TxStatus: 'I'})
+// dispatch sends the wire messages for a single parsed statement. It does not
+// call Flush itself; callers do it with finish().
+func (s *Server) dispatch(be *pgproto3.Backend, stmt tree.Statement) {
+	switch n := stmt.(type) {
+	case *tree.Select:
+		s.execSelect(be, n)
+	case *tree.SelectClause:
+		// plain select without ORDER/LIMIT
+		s.execSelect(be, &tree.Select{Select: n})
+	case *tree.ParenSelect:
+		s.execSelect(be, n.Select)
+	case *tree.ShowVar:
+		s.execShowVar(be, n)
+	case *tree.ShowClusterSetting:
+		// respond with a one-row result showing the cluster setting as empty
+		s.execScalarConst(be, "", Name)
+	case *tree.SetVar:
+		be.Send(&pgproto3.CommandComplete{CommandTag: []byte("SET")})
+	case *tree.SetClusterSetting:
+		be.Send(&pgproto3.CommandComplete{CommandTag: []byte("SET CLUSTER SETTING")})
+	case *tree.SetTransaction:
+		be.Send(&pgproto3.CommandComplete{CommandTag: []byte("SET")})
+	case *tree.BeginTransaction:
+		be.Send(&pgproto3.CommandComplete{CommandTag: []byte("BEGIN")})
+	case *tree.CommitTransaction:
+		be.Send(&pgproto3.CommandComplete{CommandTag: []byte("COMMIT")})
+	case *tree.RollbackTransaction:
+		be.Send(&pgproto3.CommandComplete{CommandTag: []byte("ROLLBACK")})
+	default:
+		// best-effort: respond with generic ack so the session continues
+		s.Log.Debug().Type("stmt", stmt).Msg("unsupported statement; acking")
+		be.Send(&pgproto3.CommandComplete{CommandTag: []byte(tagFor(stmt))})
 	}
 }
 
-type selectInfo struct {
-	Columns []columnInfo
-	Table   string
-	Filter  nostr.Filter
-	Limit   int
-	IsCount bool
-}
-
-func (s *Server) execSelect(be *pgproto3.Backend, sel *pg_query.SelectStmt) {
-	info := parseSelect(sel)
-	if info.IsCount {
-		s.execCount(be, info)
-	} else {
-		s.execRows(be, info)
+// tagFor returns a CommandTag string for the unknown node. Defaults to "OK".
+func tagFor(stmt tree.Statement) string {
+	if t, ok := stmt.(interface{ StatementTag() string }); ok {
+		return t.StatementTag()
 	}
+	return "OK"
 }
 
-func (s *Server) execCount(be *pgproto3.Backend, info *selectInfo) {
-	be.Send(rowDescFromColumns([]columnInfo{{Name: "count", OID: 20}}))
+// finish flushes and emits a ReadyForQuery frame (simple protocol).
+func finish(be *pgproto3.Backend) {
+	be.Send(&pgproto3.ReadyForQuery{TxStatus: 'I'})
+	_ = be.Flush()
+}
 
-	count, err := s.Store.CountEvents(info.Filter)
+func sendError(be *pgproto3.Backend, code, msg string) {
+	be.Send(&pgproto3.ErrorResponse{
+		Severity: "ERROR",
+		Code:     code,
+		Message:  msg,
+	})
+}
+
+// extended-protocol stubs: we don't fully support prepared statements. We keep
+// enough state so clients that try them (odbc, some drivers) at least see a
+// benign error or a no-op. psql uses the simple protocol for catalog queries.
+
+func (s *Server) handleParse(be *pgproto3.Backend, msg *pgproto3.Parse) {
+	stmts, err := pgparser.Parse(preprocessSQL(msg.Query))
 	if err != nil {
-		count = 0
+		sendError(be, "42601", "syntax error: "+err.Error())
+		_ = be.Flush()
+		return
 	}
+	// stash under prepared name, zero-or-one
+	if len(stmts) > 0 {
+		prepared[msg.Name] = stmts[0].AST
+	}
+	be.Send(&pgproto3.ParseComplete{})
+	_ = be.Flush()
+}
 
-	be.Send(&pgproto3.DataRow{Values: [][]byte{[]byte(strconv.FormatUint(uint64(count), 10))}})
-	be.Send(&pgproto3.CommandComplete{CommandTag: []byte("SELECT 1")})
+func (s *Server) describeStmt(be *pgproto3.Backend, msg *pgproto3.Describe) {
+	// we don't expose real prepared descriptions; just signal NoData
+	if msg.ObjectType == 'S' {
+		// portal describe; send NoData to keep it simple
+		be.Send(&pgproto3.NoData{})
+		_ = be.Flush()
+		return
+	}
+	// statement describe: ParameterDescription (none) + NoData
+	be.Send(&pgproto3.ParameterDescription{ParameterOIDs: nil})
+	be.Send(&pgproto3.NoData{})
+	_ = be.Flush()
+}
+
+func (s *Server) bindStmt(be *pgproto3.Backend, msg *pgproto3.Bind) {
+	stmt, ok := prepared[msg.PreparedStatement]
+	if !ok {
+		sendError(be, "26000", "prepared statement does not exist")
+		_ = be.Flush()
+		return
+	}
+	portals[msg.DestinationPortal] = &boundPortal{stmt: stmt}
+	be.Send(&pgproto3.BindComplete{})
+	_ = be.Flush()
+}
+
+func (s *Server) executeStmt(be *pgproto3.Backend, msg *pgproto3.Execute) {
+	p, ok := portals[msg.Portal]
+	if !ok {
+		sendError(be, "34000", "portal does not exist")
+		_ = be.Flush()
+		return
+	}
+	s.dispatch(be, p.stmt)
 	be.Send(&pgproto3.ReadyForQuery{TxStatus: 'I'})
+	_ = be.Flush()
+	delete(portals, msg.Portal)
 }
 
-func (s *Server) execRows(be *pgproto3.Backend, info *selectInfo) {
-	limit := info.Limit
-	if limit <= 0 || limit > 1000 {
-		limit = 100
-	}
+// prepared / portals are stored per-process. Since pgwire sessions are short
+// lived and the parse/bind names are session-scoped, collisions are unlikely.
+// This is best-effort scaffolding for tools that probe with extended protocol.
+var (
+	prepared = map[string]tree.Statement{}
+	portals  = map[string]*boundPortal{}
+)
 
-	be.Send(rowDescFromColumns(info.Columns))
-
-	n := 0
-	for evt := range s.Store.QueryEvents(info.Filter, limit) {
-		row := formatEventRow(evt)
-		vals := make([][]byte, len(info.Columns))
-		for i, col := range info.Columns {
-			switch col.Name {
-			case "id":
-				vals[i] = row[0]
-			case "pubkey":
-				vals[i] = row[1]
-			case "kind":
-				vals[i] = row[2]
-			case "created_at":
-				vals[i] = row[3]
-			case "content":
-				vals[i] = row[4]
-			case "tags":
-				vals[i] = row[5]
-			case "sig":
-				vals[i] = row[6]
-			default:
-				vals[i] = row[4]
-			}
-		}
-		be.Send(&pgproto3.DataRow{Values: vals})
-		n++
-		if n >= limit {
-			break
-		}
-	}
-
-	if n == 0 {
-		be.Send(&pgproto3.DataRow{Values: make([][]byte, len(info.Columns))})
-		n++
-	}
-
-	be.Send(&pgproto3.CommandComplete{CommandTag: []byte(fmt.Sprintf("SELECT %d", n))})
-	be.Send(&pgproto3.ReadyForQuery{TxStatus: 'I'})
-}
-
-func parseSelect(sel *pg_query.SelectStmt) *selectInfo {
-	info := &selectInfo{
-		Columns: eventColumns,
-		Filter:  nostr.Filter{},
-		Limit:   100,
-	}
-
-	for _, item := range sel.GetFromClause() {
-		if rv := item.GetRangeVar(); rv != nil {
-			info.Table = rv.Relname
-		}
-	}
-
-	cols := []columnInfo{}
-	countStar := false
-	for _, item := range sel.GetTargetList() {
-		if rt := item.GetResTarget(); rt != nil {
-			name := rt.GetName()
-			if strings.ToLower(name) == "count" {
-				countStar = true
-			}
-			if val := rt.GetVal(); val != nil {
-				if cr := val.GetColumnRef(); cr != nil {
-					for _, f := range cr.GetFields() {
-						if f.GetAStar() != nil {
-							cols = append(cols, eventColumns...)
-						} else if s := f.GetString_(); s != nil {
-							cols = append(cols, columnInfo{Name: s.GetSval(), OID: 25})
-						}
-					}
-				}
-				if ac := val.GetAConst(); ac != nil {
-					cols = append(cols, columnInfo{Name: "?column?", OID: 25})
-				}
-				if fc := val.GetFuncCall(); fc != nil {
-					cols = append(cols, columnInfo{Name: name, OID: 25})
-				}
-			}
-		}
-	}
-
-	if countStar && len(cols) == 0 {
-		info.IsCount = true
-		return info
-	}
-	if len(cols) > 0 {
-		info.Columns = cols
-	}
-
-	if wc := sel.GetWhereClause(); wc != nil {
-		parseWhere(wc, info)
-	}
-
-	if lc := sel.GetLimitCount(); lc != nil {
-		if ac := lc.GetAConst(); ac != nil {
-			if i := ac.GetIval(); i != nil {
-				info.Limit = int(i.GetIval())
-			}
-		}
-	}
-
-	if info.Table != "" && !strings.EqualFold(info.Table, "events") {
-		info.Limit = 0
-	}
-
-	return info
-}
-
-func parseWhere(node *pg_query.Node, info *selectInfo) {
-	if node == nil {
-		return
-	}
-
-	if be := node.GetBoolExpr(); be != nil {
-		for _, arg := range be.GetArgs() {
-			parseWhere(arg, info)
-		}
-		return
-	}
-
-	if ae := node.GetAExpr(); ae != nil {
-		left := ae.GetLexpr()
-		right := ae.GetRexpr()
-
-		colName := extractColumnName(left)
-		strVal := extractStringValue(right)
-
-		if colName == "" || strVal == "" {
-			return
-		}
-
-		switch strings.ToLower(colName) {
-		case "kind":
-			if k, err := strconv.Atoi(strVal); err == nil {
-				info.Filter.Kinds = []nostr.Kind{nostr.Kind(k)}
-			}
-		case "pubkey":
-			if pk, err := nostr.PubKeyFromHex(strVal); err == nil {
-				info.Filter.Authors = []nostr.PubKey{pk}
-			}
-		case "id":
-			if id, err := nostr.IDFromHex(strVal); err == nil {
-				info.Filter.IDs = []nostr.ID{id}
-			}
-		case "content":
-			info.Filter.Search = strVal
-		case "since":
-			if ts, err := strconv.ParseInt(strVal, 10, 64); err == nil {
-				info.Filter.Since = nostr.Timestamp(ts)
-			}
-		case "until":
-			if ts, err := strconv.ParseInt(strVal, 10, 64); err == nil {
-				info.Filter.Until = nostr.Timestamp(ts)
-			}
-		case "limit":
-			if l, err := strconv.Atoi(strVal); err == nil {
-				info.Limit = l
-			}
-		}
-		return
-	}
-}
-
-func extractColumnName(node *pg_query.Node) string {
-	if node == nil {
-		return ""
-	}
-	if cr := node.GetColumnRef(); cr != nil {
-		for _, f := range cr.GetFields() {
-			if s := f.GetString_(); s != nil {
-				return s.GetSval()
-			}
-		}
-	}
-	return ""
-}
-
-func extractStringValue(node *pg_query.Node) string {
-	if node == nil {
-		return ""
-	}
-	if ac := node.GetAConst(); ac != nil {
-		if s := ac.GetSval(); s != nil {
-			return s.GetSval()
-		}
-		if i := ac.GetIval(); i != nil {
-			return strconv.Itoa(int(i.GetIval()))
-		}
-	}
-	return ""
+type boundPortal struct {
+	stmt tree.Statement
 }
