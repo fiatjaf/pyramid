@@ -1068,7 +1068,7 @@ func syncHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	streamingSync(r.Context(), targetUser, remoteUrl, download, upload, w)
+	streamingSync(r.Context(), targetUser, remoteUrl, upload, download, w)
 }
 
 func nip05Handler(w http.ResponseWriter, r *http.Request) {
