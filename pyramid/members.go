@@ -505,5 +505,9 @@ func appendActionToFile(action managementAction) error {
 		return err
 	}
 
-	return LoadManagement()
+	// apply only the new action: replaying the whole file here would
+	// re-apply all previous actions on top of the current state,
+	// duplicating parent links on every append
+	applyAction(action)
+	return nil
 }
