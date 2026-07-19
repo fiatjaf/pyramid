@@ -15,7 +15,7 @@ import (
 	"github.com/mailru/easyjson"
 )
 
-var reactionKinds = []nostr.Kind{6, 7, 9321, 9735, 9802, 1, 1111}
+var reactionKinds = []nostr.Kind{6, 7, 9321, 9735, 9802, 1, 1111, 1244}
 
 func processReactions(ctx context.Context, event nostr.Event) {
 	totalMembers := pyramid.Members.Size()
@@ -42,7 +42,7 @@ func processReactions(ctx context.Context, event nostr.Event) {
 						popularVotes[target] = map[nostr.PubKey]struct{}{reaction.PubKey: {}}
 					}
 
-					if reaction.Kind != 1 && reaction.Kind != 1111 {
+					if reaction.Kind != 1 && reaction.Kind != 1111 && reaction.Kind != 1244 {
 						if votes, ok := bestVotes[target]; ok {
 							votes[reaction.PubKey] = struct{}{}
 						} else {
