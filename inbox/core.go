@@ -183,7 +183,7 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 
 			for _, pk := range khatru.GetAllAuthed(ctx) {
 				// at least one authenticated pubkey is in the wot
-				if wot.Current.Contains(pk) {
+				if wot.Contains(pk) {
 					return false, ""
 				}
 			}
@@ -256,7 +256,7 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 	}
 
 	// ensure this comes from someone in the relay combined extended network
-	if !wot.Current.Contains(sender) {
+	if !wot.Contains(sender) {
 		if evt.Kind == 9735 && sender == evt.PubKey {
 			// we'll make an exception for zap providers that do not include the "P" temporarily
 			return false, ""
