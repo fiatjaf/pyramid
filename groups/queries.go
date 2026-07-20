@@ -22,16 +22,22 @@ func FilterQuery(ctx context.Context, filter nostr.Filter, query iter.Seq[nostr.
 	}
 
 	return func(yield func(nostr.Event) bool) {
+		// with groups disabled there is no state to consult; pass everything through
+		if !global.Settings.Groups.Enabled || State == nil {
+			for evt := range query {
+				if !yield(evt) {
+					return
+				}
+			}
+			return
+		}
+
 		authed := khatru.GetAllAuthed(ctx)
 
 		for evt := range query {
 			group := State.GetGroupFromEvent(evt)
 
 			if group != nil {
-				if !global.Settings.Groups.Enabled || State == nil {
-					continue
-				}
-
 				if hideEventFromReader(group, filter, evt, authed) {
 					continue
 				}
