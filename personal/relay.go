@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"iter"
 	"net/http"
+	"slices"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
@@ -157,7 +158,12 @@ func query(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
 		}
 	}
 
-	// otherwise add the authenticated user to the filter so that is enforced
+	// otherwise constrain the filter to the authenticated user's own events.
+	// if the client asked for specific authors, only honor it when it includes
+	// the authed user, so we never return events that don't match the request
+	if len(filter.Authors) > 0 && !slices.Contains(filter.Authors, authed) {
+		return func(yield func(nostr.Event) bool) {}
+	}
 	filter.Authors = []nostr.PubKey{authed}
 	return db.QueryEvents(filter, global.Settings.Limits.MaxQueryLimit)
 }
