@@ -255,7 +255,8 @@ func startImgproxy() {
 		}
 
 		state.mu.Lock()
-		if state.cmd == cmd {
+		current := state.cmd == cmd
+		if current {
 			state.cmd = nil
 			state.running = false
 			if err != nil {
@@ -264,7 +265,9 @@ func startImgproxy() {
 		}
 		state.mu.Unlock()
 
-		if err != nil && global.Settings.Imgproxy.Enabled {
+		// only react to the exit of the process we are actually tracking;
+		// a stale goroutine from a previous instance must not disable a new one
+		if current && err != nil && global.Settings.Imgproxy.Enabled {
 			disableImgproxyWithError(err)
 		}
 	}(cmd)
