@@ -73,6 +73,11 @@ func setupEnabled() {
 	Server.DeleteBlob = deleteBlob
 
 	Server.RejectUpload = func(ctx context.Context, auth *nostr.Event, size int, ext string) (bool, string, int) {
+		// the blossom routes stay registered on the main relay after a disable
+		// (they can't be unregistered without a restart), so gate uploads here
+		if !global.Settings.Blossom.Enabled {
+			return true, "blossom is disabled", 403
+		}
 		if auth == nil {
 			return true, "authentication required", 401
 		}
