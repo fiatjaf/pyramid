@@ -94,7 +94,8 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 					found = evt
 					break
 				}
-				if found.ID != nostr.ZeroID {
+				if found.ID == nostr.ZeroID {
+					// not in the inbox store, try the secret store too
 					for evt := range global.IL.Secret.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
 						found = evt
 						break
