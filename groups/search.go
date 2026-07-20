@@ -155,13 +155,14 @@ func (group *Group) removeSearchIndex() error {
 		return nil
 	}
 
-	group.searchIndex = nil
-	group.language = lingua.Unknown
-	group.hasLanguage = false
-
+	// close the open index before nilling it out and removing its directory
 	if group.searchIndex != nil {
 		group.searchIndex.Close()
 	}
+
+	group.searchIndex = nil
+	group.language = lingua.Unknown
+	group.hasLanguage = false
 
 	if err := os.RemoveAll(groupSearchDir(group.Address.ID)); err != nil {
 		return fmt.Errorf("failed to remove group search directory: %w", err)
