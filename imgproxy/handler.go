@@ -1,7 +1,6 @@
 package imgproxy
 
 import (
-	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/rand"
@@ -37,7 +36,7 @@ var (
 	Handler = &MuxHandler{}
 
 	imgproxySocketClient *http.Client
-	baseSecret, _        = hex.DecodeString(global.Settings.Imgproxy.BaseSecret)
+	baseSecret           []byte
 )
 
 var state = struct {
@@ -49,6 +48,10 @@ var state = struct {
 }{}
 
 func Init() {
+	// decode the stored base secret now that settings are loaded (package-level
+	// initializers run before global.Init() populates the settings)
+	baseSecret, _ = hex.DecodeString(global.Settings.Imgproxy.BaseSecret)
+
 	if !global.Settings.Imgproxy.Enabled {
 		setupDisabled()
 		return
@@ -109,7 +112,7 @@ func pageHandler(w http.ResponseWriter, r *http.Request) {
 			h := hmac.New(sha256.New, pubkeySecret)
 			h.Write([]byte(decodedPath))
 			expected := h.Sum(nil)
-			if !bytes.Equal(expected[0:16], mac) {
+			if !hmac.Equal(expected[0:16], mac) {
 				http.Error(w, "mac doesn't match", http.StatusUnauthorized)
 				return
 			}
