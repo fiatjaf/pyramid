@@ -198,7 +198,7 @@ func allowKindHandler(ctx context.Context, kind nostr.Kind) error {
 	}
 
 	// rebuild
-	global.KindIsAllowed, _ = global.BuildKindIsAllowedFunction(global.Settings.Inbox.AllowedKindsSpec, supportedKindsDefault)
+	kindIsAllowed, _ = global.BuildKindIsAllowedFunction(global.Settings.Inbox.AllowedKindsSpec, supportedKindsDefault)
 
 	return global.SaveUserSettings()
 }
@@ -249,7 +249,7 @@ func disallowKindHandler(ctx context.Context, kind nostr.Kind) error {
 	}
 
 	// rebuild this
-	global.KindIsAllowed, _ = global.BuildKindIsAllowedFunction(global.Settings.Inbox.AllowedKindsSpec, supportedKindsDefault)
+	kindIsAllowed, _ = global.BuildKindIsAllowedFunction(global.Settings.Inbox.AllowedKindsSpec, supportedKindsDefault)
 
 	return global.SaveUserSettings()
 }
