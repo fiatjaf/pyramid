@@ -1,0 +1,100 @@
+package bookmarks
+
+import (
+	"fiatjaf.com/nostr"
+
+	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
+	"github.com/fiatjaf/pyramid/pyramid"
+)
+
+templ bookmarksPage(loggedUser nostr.PubKey) {
+	@layout.Layout(loggedUser, "bookmarks") {
+		<div class="flex items-center justify-between mb-4">
+			<div class="flex items-center">
+				if !global.Settings.Bookmarks.IsIconDefault() {
+					<img src={ global.Settings.Bookmarks.GetIcon() } class="h-8 w-8 mr-2"/>
+				}
+				<h1 class="text-4xl font-bold font-[family-name:var(--primary-font)]">{ global.Settings.Bookmarks.GetName() }</h1>
+			</div>
+			if global.Settings.Bookmarks.Enabled && pyramid.IsRoot(loggedUser) {
+				@layout.LandlubberButton(global.Settings.Bookmarks.HTTPBasePath)
+			}
+		</div>
+		<div class="space-y-4 text-gray-700 dark:text-gray-300">
+			<p class="text-lg leading-relaxed">{ global.Settings.Bookmarks.GetDescription() }</p>
+			if global.Settings.Bookmarks.Enabled {
+				<div class="flex flex-wrap gap-2">
+					<a
+						class="inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 themed:bg-[var(--accent-color)] unthemed:bg-blue-500 unthemed:hover:bg-blue-600"
+						target="_blank"
+						href={ global.Settings.BrowseURI }
+						x-init="$el.href = $el.href.replace(/({|%7B)url(}|%7D)/, encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
+					>
+						browse bookmarks →
+					</a>
+					if global.Settings.Bookmarks.AllAccess != "disabled" {
+						<a
+							class="inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 themed:bg-[var(--accent-color)] unthemed:bg-blue-500 unthemed:hover:bg-blue-600"
+							target="_blank"
+							href={ global.Settings.BrowseURI }
+							x-init="$el.href = $el.href.replace(/({|%7B)url(}|%7D)/, encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/') + '/all'))"
+						>
+							browse all →
+						</a>
+					}
+				</div>
+			}
+			if pyramid.IsRoot(loggedUser) {
+				@layout.SubRelaySettings(global.RelayBookmarks, global.Settings.Bookmarks.Enabled, global.Settings.Bookmarks.Name, global.Settings.Bookmarks.Description, global.Settings.Bookmarks.Icon, nostr.ZeroID, global.Settings.Bookmarks.HTTPBasePath, global.Settings.Bookmarks.HTTPDomain) {
+					<details>
+						<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">settings</summary>
+						<form
+							method="POST"
+							action="/settings"
+							x-data={ "{ access: '" + global.Settings.Bookmarks.AllAccess + "' }" }
+							class="mt-4 space-y-3"
+						>
+							<div>
+								<label class="block text-sm font-medium mb-2 dark:text-stone-300">/all page access</label>
+								<div class="space-y-2">
+									<label class="flex items-center gap-2 cursor-pointer">
+										<input
+											type="radio"
+											name="bookmarks_all_access"
+											value="public"
+											x-model="access"
+										/>
+										<span>public — anyone can read /all</span>
+									</label>
+									<label class="flex items-center gap-2 cursor-pointer">
+										<input
+											type="radio"
+											name="bookmarks_all_access"
+											value="members"
+											x-model="access"
+										/>
+										<span>members only — only relay members can read /all</span>
+									</label>
+									<label class="flex items-center gap-2 cursor-pointer">
+										<input
+											type="radio"
+											name="bookmarks_all_access"
+											value="disabled"
+											x-model="access"
+										/>
+										<span>disabled — /all is not accessible at all</span>
+									</label>
+								</div>
+							</div>
+							<button
+								type="submit"
+								class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+							>save</button>
+						</form>
+					</details>
+				}
+			}
+		</div>
+	}
+}

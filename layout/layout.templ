@@ -197,12 +197,14 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							<button
 								@click="open = !open"
 								class={ "cursor-pointer rounded-lg px-4 py-2 font-medium flex items-center gap-1 themed:text-[var(--text-color)] themed:hover:bg-[rgb(from_var(--text-color)_r_g_b_/10%)] light:hover:bg-stone-100 dark:hover:bg-stone-700",
-                                    templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "moderated"),
-                                    templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !(global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)) && !(global.Settings.Personal.Enabled && pyramid.IsMember(loggedUser)) && !global.Settings.Moderated.Enabled ) }
+                                    templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "bookmarks" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "moderated"),
+                                    templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Bookmarks.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !(global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)) && !(global.Settings.Personal.Enabled && pyramid.IsMember(loggedUser)) && !global.Settings.Moderated.Enabled ) }
 							>
 								switch currentPage {
 									case string(global.RelayFavorites):
 										{ global.Settings.Favorites.HTTPBasePath }
+									case string(global.RelayBookmarks):
+										{ global.Settings.Bookmarks.HTTPBasePath }
 									case string(global.RelayUppermost):
 										{ global.Settings.Uppermost.HTTPBasePath }
 									case string(global.RelayPopular):
@@ -227,7 +229,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 								x-transition
 								class="absolute left-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50 themed:bg-[rgb(from_var(--secondary-bg-color)_r_g_b_/_var(--header-transparency))] light:bg-white/60 dark:bg-stone-800/90"
 							>
-								for _, page := range []global.RelayID{global.RelayInternal, global.RelayInbox, global.RelayModerated, global.RelayFavorites, global.RelayPopular, global.RelayUppermost, global.RelayPersonal} {
+								for _, page := range []global.RelayID{global.RelayInternal, global.RelayInbox, global.RelayModerated, global.RelayFavorites, global.RelayBookmarks, global.RelayPopular, global.RelayUppermost, global.RelayPersonal} {
 									{{ var path string }}
 									{{ var enabled bool }}
 									{{
@@ -247,6 +249,9 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 										case global.RelayFavorites:
 											path = global.Settings.Favorites.HTTPBasePath
 											enabled = global.Settings.Favorites.Enabled
+										case global.RelayBookmarks:
+											path = global.Settings.Bookmarks.HTTPBasePath
+											enabled = global.Settings.Bookmarks.Enabled
 										case global.RelayPopular:
 											path = global.Settings.Popular.HTTPBasePath
 											enabled = global.Settings.Popular.Enabled

@@ -21,6 +21,7 @@ import (
 
 	"github.com/bep/debounce"
 	"github.com/fiatjaf/pyramid/blossom"
+	"github.com/fiatjaf/pyramid/bookmarks"
 	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/groups"
@@ -301,6 +302,35 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				favorites.Relay.ServiceURL = global.Settings.Favorites.GetServiceURL()
 				favorites.Init()
 				go restartSoon()
+			case "bookmarks_httpBasePath":
+				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
+					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)
+					return
+				}
+				global.Settings.Bookmarks.HTTPBasePath = v[0]
+				bookmarks.Relay.ServiceURL = global.Settings.Bookmarks.GetServiceURL()
+				delayedRedirectTarget = global.Settings.Bookmarks.GetPageURL()
+				bookmarks.Init()
+				go restartSoon()
+			case "bookmarks_httpDomain":
+				domain, err := normalizeDomainInput(v[0])
+				if err != nil {
+					http.Error(w, err.Error(), 400)
+					return
+				}
+				global.Settings.Bookmarks.HTTPDomain = domain
+				bookmarks.Relay.ServiceURL = global.Settings.Bookmarks.GetServiceURL()
+				bookmarks.Init()
+				go restartSoon()
+			case "bookmarks_all_access":
+				switch v[0] {
+				case "public", "members", "disabled":
+					global.Settings.Bookmarks.AllAccess = v[0]
+					bookmarks.Init()
+				default:
+					http.Error(w, "invalid bookmarks_all_access: must be public, members, or disabled", 400)
+					return
+				}
 			case "moderated_name":
 				global.Settings.Moderated.Name = v[0]
 			case "moderated_description":
@@ -729,6 +759,8 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 			global.Settings.RelayIcon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		case "favorites":
 			global.Settings.Favorites.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
+		case "bookmarks":
+			global.Settings.Bookmarks.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		case "inbox":
 			global.Settings.Inbox.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		case "internal":
@@ -806,6 +838,7 @@ func setupDomain(domain string) error {
 
 	inbox.Relay.ServiceURL = global.Settings.Inbox.GetServiceURL()
 	favorites.Relay.ServiceURL = global.Settings.Favorites.GetServiceURL()
+	bookmarks.Relay.ServiceURL = global.Settings.Bookmarks.GetServiceURL()
 	internal.Relay.ServiceURL = global.Settings.Internal.GetServiceURL()
 	personal.Relay.ServiceURL = global.Settings.Personal.GetServiceURL()
 	moderated.Relay.ServiceURL = global.Settings.Moderated.GetServiceURL()

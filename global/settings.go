@@ -84,6 +84,11 @@ type UserSettings struct {
 		RelayMetadata
 	} `json:"favorites"`
 
+	Bookmarks struct {
+		RelayMetadata
+		AllAccess string `json:"all_access,omitempty"` // "public", "members", or "disabled"
+	} `json:"bookmarks"`
+
 	Inbox struct {
 		RelayMetadata
 		SpecificallyBlocked []nostr.PubKey `json:"specifically_blocked"`
@@ -211,6 +216,8 @@ func (rm RelayMetadata) GetDescription() string {
 		return "personal storage for each member. each member can only read and write their own events."
 	case "favorites":
 		return "relay members can manually republish notes here and they'll be saved."
+	case "bookmarks":
+		return "per-user bookmarking relay. each member gets a private database. the /all subpath shows the public aggregation of all member bookmarks."
 	case "inbox":
 		return "filtered notifications for relay members using unified web-of-trust filtering. only see mentions from people in the combined relay extended network."
 	case "popular":
@@ -341,6 +348,8 @@ func loadUserSettings() error {
 	Settings.Internal.HTTPBasePath = "internal"
 	Settings.Personal.HTTPBasePath = "personal"
 	Settings.Favorites.HTTPBasePath = "favorites"
+	Settings.Bookmarks.HTTPBasePath = "bookmarks"
+	Settings.Bookmarks.AllAccess = "public"
 	Settings.Inbox.HTTPBasePath = "inbox"
 	Settings.Popular.HTTPBasePath = "popular"
 	Settings.Uppermost.HTTPBasePath = "uppermost"
@@ -381,6 +390,7 @@ func loadUserSettings() error {
 	Settings.Internal.base = "internal"
 	Settings.Personal.base = "personal"
 	Settings.Favorites.base = "favorites"
+	Settings.Bookmarks.base = "bookmarks"
 	Settings.Popular.base = "popular"
 	Settings.Uppermost.base = "uppermost"
 	Settings.Moderated.base = "moderated"

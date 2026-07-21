@@ -28,6 +28,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/fiatjaf/pyramid/blossom"
+	"github.com/fiatjaf/pyramid/bookmarks"
 	"github.com/fiatjaf/pyramid/favorites"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/global/relays"
@@ -184,6 +185,7 @@ func main() {
 	imgproxy.Init()
 	linkpreview.Init()
 	favorites.Init()
+	bookmarks.Init()
 	inbox.Init()
 	nsite.Init()
 
@@ -491,6 +493,11 @@ func run(ctx context.Context) error {
 	mux.Handle("/"+global.Settings.Favorites.HTTPBasePath+"/", favorites.Relay)
 	mux.Handle("/"+global.Settings.Favorites.HTTPBasePath, favorites.Relay)
 
+	mux.Handle("/"+global.Settings.Bookmarks.HTTPBasePath+"/all/", bookmarks.AllRelay)
+	mux.Handle("/"+global.Settings.Bookmarks.HTTPBasePath+"/all", bookmarks.AllRelay)
+	mux.Handle("/"+global.Settings.Bookmarks.HTTPBasePath+"/", bookmarks.Relay)
+	mux.Handle("/"+global.Settings.Bookmarks.HTTPBasePath, bookmarks.Relay)
+
 	mux.Handle("/blossom/", blossom.Handler)
 	mux.Handle("/blossom", blossom.Handler)
 
@@ -567,6 +574,12 @@ func run(ctx context.Context) error {
 			subRelay, basePath = personal.Relay, global.Settings.Personal.HTTPBasePath
 		case global.Settings.Favorites.HTTPDomain:
 			subRelay, basePath = favorites.Relay, global.Settings.Favorites.HTTPBasePath
+		case global.Settings.Bookmarks.HTTPDomain:
+			if strings.HasPrefix(r.URL.Path, "/all") {
+				subRelay, basePath = bookmarks.AllRelay, global.Settings.Bookmarks.HTTPBasePath+"/all"
+			} else {
+				subRelay, basePath = bookmarks.Relay, global.Settings.Bookmarks.HTTPBasePath
+			}
 		case global.Settings.Inbox.HTTPDomain:
 			subRelay, basePath = inbox.Relay, global.Settings.Inbox.HTTPBasePath
 		case global.Settings.Popular.HTTPDomain:
@@ -624,6 +637,7 @@ func run(ctx context.Context) error {
 			global.Settings.Internal.HTTPDomain,
 			global.Settings.Personal.HTTPDomain,
 			global.Settings.Favorites.HTTPDomain,
+			global.Settings.Bookmarks.HTTPDomain,
 			global.Settings.Inbox.HTTPDomain,
 			global.Settings.Popular.HTTPDomain,
 			global.Settings.Uppermost.HTTPDomain,
