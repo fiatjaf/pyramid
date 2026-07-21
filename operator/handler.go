@@ -250,11 +250,11 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 			"url":   {global.Settings.HTTPScheme() + global.Settings.Domain},
 		}.Encode()),
 	)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	if err != nil {
 		http.Error(w, "failed to confirm with central: "+err.Error(), http.StatusBadGateway)
 		return
 	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("X-Pomegranate-Operator-Token", r.Header.Get("X-Pomegranate-Operator-Token"))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
