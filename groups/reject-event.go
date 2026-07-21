@@ -97,6 +97,7 @@ func RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg strin
 		for removed := range global.IL.Main.QueryEvents(nostr.Filter{
 			Kinds: []nostr.Kind{nostr.KindSimpleGroupRemoveUser},
 			Tags: nostr.TagMap{
+				"h": []string{groupId},
 				"p": []string{event.PubKey.Hex()},
 			},
 		}, 1) {
@@ -190,7 +191,7 @@ func RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg strin
 		case nip29.DeleteEvent:
 			ineffective := true
 			for target := range global.IL.Main.QueryEvents(nostr.Filter{IDs: a.Targets}, len(a.Targets)) {
-				if hTag := target.Tags.Find("h"); hTag[1] == groupId {
+				if hTag := target.Tags.Find("h"); hTag != nil && hTag[1] == groupId {
 					ineffective = false
 					break
 				}
