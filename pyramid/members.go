@@ -444,30 +444,38 @@ func applyAction(action managementAction) {
 		// when leaving unilaterally breaks all relationships it may still have with parents (and children too)
 		Members.Delete(target)
 
-		// recursively remove nodes that only have target as ancestor
-		var removeDescendants func(nostr.PubKey)
-		removeDescendants = func(dropped nostr.PubKey) {
+		// remove links to dropped nodes, deleting any node left without parents,
+		// repeating until the member set stabilises. a worklist (instead of
+		// recursion during iteration) makes the result order-independent, since
+		// a node can lose its last parent only after another parent is dropped.
+		dropped := []nostr.PubKey{target}
+		for len(dropped) > 0 {
+			d := dropped[len(dropped)-1]
+			dropped = dropped[:len(dropped)-1]
+
 			for nodeKey, node := range Members.Range {
-				// remove links from dropped node to this node
+				changed := false
 				for i := 0; i < len(node.Parents); {
-					if node.Parents[i] == dropped {
+					if node.Parents[i] == d {
 						node.Parents[i] = node.Parents[len(node.Parents)-1]
 						node.Parents = node.Parents[:len(node.Parents)-1]
+						changed = true
 					} else {
 						i++
 					}
 				}
+				if !changed {
+					continue
+				}
 
-				// if nodeKey has no parents left, remove it and recurse
 				if len(node.Parents) == 0 {
 					Members.Delete(nodeKey)
-					removeDescendants(nodeKey)
+					dropped = append(dropped, nodeKey)
 				} else {
 					Members.Store(nodeKey, node)
 				}
 			}
 		}
-		removeDescendants(target)
 	case ActionDisable:
 		// mark as removed but keep in the tree so children continue to exist
 		Members.Compute(target, func(o Member, loaded bool) (Member, bool) {
