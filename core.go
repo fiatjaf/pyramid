@@ -42,6 +42,10 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		}
 	}
 
+	if reject, msg := global.RejectInternalKinds(ctx, event); reject {
+		return true, msg
+	}
+
 	if validator != nil {
 		if err := validator.ValidateEvent(event); err != nil {
 			return true, "schema validation failed: " + err.Error()
@@ -119,7 +123,7 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		return true, "invalid report"
 	case 28934:
 		if pyramid.IsMember(event.PubKey) {
-			return false, "you are already a member of this relay, but fine"
+			return false, "duplicate: you are already a member of this relay"
 		}
 
 		claim := event.Tags.Find("claim")
@@ -326,65 +330,68 @@ func processLeaveRequest(ctx context.Context, event nostr.Event) {
 }
 
 func publishMembershipChange(pubkey nostr.PubKey, added bool) {
-	// publish to main and internal
-	for _, c := range []struct {
-		store *mmm.IndexingLayer
-		relay *khatru.Relay
-	}{{global.IL.Main, relay}, {global.IL.Internal, internal.Relay}} {
-		if added {
-			// publish kind 8000
-			evt := nostr.Event{
-				Kind:      8000,
-				CreatedAt: nostr.Now(),
-				Tags: nostr.Tags{
-					{"-"},
-					{"p", pubkey.Hex()},
-				},
-			}
-			evt.Sign(global.Settings.RelayInternalSecretKey)
-			c.store.SaveEvent(evt)
-			c.relay.BroadcastEvent(evt)
-		} else {
-			// publish kind 8001
-			evt := nostr.Event{
-				Kind:      8001,
-				CreatedAt: nostr.Now(),
-				Tags: nostr.Tags{
-					{"-"},
-					{"p", pubkey.Hex()},
-				},
-			}
-			evt.Sign(global.Settings.RelayInternalSecretKey)
+	// publish the add/remove event and the updated member list
+	if added {
+		evt := nostr.Event{
+			Kind:      8000,
+			CreatedAt: nostr.Now(),
+			Tags: nostr.Tags{
+				{"-"},
+				{"p", pubkey.Hex()},
+			},
+		}
+		evt.Sign(global.Settings.RelayInternalSecretKey)
+		for _, c := range []struct {
+			store *mmm.IndexingLayer
+			relay *khatru.Relay
+		}{{global.IL.Main, relay}, {global.IL.Internal, internal.Relay}} {
 			c.store.SaveEvent(evt)
 			c.relay.BroadcastEvent(evt)
 		}
-
-		// publish updated relay member list and nip29 room creation permission list
-		relayMembersList := nostr.Event{
-			Kind:      13534,
+	} else {
+		evt := nostr.Event{
+			Kind:      8001,
 			CreatedAt: nostr.Now(),
-			Tags:      nostr.Tags{{"-"}},
+			Tags: nostr.Tags{
+				{"-"},
+				{"p", pubkey.Hex()},
+			},
 		}
-		roomCreationPermissionList := nostr.Event{
-			Kind:      19004,
-			CreatedAt: nostr.Now(),
-			Tags:      nostr.Tags{{"-"}},
-		}
-		for m, member := range pyramid.Members.Range {
-			memberTag := nostr.Tag{"member", m.Hex()}
-			for _, rid := range member.Roles {
-				memberTag = append(memberTag, rid)
-			}
-			relayMembersList.Tags = append(relayMembersList.Tags, memberTag)
-			roomCreationPermissionList.Tags = append(roomCreationPermissionList.Tags, nostr.Tag{"p", m.Hex()})
-		}
-		relayMembersList.Sign(global.Settings.RelayInternalSecretKey)
-		roomCreationPermissionList.Sign(global.Settings.RelayInternalSecretKey)
-		c.store.ReplaceEvent(relayMembersList)
-		c.store.ReplaceEvent(roomCreationPermissionList)
-		c.relay.BroadcastEvent(relayMembersList)
-		c.relay.BroadcastEvent(roomCreationPermissionList)
+		evt.Sign(global.Settings.RelayInternalSecretKey)
+		global.IL.Main.SaveEvent(evt)
+		relay.BroadcastEvent(evt)
 	}
+	publishMemberListAndPermissions()
+}
+
+// publishMemberListAndPermissions publishes the current NIP-43 kind 13534
+// relay member list and the NIP-29 kind 19004 room-creation permission list,
+// both signed by the relay's internal secret key.
+func publishMemberListAndPermissions() {
+	relayMembersList := nostr.Event{
+		Kind:      13534,
+		CreatedAt: nostr.Now(),
+		Tags:      nostr.Tags{{"-"}},
+	}
+	roomCreationPermissionList := nostr.Event{
+		Kind:      19004,
+		CreatedAt: nostr.Now(),
+		Tags:      nostr.Tags{{"-"}},
+	}
+	for m, member := range pyramid.Members.Range {
+		memberTag := nostr.Tag{"member", m.Hex()}
+		for _, rid := range member.Roles {
+			memberTag = append(memberTag, rid)
+		}
+		relayMembersList.Tags = append(relayMembersList.Tags, memberTag)
+		roomCreationPermissionList.Tags = append(roomCreationPermissionList.Tags, nostr.Tag{"p", m.Hex()})
+	}
+	relayMembersList.Sign(global.Settings.RelayInternalSecretKey)
+	roomCreationPermissionList.Sign(global.Settings.RelayInternalSecretKey)
+	global.IL.Main.ReplaceEvent(relayMembersList)
+	global.IL.Main.ReplaceEvent(roomCreationPermissionList)
+	relay.BroadcastEvent(relayMembersList)
+	relay.BroadcastEvent(roomCreationPermissionList)
 }
 
 func fetchInvite(claim string) (nostr.Event, error) {

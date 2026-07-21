@@ -1,6 +1,7 @@
 package global
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -231,6 +232,14 @@ func ParseDomainsTextarea(value string) []string {
 		}
 	}
 	return out
+}
+
+func RejectInternalKinds(_ context.Context, event nostr.Event) (bool, string) {
+	switch event.Kind {
+	case 8000, 8001, 13534, 19004, 33534:
+		return true, "blocked: kind reserved for relay internal use"
+	}
+	return false, ""
 }
 
 func RandomString(size int) string {

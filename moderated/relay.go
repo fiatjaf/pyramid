@@ -93,6 +93,10 @@ func setupEnabled() {
 	)
 
 	Relay.OnEvent = func(ctx context.Context, evt nostr.Event) (bool, string) {
+		if reject, msg := global.RejectInternalKinds(ctx, evt); reject {
+			return true, msg
+		}
+
 		if !global.KindIsAllowed(evt.Kind) {
 			return true, "blocked: kind unallowed"
 		}

@@ -149,6 +149,7 @@ func setupEnabled() {
 		rejectFilter,
 	)
 	Relay.OnEvent = policies.SeqEvent(
+		global.RejectInternalKinds,
 		policies.PreventLargeContent(global.Settings.Limits.MaxEventSize),
 		policies.PreventTooManyIndexableTags(global.Settings.Limits.MaxIndexableTags, []nostr.Kind{3}, nil),
 		policies.PreventTooManyIndexableTags(global.Settings.Limits.MaxEntriesInFollowList, nil, []nostr.Kind{3}),
