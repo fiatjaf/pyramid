@@ -939,6 +939,15 @@ func memberPageHandler(w http.ResponseWriter, r *http.Request) {
 	loggedUser, isLogged := global.GetLoggedUser(r)
 
 	if r.Method == http.MethodPost {
+		if !isLogged || !pyramid.IsMember(loggedUser) {
+			http.Error(w, "unauthorized", 403)
+			return
+		}
+		if !global.Settings.NIP05.Enabled {
+			http.Error(w, "nip05 is disabled", 400)
+			return
+		}
+
 		if nip05Username := r.PostFormValue("nip05_username"); nip05Username != "" {
 			// basic validation for NIP-05 username (alphanumeric and underscores only)
 			nip05Username = strings.ToLower(nip05Username)
