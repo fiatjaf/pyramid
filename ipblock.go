@@ -31,6 +31,10 @@ func ipBlockMiddleware(next http.Handler) http.Handler {
 				}
 			}
 			if ip := r.RemoteAddr; ip != "" {
+				// RemoteAddr is host:port, but blocked IPs are stored without a port
+				if host, _, err := net.SplitHostPort(ip); err == nil {
+					ip = host
+				}
 				if slices.Contains(global.Settings.BlockedIPs, ip) {
 					http.Error(w, "IP blocked", 403)
 					return
