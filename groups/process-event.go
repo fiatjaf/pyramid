@@ -51,8 +51,13 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) (grou
 			hostRelay.BroadcastEvent(addCreator)
 		} else {
 			group = s.GetGroupFromEvent(event)
-			groupsAffected = nostr.AppendUnique(groupsAffected, group)
 		}
+
+		// the group may be unknown (e.g. concurrently deleted); skip if so
+		if group == nil {
+			return
+		}
+		groupsAffected = nostr.AppendUnique(groupsAffected, group)
 
 		// apply the moderation action
 		group.mu.Lock()
