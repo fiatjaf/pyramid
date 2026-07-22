@@ -52,7 +52,21 @@ templ bookmarksPage(loggedUser nostr.PubKey) {
 						<form
 							method="POST"
 							action="/settings"
-							x-data={ "{ access: '" + global.Settings.Bookmarks.AllAccess + "' }" }
+							x-data={ `{
+								access: '` + global.Settings.Bookmarks.AllAccess + `',
+								saved: false,
+								async saveSettings() {
+									const response = await fetch(this.$refs.form.action, {
+										method: 'POST',
+										body: new URLSearchParams(new FormData(this.$refs.form))
+									})
+									if (response.ok) {
+										this.saved = true
+										setTimeout(() => this.saved = false, 2000)
+									}
+								}
+							}` }
+							x-ref="form"
 							class="mt-4 space-y-3"
 						>
 							<div>
@@ -64,6 +78,7 @@ templ bookmarksPage(loggedUser nostr.PubKey) {
 											name="bookmarks_all_access"
 											value="public"
 											x-model="access"
+											@change="saveSettings()"
 										/>
 										<span>public — anyone can read /all</span>
 									</label>
@@ -73,6 +88,7 @@ templ bookmarksPage(loggedUser nostr.PubKey) {
 											name="bookmarks_all_access"
 											value="members"
 											x-model="access"
+											@change="saveSettings()"
 										/>
 										<span>members only — only relay members can read /all</span>
 									</label>
@@ -82,15 +98,19 @@ templ bookmarksPage(loggedUser nostr.PubKey) {
 											name="bookmarks_all_access"
 											value="disabled"
 											x-model="access"
+											@change="saveSettings()"
 										/>
 										<span>disabled — /all is not accessible at all</span>
 									</label>
 								</div>
 							</div>
-							<button
-								type="submit"
-								class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
-							>save</button>
+							<div
+								x-show="saved"
+								x-transition
+								class="text-sm text-green-600 dark:text-green-400 font-medium"
+							>
+								saved!
+							</div>
 						</form>
 					</details>
 				}
