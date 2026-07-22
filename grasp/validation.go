@@ -3,6 +3,7 @@ package grasp
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"fiatjaf.com/nostr"
@@ -77,11 +78,13 @@ func refExistsAsKind(eventId string, kinds []nostr.Kind) bool {
 		return false
 	}
 
-	for range global.IL.Main.QueryEvents(nostr.Filter{
-		IDs:   []nostr.ID{id},
-		Kinds: kinds,
+	// the ID query fast-path ignores the Kinds constraint, so check the kind ourselves
+	for evt := range global.IL.Main.QueryEvents(nostr.Filter{
+		IDs: []nostr.ID{id},
 	}, 1) {
-		return true
+		if slices.Contains(kinds, evt.Kind) {
+			return true
+		}
 	}
 
 	return false
