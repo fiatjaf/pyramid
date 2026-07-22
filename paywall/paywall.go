@@ -77,7 +77,6 @@ func RecomputeMemberPaywall(ctx context.Context, member nostr.PubKey) {
 	// build new map of who can read this user's content
 	newReaders := make(map[nostr.PubKey]meta)
 
-	var referencesToKeep []int
 	var newReferences []PaywallReference
 
 	for evt := range global.IL.Main.QueryEvents(nostr.Filter{
@@ -97,19 +96,15 @@ func RecomputeMemberPaywall(ctx context.Context, member nostr.PubKey) {
 		for _, tag := range evt.Tags {
 			if len(tag) >= 2 && tag[0] == "a" {
 				if ptr, err := nostr.ParseAddrString(tag[1]); err == nil {
-					// check if this reference already exists for this author
+					// collect every reference this member currently has
 					ref := PaywallReference{
 						Member:     member,
 						Identifier: ptr.Identifier,
 						PublicKey:  ptr.PublicKey,
 						Kind:       ptr.Kind,
 					}
-					if idx := slices.Index(References, ref); idx == -1 {
-						// doesn't exist, so this is new
+					if !slices.Contains(newReferences, ref) {
 						newReferences = append(newReferences, ref)
-					} else {
-						// exists, so we keep
-						referencesToKeep = append(referencesToKeep, idx)
 					}
 
 					// add members of this list to the readers list (if the list exists in this relay)
@@ -127,31 +122,12 @@ func RecomputeMemberPaywall(ctx context.Context, member nostr.PubKey) {
 		}
 	}
 
-	// now actually update the global references list
-	for i := 0; i < len(References); i++ {
-		r := References[i]
-		if r.Member != member {
-			continue
-		}
-		if slices.Contains(referencesToKeep, i) {
-			continue
-		}
-
-		// we must delete this (so let's try to replace it first)
-		if len(newReferences) > 0 {
-			References[i] = newReferences[len(newReferences)-1]
-			newReferences = newReferences[:len(newReferences)-1]
-		} else {
-			// otherwise swap-delete
-			References[i] = References[len(References)-1]
-			References = References[:len(References)-1]
-			i-- // and repeat this loop position
-		}
-	}
-	// add any remaining references now
-	for _, ref := range newReferences {
-		References = append(References, ref)
-	}
+	// now actually update the global references list: drop everything this
+	// member had and add back what they currently reference
+	References = slices.DeleteFunc(References, func(r PaywallReference) bool {
+		return r.Member == member
+	})
+	References = append(References, newReferences...)
 
 	// update readers map
 	userPaywallMap.Store(member, newReaders)
