@@ -143,13 +143,16 @@ func main() {
 	}
 
 	// init basic http routes
-	relay.Router().HandleFunc("/action", actionHandler)
-	relay.Router().HandleFunc("/settings", settingsHandler)
+	relay.Router().HandleFunc("GET /action", actionHandler)
+	relay.Router().HandleFunc("POST /action", actionHandler)
+	relay.Router().HandleFunc("GET /settings", settingsHandler)
+	relay.Router().HandleFunc("POST /settings", settingsHandler)
 	relay.Router().HandleFunc("GET /clients", detailsHandler)
 	relay.Router().HandleFunc("GET /clients/{clientId}", clientDetailsHandler)
 	relay.Router().HandleFunc("GET /event/{db}/{id}", databaseEventJSONHandler)
 	relay.Router().HandleFunc("DELETE /database/{db}/{id}", deleteDatabaseEventHandler)
 	relay.Router().HandleFunc("GET /database", databaseHandler)
+	relay.Router().HandleFunc("POST /database", databaseHandler)
 	relay.Router().HandleFunc("GET /database/blocks", databaseBlocksHandler)
 	relay.Router().HandleFunc("POST /database/blocks/defrag", databaseBlocksDefragHandler)
 	relay.Router().HandleFunc("GET /log", logHandler)
