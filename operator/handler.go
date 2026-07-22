@@ -211,11 +211,11 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case "wot":
-		if !wot.Computed {
+		if !wot.IsComputed() {
 			http.Error(w, "web-of-trust not yet computed, try again later", http.StatusServiceUnavailable)
 			return
 		}
-		if !wot.Current.Contains(evt.PubKey) {
+		if !wot.Contains(evt.PubKey) {
 			http.Error(w, "only web-of-trust members can register", http.StatusForbidden)
 			return
 		}
