@@ -118,6 +118,10 @@ func pageHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			imgproxyURL = "http://imgproxy/insecure" + path
+		} else {
+			// malformed token: reject instead of forwarding an empty URL
+			http.NotFound(w, r)
+			return
 		}
 
 		resp, err := imgproxySocketClient.Get(imgproxyURL)
