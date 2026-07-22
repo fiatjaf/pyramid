@@ -2,6 +2,7 @@ package nsite
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"fiatjaf.com/nostr"
@@ -10,6 +11,13 @@ import (
 )
 
 func resolveSite(host string) (nostr.Event, error) {
+	// normalize the incoming host the same way the caller does before MatchesHost
+	host = strings.TrimSpace(host)
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	host = strings.ToLower(host)
+
 	domain := strings.Trim(strings.ToLower(global.Settings.Nsite.Domain), ".")
 	if host == domain {
 		return nostr.Event{}, fmt.Errorf("domain mismatch")
