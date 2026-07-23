@@ -214,6 +214,7 @@ func (s *GroupsState) SyncGroupMetadataEvents(group *Group) iter.Seq2[nostr.Even
 				if !yield(nostr.Event{}, fmt.Errorf("failed to save group metadata event %d: %w", updated.Kind, err)) {
 					return
 				}
+				continue
 			}
 			if updated.CreatedAt > now-180 {
 				if !yield(updated, nil) {
