@@ -270,12 +270,20 @@ func LogHandler(w http.ResponseWriter, r *http.Request, logFile string) {
 	t, err := tail.TailFile(logFile, tail.Config{Follow: true, ReOpen: true})
 	if err != nil {
 		Log.Error().Err(err).Msg("failed to tail imgproxy.log")
+		return
 	}
+	defer t.Cleanup()
+	defer t.Stop()
 
-	for line := range t.Lines {
-		_, _ = io.WriteString(w, "<div class=\"line\">"+terminal.Render([]byte(line.Text))+"</div>\n")
-		flusher.Flush()
-		if r.Context().Err() != nil {
+	for {
+		select {
+		case line, ok := <-t.Lines:
+			if !ok {
+				return
+			}
+			_, _ = io.WriteString(w, "<div class=\"line\">"+terminal.Render([]byte(line.Text))+"</div>\n")
+			flusher.Flush()
+		case <-r.Context().Done():
 			return
 		}
 	}

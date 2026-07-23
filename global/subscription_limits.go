@@ -73,7 +73,7 @@ func NewRelay() *khatru.Relay {
 	}
 
 	relay.OnListenerRemoved = func(ws *khatru.WebSocket, ssid int, id string, filter nostr.Filter) {
-		if ws == nil {
+		if ws == nil || ws.Request == nil {
 			return
 		}
 
