@@ -206,6 +206,8 @@ func (s *GroupsState) SyncGroupMetadataEvents(group *Group) iter.Seq2[nostr.Even
 				if !yield(nostr.Event{}, fmt.Errorf("failed to sign group metadata event %d: %w", updated.Kind, err)) {
 					return
 				}
+				// don't save or broadcast an unsigned event
+				continue
 			}
 
 			if _, err := global.IL.Main.ReplaceEvent(updated); err != nil {
