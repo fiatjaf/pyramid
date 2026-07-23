@@ -85,6 +85,11 @@ func NewRelay() *khatru.Relay {
 		subscriptionTracker.Compute(ip, func(v trackedConnection, loaded bool) (trackedConnection, bool) {
 			v.subscriptions--
 			v.cost -= GetFilterCost(filter)
+			// drop the entry once this IP has no open subscriptions so the map
+			// doesn't grow unboundedly with distinct client IPs
+			if v.subscriptions <= 0 {
+				return v, true
+			}
 			return v, false
 		})
 	}
