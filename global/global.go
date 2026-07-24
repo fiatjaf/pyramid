@@ -1,6 +1,7 @@
 package global
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -253,3 +254,5 @@ var IL struct {
 	// operator registrations
 	OperatorBucket *mmm.IndexingLayer
 }
+
+var ReclaimBlobsFromEvent func(ctx context.Context, id nostr.ID)

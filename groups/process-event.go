@@ -71,6 +71,9 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) (grou
 				if err != nil {
 					continue
 				}
+				if global.ReclaimBlobsFromEvent != nil {
+					global.ReclaimBlobsFromEvent(ctx, id)
+				}
 				if err := global.IL.Main.DeleteEvent(id); err != nil {
 					log.Warn().Err(err).Stringer("event", id).Msg("failed to delete")
 				} else {
