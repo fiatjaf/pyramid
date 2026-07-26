@@ -23,10 +23,12 @@ if you have no idea of what pyramid is about, try reading [this guide](https://s
 
 ## easy install
 
+**This fork** (gittr / Nostr-git adaptation). Stock upstream: fiatjaf/pyramid.
+
 type this in a blank server you just rented:
 
 ```
-curl -s https://raw.githubusercontent.com/fiatjaf/pyramid/refs/heads/master/easy.sh | bash
+curl -s https://raw.githubusercontent.com/arbadacarbaYK/pyramid/master/easy.sh | bash
 ```
 
 or watch [this](https://fevela.me/nevent1qvzqqqqqqypzqwlsccluhy6xxsr6l9a9uhhxf75g85g8a709tprjcn4e42h053vaqyd8wumn8ghj7urewfsk66ty9enxjct5dfskvtnrdakj7qgmwaehxw309aex2mrp0yh8wetnw3jhymnzw33jucm0d5hsqgzz6ft7cfafp3dw29cyewc4cqhv59cxn392vesfexg0szv73gl06czvu37k) instructive video:

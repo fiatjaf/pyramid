@@ -324,7 +324,7 @@ func main() {
 				policies.PreventTooManyIndexableTags(global.Settings.Limits.MaxIndexableTags, []nostr.Kind{3}, nil),
 				policies.PreventTooManyIndexableTags(global.Settings.Limits.MaxEntriesInFollowList, nil, []nostr.Kind{3}),
 				policies.RejectUnprefixedNostrReferences,
-				grasp.RejectIncomingEvent,
+				rejectGraspRelatedIfEnabled,
 				policies.PreventNormalDuplicates(global.IL.Main.QueryEvents),
 				basicRejectionLogic,
 			)(ctx, event)
@@ -820,6 +820,15 @@ func run(ctx context.Context) error {
 	}
 
 	return g.Wait()
+}
+
+// When GRASP hosting is enabled, require local 30617 (etc.) for NIP-34 git child events.
+// When GRASP is off, skip that check so the relay can stay a pure open event store.
+func rejectGraspRelatedIfEnabled(ctx context.Context, event nostr.Event) (bool, string) {
+	if !global.Settings.Grasp.Enabled {
+		return false, ""
+	}
+	return grasp.RejectIncomingEvent(ctx, event)
 }
 
 func setupCheckMiddleware(next http.Handler) http.Handler {

@@ -6,7 +6,8 @@ It is maintained for **Nostr git** workflows used by **[gittr](https://gittr.spa
 | | |
 |--|--|
 | Upstream | Community **membership** relay (invite ladder). Great product; different default goal. |
-| This fork / gittr deploy | Run it as an **open** relay for forge + discussion + notes + Cashu/nutzaps. **Not** invite/paid write. |
+| This fork / gittr deploy | **Open** relay + **GRASP** companion for Nostr-git clients. Not invite/paid write. |
+| Live | **`wss://relay.gittr.space`** (also in gittr `NEXT_PUBLIC_NOSTR_RELAYS` / bridge relays) |
 | Repo name | Kept as `pyramid` for upstream tracking; branding is README / GitHub About. |
 
 ## “Members” — what that word means (and why we ignore it)
@@ -14,14 +15,11 @@ It is maintained for **Nostr git** workflows used by **[gittr](https://gittr.spa
 Upstream Pyramid only lets **invited members** publish to the main relay. That is the ladder/community model.
 
 For gittr we **bypass** that with **`open_kinds_spec`**: every kind in that list can be published by **anyone**.  
-Set open kinds to the full list below. You can leave the invite tree unused; root admin UI still works for settings.
-
-Membership is **optional** here — not the access model. **Private todos/discussions** stay **per-repo ACL on gittr**, not relay whitelist.
+Membership is **optional** — not the access model. **Private todos/discussions** stay **per-repo ACL on gittr**, not relay whitelist.
 
 ## Visibility vs junk
 
-- **Want:** notes, discussions, issues/PRs, SSH keys, pages, apps, **follow lists**, **Cashu/nutzaps** (for future repo zaps / bounties).
-- **Fine to allow broadly** for rerouting: profiles, follows, reactions, Lightning zaps, deletes.
+- **Want:** notes, discussions, issues/PRs, SSH keys, pages, apps, **follow lists**, **Cashu/nutzaps**, GRASP git traffic.
 - Prefer a curated allow-list over “members only” if storage ever hurts — don’t block Cashu/NWC kinds we plan to use.
 
 ## NIPs & kinds (gittr workflows)
@@ -47,14 +45,10 @@ Membership is **optional** here — not the access model. **Private todos/discus
 | `24242` | Blossom | Upload auth (pages) |
 | `30617` / `30618` | NIP-34 | Repo announcement + state |
 
-Already in this fork’s `SupportedKindsDefault` (plus upstream social/defaults). **`7374` added** for NIP-60 quotes.
-
 ### Follow lists — yes
 
 - **Kind `3`** — NIP-02 contact / people follow list (in open kinds).  
 - **Kind `10018`** — followed **git repositories** (in open kinds).  
-
-Those are the two follow-list shapes gittr cares about.
 
 ## Recommended production settings (open relay)
 
@@ -69,16 +63,38 @@ Those are the two follow-list shapes gittr cares about.
 
 Open kinds must also be **allowed**. Parser accepts spaces.
 
-## GRASP
+**GRASP:** **on** for this adaptation (see below).
 
-Optional. For a **public event relay** next to gittr’s existing git host (`git.gittr.space`), leave GRASP **off**. Enable only if this box should also be a GRASP git server.
+## GRASP (recommended on)
+
+This relay **should** run with **GRASP enabled**. It is a Nostr-git companion: clients (ngit, gittr, etc.) can use it as a `10317` / clone endpoint **and** as a normal event relay.
+
+| | |
+|--|--|
+| What GRASP adds | HTTP git hosting for repos that have a **kind 30617** on **this** relay (`/grasp/…`) |
+| What it does **not** do | Replace `git.gittr.space` (git-nostr-bridge / SSH). Both can coexist. |
+| Does it hurt “catching” events? | **No for reads.** `REQ` / sync / stored notes, follows, SSH keys, Cashu, zaps still work. |
+| Write-side nuance | With GRASP **on**, patches/issues/PRs/state (`1617`–`1633`, `30618`) must reference a **30617 already on this relay** (normal GRASP). Publish the repo announce here first (open kinds include `30617`). Orphaned git events without a local announce are rejected — that is intentional integrity, not spam filtering. |
+| GRASP **off** | This fork skips that strict check so the box can be events-only; git HTTP hosting is disabled. |
+
+gittr’s primary bare-repo/SSH path remains **`git.gittr.space`**. Enabling GRASP here helps **interop** (other clients that speak GRASP) and discovery — it does not stop the relay from storing general Nostr traffic.
 
 ## Point gittr at this relay
 
-Live: **`wss://relay.gittr.space`**
+Already live: **`wss://relay.gittr.space`**
 
-- `NEXT_PUBLIC_NOSTR_RELAYS` / bridge `relays` / SSH Keys fallback list  
+Wire into:
+
+- `NEXT_PUBLIC_NOSTR_RELAYS` / `RELAYS`
+- bridge `git-nostr-bridge.json` → `relays`
+- Settings → SSH Keys fallback list  
 
 ## Install / build
 
-Upstream `easy.sh` installs **stock** Pyramid. For this adaptation, build from **this** repo (`just build` / `go build` with CGO for LMDB).
+```bash
+curl -s https://raw.githubusercontent.com/arbadacarbaYK/pyramid/master/easy.sh | bash
+```
+
+That installs **this** fork (clone + `go build` with CGO). Override with `PYRAMID_REPO_URL` / `PYRAMID_REPO_REF` if needed.
+
+Behind nginx (gittr production style): `HOST=127.0.0.1` `PORT=3334`, proxy `https`/`wss` to that port, set domain `relay.gittr.space`, paste open kinds, enable GRASP in settings.
