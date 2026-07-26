@@ -1,4 +1,34 @@
-# pyramid
+# pyramid (gittr / Nostr-git adaptation)
+
+> **This is not stock Pyramid.**  
+> It is an **adaptation of [fiatjaf/pyramid](https://github.com/fiatjaf/pyramid)** tuned for **Nostr git** workflows around **[gittr](https://gittr.space)** / [gitnostr](https://github.com/arbadacarbaYK/gitnostr): repository announces, issues/PRs/patches, SSH keys, identities, bounties, and related kinds.  
+> Upstream remains the community-membership relay; this fork adds forge-oriented kind defaults and optional **open kinds** (non-members may publish git/SSH events without opening chat spam).  
+> Details: **[FORGE.md](./FORGE.md)**. Repo name stays `pyramid` on purpose (easier to track upstream); treat the **About** text and this banner as the product identity.
+
+**Upstream:** [fiatjaf/pyramid](https://github.com/fiatjaf/pyramid) — all credit for the relay core, hierarchy, subrelays, GRASP hook, and UI.  
+**Fork:** [arbadacarbaYK/pyramid](https://github.com/arbadacarbaYK/pyramid) — Nostr-git / gittr adaptations.
+
+### NIPs & kinds this adaptation cares about (gittr workflows)
+
+| Kind | Role |
+|------|------|
+| `30617` / `30618` | NIP-34 repository announcement + state |
+| `1617`–`1621`, `1624`, `1630`–`1633` | NIP-34 patches, PRs, issues, cover notes, status |
+| `10317` | NIP-34 GRASP / preferred git servers list |
+| `50` / `51` / `52` | gitnostr permissions, legacy repo, **SSH keys** |
+| `10011` | NIP-39 external identities |
+| `10018` | followed git repositories list |
+| `1111` / `30023` | comments / long-form discussion |
+| `7` / `9735` / `1985` | reactions, zaps, labels |
+| `9806` | bounties (gittr) |
+| `1337` | code snippets (NIP-C0) |
+| `15128` / `35128` | Nostr pages (nsite) |
+
+Plus normal profile/social kinds (`0`, `3`, `5`, …) when listed under **open kinds**. See `FORGE.md` for the recommended `open_kinds_spec`.
+
+---
+
+# pyramid (upstream description)
 
 **pyramid** serves as a wondrous furnace of communityzenship for your Nostr experience, enabling users to build and nurture vibrant communities through a hierarchical relay system. With powerful subrelay features, extensive optional configurations, and easy theming options, **pyramid** makes it effortless to create and manage personalized Nostr environments tailored to your personal or community's needs.
 
