@@ -44,8 +44,12 @@ type UserSettings struct {
 	AcceptScheduledEvents    bool   `json:"accept_scheduled_events"`
 	AllowAccessRequest       bool   `json:"allow_access_request"`
 	AllowEphemeralFromAnyone bool   `json:"allow_ephemeral_from_anyone"`
-	ValidateSchema           bool   `json:"validate_schema"`
-	Search                   struct {
+	// OpenKindsSpec lists kinds non-members may publish (forge / public git events).
+	// Empty = members-only writes (upstream pyramid default). Same syntax as allowed_kinds_spec
+	// (+N / -N / CSV / "all"). Intended for NIP-34 + SSH keys without opening chat spam.
+	OpenKindsSpec  string `json:"open_kinds_spec,omitempty"`
+	ValidateSchema bool   `json:"validate_schema"`
+	Search         struct {
 		Enable    bool     `json:"enable"`
 		Languages []string `json:"languages"`
 	} `json:"search"`
@@ -459,6 +463,13 @@ func loadUserSettings() error {
 		KindIsAllowed = kindIsAllowed
 	}
 
+	// Open kinds: empty default list so only explicitly listed kinds are public-write.
+	if kindIsOpen, err := BuildKindIsAllowedFunction(Settings.OpenKindsSpec, nil); err != nil {
+		return fmt.Errorf("invalid open_kinds_spec: %w", err)
+	} else {
+		KindIsOpenFromAnyone = kindIsOpen
+	}
+
 	return nil
 }
 
@@ -479,21 +490,25 @@ func SaveUserSettings() error {
 var SupportedKindsDefault = []nostr.Kind{
 	0, 1, 3, 5, 6, 7, 8, 9,
 	11, 16, 20, 21, 22, 24,
+	50, 51, 52, // gitnostr: permissions, legacy repo announce, SSH keys
 	54,
 	777, 818, 1040,
-	1063, 1111, 1222, 1227, 1244, 1617, 1618, 1619, 1621,
+	1063, 1111, 1222, 1227, 1244, 1337, 1617, 1618, 1619, 1621, 1624,
 	1630, 1631, 1632, 1633, 1984, 1985,
 	4454, 4455,
 	7375, 7376,
-	9321, 9735, 9802, 10000, 10001, 10002, 10003, 10004,
-	10005, 10006, 10007, 10009, 10012, 10013, 10015, 10019, 10027, 10030, 10044, 10050, 10054, 10063, 10064,
+	9321, 9735, 9802, 9806, 10000, 10001, 10002, 10003, 10004,
+	10005, 10006, 10007, 10009, 10011, 10012, 10013, 10015, 10018, 10019, 10027, 10030, 10044, 10050, 10054, 10063, 10064,
 	10154,
 	10777, 10101, 10102, 10317, 15128, 17375,
 	16767,
 	23194, 23195, 24133,
 	30000, 30002, 30003, 30004, 30008, 30009, 30015, 30023, 30024, 30030,
-	30078, 30311, 30617, 30618, 30818, 30819, 31922, 31923,
-	31924, 31925, 35128, 39701,
+	30063, 30078, 30311, 30617, 30618, 30818, 30819, 31922, 31923,
+	31924, 31925, 32267, 35128, 39701,
 }
 
 var KindIsAllowed func(nostr.Kind) bool
+
+// KindIsOpenFromAnyone is true for kinds non-members may publish (see OpenKindsSpec).
+var KindIsOpenFromAnyone func(nostr.Kind) bool

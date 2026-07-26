@@ -558,6 +558,15 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 
 				global.Settings.AllowedKindsSpec = v[0]
 				global.KindIsAllowed = kindIsAllowed
+			case "open_kinds_spec":
+				kindIsOpen, err := global.BuildKindIsAllowedFunction(v[0], nil)
+				if err != nil {
+					http.Error(w, "invalid open_kinds: "+err.Error(), 400)
+					return
+				}
+
+				global.Settings.OpenKindsSpec = v[0]
+				global.KindIsOpenFromAnyone = kindIsOpen
 				//
 				// ftp settings
 			case "ftp_enabled":

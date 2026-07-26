@@ -193,6 +193,11 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 		return false, ""
 	}
 
+	// forge / public git kinds: optional allow-list for non-members (OpenKindsSpec)
+	if global.KindIsOpenFromAnyone != nil && global.KindIsOpenFromAnyone(event.Kind) {
+		return false, ""
+	}
+
 	// validate nip63 logic
 	if event.Tags.Find("nip63") != nil {
 		// if event has nip63 tag, it must also have "-" tag

@@ -383,6 +383,21 @@ all
 							comma-separated numbers set the full list, "all" allows all kinds, and "+/-" entries add or remove from the default list
 						</p>
 					</div>
+					<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="open kinds">open kinds (anyone may publish)</label>
+					<div class="space-y-2">
+						<textarea
+							name="open_kinds_spec"
+							placeholder="examples (git forge):
+0,3,5,7,50,51,52,1111,1337,1617,1618,1619,1621,1624,1630,1631,1632,1633,1985,9735,9806,10011,10018,10317,30023,30617,30618,15128,35128
+
+leave empty = members-only writes (default)"
+							class="w-full px-3 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 h-28 font-mono text-sm"
+							@blur="saveSettings()"
+						>{ global.Settings.OpenKindsSpec }</textarea>
+						<p class="text-xs text-stone-500 dark:text-stone-400">
+							kinds non-members can publish without joining the pyramid. empty keeps upstream behaviour (members only). use a CSV list — not "+/-" against the allowed-kinds default. keeps chat spam off the open path while accepting SSH keys (52), NIP-34, identities (10011), bounties (9806), etc.
+						</p>
+					</div>
 					<div>
 						<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="browse_uri">URL pattern for the relay "browse" links</label>
 						<div class="flex flex-wrap gap-2 items-center">

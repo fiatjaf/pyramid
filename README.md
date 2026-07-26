@@ -112,9 +112,11 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
 
 - **NIP-34 GRASP support**
 
+- **git / forge open kinds** (this fork) — see [FORGE.md](./FORGE.md): extra gittr kinds in the default allow-list, plus optional `open_kinds_spec` so non-members can publish SSH keys (52), NIP-34, identities, etc. without opening chat spam
+
 - **negentropy sync**
-  - fetch missing events from any remote relay
-  - publish missing events to any remote relay
+ - fetch missing events from any remote relay
+ - publish missing events to any remote relay
 
 - **blossom media server**
   - available only for members
