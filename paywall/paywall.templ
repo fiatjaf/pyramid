@@ -36,7 +36,7 @@ templ paywallPage(loggedUser nostr.PubKey) {
 									if evt.Tags.Has("nip63") {
 										<tr>
 											<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
-												<a href={ templ.URL("https://grimoire.rocks/run?cmd=req%20-i%20" + evt.ID.Hex() + "%20" + global.Settings.Domain) } target="_blank" class="hover:underline">
+												<a href={ templ.URL("https://grimoire2.netlify.app/run?cmd=req%20-i%20" + evt.ID.Hex() + "%20" + global.Settings.Domain) } target="_blank" class="hover:underline">
 													if evt.CreatedAt > nostr.Now()-60 {
 														<span class="text-emerald-800">just now</span>
 													} else {
@@ -86,7 +86,7 @@ templ paywallPage(loggedUser nostr.PubKey) {
 										</td>
 										<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400 max-w-xs truncate">{ meta.source }</td>
 										<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400 max-w-xs truncate">
-											<a href={ templ.URL("https://grimoire.rocks/run?cmd=req%20-i%20" + meta.id.Hex() + "%20" + global.Settings.Domain) } target="_blank" class="hover:underline">
+											<a href={ templ.URL("https://grimoire2.netlify.app/run?cmd=req%20-i%20" + meta.id.Hex() + "%20" + global.Settings.Domain) } target="_blank" class="hover:underline">
 												if meta.when > nostr.Now()-60 {
 													<span class="text-emerald-800">just now</span>
 												} else {

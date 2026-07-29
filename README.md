@@ -131,4 +131,4 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
   - this system can be integrated with a 3rd party payment processor of any kind
 ## community
 
-join the group of users at `pyramid.fiatjaf.com'Tnq7x2ZTgrPZWFrC` ([grimoire](https://grimoire.rocks/run?cmd=chat%20pyramid.fiatjaf.com%27Tnq7x2ZTgrPZWFrC), [Nostrord](https://web.nostrord.com/?relay=pyramid.fiatjaf.com&group=Tnq7x2ZTgrPZWFrC)) to talk about your experience or complain about things.
+join the group of users at `pyramid.fiatjaf.com'Tnq7x2ZTgrPZWFrC` ([grimoire](https://grimoire2.netlify.app/run?cmd=chat%20pyramid.fiatjaf.com%27Tnq7x2ZTgrPZWFrC), [Nostrord](https://web.nostrord.com/?relay=pyramid.fiatjaf.com&group=Tnq7x2ZTgrPZWFrC)) to talk about your experience or complain about things.
