@@ -497,20 +497,20 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 					</div>
 				}
 			}
-		if pyramid.IsRoot(loggedUser) {
-			<div class="mt-12">
-				<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">deleted groups</h3>
-				<p class="text-sm text-stone-600 dark:text-stone-400 mb-3">
-					view soft-deleted groups whose events are kept in the <code>deleted-groups</code> internal layer.
-				</p>
-				<a
-					href="/groups/deleted"
-					class="inline-block px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
-				>
-					view deleted groups
-				</a>
-			</div>
-			<div class="mt-24">
+			if pyramid.IsRoot(loggedUser) {
+				<div class="mt-12">
+					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">deleted groups</h3>
+					<p class="text-sm text-stone-600 dark:text-stone-400 mb-3">
+						view soft-deleted groups whose events are kept in the <code>deleted-groups</code> internal layer.
+					</p>
+					<a
+						href="/groups/deleted"
+						class="inline-block px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+					>
+						view deleted groups
+					</a>
+				</div>
+				<div class="mt-24">
 					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">configuration</h3>
 					if !global.Settings.Groups.Enabled {
 						<form method="POST" action="/groups/enable">

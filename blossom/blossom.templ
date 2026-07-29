@@ -105,9 +105,9 @@ templ blossomPage(loggedUser nostr.PubKey) {
 								{{ hasBlobs = true }}
 								<tr>
 									<td class="px-4 py-3 text-sm font-mono text-stone-900 dark:text-stone-100">
-									<a href={ templ.SafeURL(blob.URL) } target="_blank" class="block truncate max-w-[8rem] hover:underline">
-										{ blob.SHA256 }
-									</a>
+										<a href={ templ.SafeURL(blob.URL) } target="_blank" class="block truncate max-w-[8rem] hover:underline">
+											{ blob.SHA256 }
+										</a>
 									</td>
 									<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
 										{ blob.Type }
