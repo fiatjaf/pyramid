@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/eventstore"
 	"fiatjaf.com/nostr/nip29"
 	"github.com/fiatjaf/pyramid/global"
 )
@@ -83,7 +84,25 @@ func (s *GroupsState) ProcessEvent(ctx context.Context, event nostr.Event) (grou
 				}
 			}
 		} else if event.Kind == nostr.KindSimpleGroupDeleteGroup {
-			// when the group was deleted we just remove it
+			// soft-delete: move every event belonging to this group (including
+			// metadata events, which use `d` tags instead of `h`) from IL.Main
+			// to IL.DeletedGroups so the history stays reachable from the
+			// root-only /groups/deleted page and /database inspector, then drop
+			// the in-memory group and tear down its search index.
+			moved := 0
+			for evt := range queryAllGroupEvents(global.IL.Main, group.Address.ID) {
+				if err := global.IL.DeletedGroups.SaveEvent(evt); err != nil && err != eventstore.ErrDupEvent {
+					log.Warn().Err(err).Stringer("event", evt.ID).Msg("failed to archive group event")
+					continue
+				}
+				if err := global.IL.Main.DeleteEvent(evt.ID); err != nil {
+					log.Warn().Err(err).Stringer("event", evt.ID).Msg("failed to delete archived event from main")
+					continue
+				}
+				moved++
+			}
+			global.Log.Info().Str("groupId", group.Address.ID).Int("archivedEvents", moved).Msg("archived deleted group")
+
 			if err := group.removeSearchIndex(); err != nil {
 				log.Error().Err(err).Str("groupId", group.Address.ID).Msg("failed to remove group search index")
 			}

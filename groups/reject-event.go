@@ -45,8 +45,16 @@ func RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg strin
 	if event.Kind == nostr.KindSimpleGroupCreateGroup {
 		if isAuthed {
 			if group != nil {
-				// well, as long as the group doesn't exist, of course
 				return true, "duplicate: group already exists"
+			}
+
+			if global.IL.DeletedGroups != nil {
+				for range global.IL.DeletedGroups.QueryEvents(nostr.Filter{
+					Kinds: []nostr.Kind{nostr.KindSimpleGroupCreateGroup},
+					Tags:  nostr.TagMap{"h": []string{groupId}},
+				}, 1) {
+					return true, "duplicate: a deleted group with this id exists"
+				}
 			}
 
 			if !pyramid.IsMember(event.PubKey) {

@@ -145,6 +145,11 @@ func Init() error {
 		return fmt.Errorf("failed to ensure 'operator': %w", err)
 	}
 
+	IL.DeletedGroups, err = MMMM.EnsureLayer("deleted-groups")
+	if err != nil {
+		return fmt.Errorf("failed to ensure 'deleted-groups': %w", err)
+	}
+
 	for _, url := range []string{"https://api.ipify.org", "https://httpbin.org/ip"} {
 		resp, err := (&http.Client{Timeout: 10 * time.Second}).Get(url)
 		if err != nil {
@@ -252,4 +257,8 @@ var IL struct {
 
 	// operator registrations
 	OperatorBucket *mmm.IndexingLayer
+
+	// events from soft-deleted groups, including the kind-9008 delete-group events.
+	// only used internally and via the root-only /database inspector; not exposed by any relay.
+	DeletedGroups *mmm.IndexingLayer
 }

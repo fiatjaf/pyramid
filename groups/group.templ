@@ -10,10 +10,17 @@ import (
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
-templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Event) {
+templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Event, deleted bool) {
 	@layout.Layout(loggedUser, "groups") {
 		<div class="max-w-4xl mx-auto">
 			<div class="p-6 space-y-6">
+				if deleted {
+					<div class="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
+						<p class="text-sm text-red-700 dark:text-red-300 font-medium">
+							this group is soft-deleted. events shown here are served from the <code>deleted-groups</code> internal layer and are not available through the relay.
+						</p>
+					</div>
+				}
 				// group header with picture and metadata
 				<div class="flex items-start gap-4">
 					if group.Picture != "" {
@@ -157,7 +164,7 @@ templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Even
 					</div>
 				}
 				// dangerous actions section
-				if group.IsPrimaryRole(loggedUser) || pyramid.IsRoot(loggedUser) {
+				if !deleted && (group.IsPrimaryRole(loggedUser) || pyramid.IsRoot(loggedUser)) {
 					<details class="mt-8 p-4 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20">
 						<summary class="cursor-pointer text-lg font-semibold text-red-800 dark:text-red-200">dangerous actions</summary>
 						<div class="space-y-4 mt-4">

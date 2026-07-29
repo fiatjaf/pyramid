@@ -1,0 +1,77 @@
+package groups
+
+import (
+	"fmt"
+
+	"fiatjaf.com/nostr"
+
+	"github.com/fiatjaf/pyramid/layout"
+)
+
+type deletedGroupRow struct {
+	Id        string
+	Name      string
+	About     string
+	DeletedBy nostr.PubKey
+	DeletedAt nostr.Timestamp
+	Members   int
+}
+
+templ deletedGroupsPage(loggedUser nostr.PubKey, rows []deletedGroupRow) {
+	@layout.Layout(loggedUser, "groups") {
+		<div class="max-w-4xl mx-auto">
+			<div class="p-6 space-y-6">
+				<div>
+					<h1 class="text-2xl font-bold text-stone-900 dark:text-stone-100 mb-2 font-[family-name:var(--primary-font)]">deleted groups</h1>
+					<p class="text-stone-600 dark:text-stone-400">
+						soft-deleted groups whose events have been moved to the <code>deleted-groups</code> internal layer. the events are still on disk and can be queried from the <a href="/database" class="underline hover:text-blue-500">database inspector</a>.
+					</p>
+				</div>
+				if len(rows) == 0 {
+					<p class="text-sm text-stone-600 dark:text-stone-400">no deleted groups</p>
+				} else {
+					<div class="overflow-x-auto">
+						<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
+							<thead class="bg-stone-50 dark:bg-stone-800">
+								<tr>
+									<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">group id</th>
+									<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">name</th>
+									<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">members</th>
+									<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">deleted at</th>
+									<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">deleted by</th>
+									<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">actions</th>
+								</tr>
+							</thead>
+							<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
+								for _, row := range rows {
+									<tr>
+										<td class="px-4 py-3 text-sm text-center font-mono">{ row.Id }</td>
+										<td class="px-4 py-3 text-sm text-center text-stone-900 dark:text-stone-100">
+											if row.Name != "" {
+												{ row.Name }
+											} else {
+												<span class="text-stone-500">[deleted]</span>
+											}
+										</td>
+										<td class="px-4 py-3 text-sm text-center text-stone-600 dark:text-stone-400">{ fmt.Sprint(row.Members) }</td>
+										<td class="px-4 py-3 text-sm text-center text-stone-600 dark:text-stone-400 font-mono text-xs">{ fmt.Sprint(int(row.DeletedAt)) }</td>
+										<td class="px-4 py-3 text-sm text-center">
+											<nostr-name pubkey={ row.DeletedBy.Hex() } class="text-stone-700 dark:text-stone-300">{ row.DeletedBy.Hex() }</nostr-name>
+										</td>
+										<td class="px-4 py-3 text-sm text-center">
+											<a
+												href={ "/groups/" + row.Id }
+												class="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
+											>view</a>
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+					<p class="text-sm text-stone-500 dark:text-stone-400">{ fmt.Sprintf("%d deleted groups", len(rows)) }</p>
+				}
+			</div>
+		</div>
+	}
+}

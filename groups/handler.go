@@ -51,14 +51,26 @@ func setupEnabled() {
 	Handler.mux.HandleFunc("POST /groups/livekit/log", livekitLogHandler)
 	Handler.mux.HandleFunc("POST /groups/livekit/webhook", livekitWebhookHandler)
 	Handler.mux.HandleFunc("POST /groups/wipe/{groupId}", wipeGroupHandler)
+	Handler.mux.HandleFunc("GET /groups/deleted", deletedGroupsHandler)
 	Handler.mux.HandleFunc("/groups/{groupId}", func(w http.ResponseWriter, r *http.Request) {
 		loggedUser, _ := global.GetLoggedUser(r)
 		groupId := r.PathValue("groupId")
 
 		group, exists := State.Groups.Load(groupId)
+		deleted := false
 		if !exists {
-			http.NotFound(w, r)
-			return
+			// try the deleted-groups archive (root only)
+			if !pyramid.IsRoot(loggedUser) {
+				http.NotFound(w, r)
+				return
+			}
+			archived, _, err := LoadDeletedGroup(groupId)
+			if err != nil {
+				http.NotFound(w, r)
+				return
+			}
+			group = archived
+			deleted = true
 		}
 		if group.Hidden && !pyramid.IsRoot(loggedUser) && !group.AnyOfTheseIsAMember([]nostr.PubKey{loggedUser}) {
 			http.NotFound(w, r) // fake 404
@@ -67,7 +79,11 @@ func setupEnabled() {
 
 		// query last 5 events for this group
 		events := make([]nostr.Event, 0, 5)
-		for evt := range global.IL.Main.QueryEvents(nostr.Filter{
+		source := global.IL.Main
+		if deleted {
+			source = global.IL.DeletedGroups
+		}
+		for evt := range source.QueryEvents(nostr.Filter{
 			Kinds: []nostr.Kind{9, 11, 1111, 31922, 31923},
 			Tags:  nostr.TagMap{"h": []string{groupId}},
 			Limit: 5,
@@ -75,7 +91,7 @@ func setupEnabled() {
 			events = append(events, evt)
 		}
 
-		groupDetailPage(loggedUser, group, events).Render(r.Context(), w)
+		groupDetailPage(loggedUser, group, events, deleted).Render(r.Context(), w)
 	})
 
 	Handler.mux.HandleFunc("/groups/", func(w http.ResponseWriter, r *http.Request) {
@@ -175,6 +191,45 @@ func wipeGroupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/groups/", 302)
+}
+
+func deletedGroupsHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	// gather every archived group id from the create-group events sitting in
+	// IL.DeletedGroups and build a row for each. the seen map is a guard against
+	// duplicate group ids produced by redundant replay events.
+	rows := make([]deletedGroupRow, 0)
+	for evt := range global.IL.DeletedGroups.QueryEvents(nostr.Filter{
+		Kinds: []nostr.Kind{nostr.KindSimpleGroupCreateGroup},
+	}, 10000) {
+		gtag := evt.Tags.Find("h")
+		if gtag == nil {
+			continue
+		}
+		id := gtag[1]
+
+		group, deleteEvent, err := LoadDeletedGroup(id)
+		if err != nil {
+			log.Warn().Err(err).Str("groupId", id).Msg("failed to load archived deleted group")
+			continue
+		}
+		rows = append(rows, deletedGroupRow{
+			Id:        group.Address.ID,
+			Name:      group.Name,
+			About:     group.About,
+			DeletedBy: deleteEvent.PubKey,
+			DeletedAt: deleteEvent.CreatedAt,
+			Members:   len(group.Members),
+		})
+	}
+
+	deletedGroupsPage(loggedUser, rows).Render(r.Context(), w)
 }
 
 type MuxHandler struct {

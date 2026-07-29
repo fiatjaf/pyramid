@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/eventstore"
 	"fiatjaf.com/nostr/eventstore/bleve"
 	"fiatjaf.com/nostr/nip29"
 	"github.com/fiatjaf/pyramid/global"
@@ -23,6 +24,11 @@ type Group struct {
 	searchIndex *bleve.BleveBackend
 	language    lingua.Language
 	hasLanguage bool
+
+	// set only for groups reconstructed from IL.DeletedGroups
+	deleted   bool
+	deletedBy nostr.PubKey
+	deletedAt nostr.Timestamp
 }
 
 //go:inline
@@ -108,7 +114,25 @@ nextgroup:
 			Tags:  nostr.TagMap{"h": []string{id}},
 		}, 50000) {
 			if event.Kind == nostr.KindSimpleGroupDeleteGroup {
-				// we don't keep track of this group if it was deleted at any point
+				// one-time migration: groups deleted before this layer existed are
+				// still sitting in IL.Main. move them to IL.DeletedGroups and skip
+				// loading them as live groups. includes metadata events (which use
+				// `d` tags) via queryAllGroupEvents.
+				if global.IL.DeletedGroups != nil {
+					moved := 0
+					for evt := range queryAllGroupEvents(global.IL.Main, id) {
+						if err := global.IL.DeletedGroups.SaveEvent(evt); err != nil && err != eventstore.ErrDupEvent {
+							log.Warn().Err(err).Stringer("event", evt.ID).Msg("failed to archive existing deleted group event")
+							continue
+						}
+						if err := global.IL.Main.DeleteEvent(evt.ID); err != nil {
+							log.Warn().Err(err).Stringer("event", evt.ID).Msg("failed to remove archived event from main")
+							continue
+						}
+						moved++
+					}
+					global.Log.Info().Str("groupId", id).Int("archivedEvents", moved).Msg("archived previously-deleted group from main")
+				}
 				continue nextgroup
 			}
 

@@ -178,6 +178,8 @@ func databaseByName(name string) *mmm.IndexingLayer {
 		return global.IL.Scheduled
 	case "blossom":
 		return global.IL.Blossom
+	case "deleted-groups":
+		return global.IL.DeletedGroups
 	}
 	return nil
 }
@@ -245,6 +247,7 @@ templ databasePage(loggedUser nostr.PubKey, filterJSON string, errMsg string) {
 						@dbCheckbox("uppermost", "Uppermost")
 						@dbCheckbox("scheduled", "Scheduled")
 						@dbCheckbox("blossom", "Blossom")
+					@dbCheckbox("deleted-groups", "Deleted Groups")
 					</div>
 				</fieldset>
 				<div class="flex items-center gap-4">

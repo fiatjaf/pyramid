@@ -3,9 +3,12 @@ package groups
 import (
 	"context"
 	"fmt"
+	"iter"
 	"sync/atomic"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/eventstore/mmm"
+	"fiatjaf.com/nostr/nip29"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/puzpuzpuz/xsync/v3"
 )
@@ -62,30 +65,65 @@ func HandleEventSaved(event nostr.Event) {
 
 func (s *GroupsState) WipeGroup(groupId string) error {
 	group, exists := s.Groups.Load(groupId)
-	if !exists {
+	if !exists && global.IL.DeletedGroups == nil {
 		return fmt.Errorf("group not found")
 	}
 
-	// delete all events associated with this group
+	// delete all events associated with this group from both layers, including
+	// metadata events (kinds 39000-39003) which carry the group id in a `d` tag
+	// instead of an `h` tag.
 	count := 0
-	for evt := range global.IL.Main.QueryEvents(nostr.Filter{
-		Tags: nostr.TagMap{"h": []string{groupId}},
-	}, 10000) {
+	for evt := range queryAllGroupEvents(global.IL.Main, groupId) {
 		if err := global.IL.Main.DeleteEvent(evt.ID); err != nil {
 			log.Warn().Err(err).Stringer("event", evt.ID).Msg("failed to delete event during group wipe")
 		} else {
 			count++
 		}
 	}
+	if global.IL.DeletedGroups != nil {
+		for evt := range queryAllGroupEvents(global.IL.DeletedGroups, groupId) {
+			if err := global.IL.DeletedGroups.DeleteEvent(evt.ID); err != nil {
+				log.Warn().Err(err).Stringer("event", evt.ID).Msg("failed to delete archived event during group wipe")
+			} else {
+				count++
+			}
+		}
+	}
 
 	global.Log.Info().Str("groupId", groupId).Int("deletedEvents", count).Msg("wiped group")
 
-	if err := group.removeSearchIndex(); err != nil {
-		return fmt.Errorf("failed to wipe group search index: %w", err)
+	if exists {
+		if err := group.removeSearchIndex(); err != nil {
+			return fmt.Errorf("failed to wipe group search index: %w", err)
+		}
+		s.Groups.Delete(groupId)
 	}
 
-	// remove group from memory
-	s.Groups.Delete(groupId)
-
 	return nil
+}
+
+// queryAllGroupEvents yields every event belonging to a group, in unspecified
+// order, deduplicated by event id. moderation events (9007-9011 etc) are
+// tagged with `h`; metadata events (39000-39003 etc) are tagged with `d`.
+// we need to query both because the layer index is keyed on tag and doesn't
+// know which kinds a group spans.
+func queryAllGroupEvents(layer *mmm.IndexingLayer, groupId string) iter.Seq[nostr.Event] {
+	return func(yield func(nostr.Event) bool) {
+		// moderation / chat events tagged with `h`
+		for evt := range layer.QueryEvents(nostr.Filter{Tags: nostr.TagMap{"h": []string{groupId}}}, 1_000_000) {
+			if !yield(evt) {
+				return
+			}
+		}
+
+		// group metadata events tagged with `d`
+		for evt := range layer.QueryEvents(nostr.Filter{
+			Kinds: nip29.MetadataEventKinds,
+			Tags:  nostr.TagMap{"d": []string{groupId}},
+		}, 100) {
+			if !yield(evt) {
+				return
+			}
+		}
+	}
 }
