@@ -17,7 +17,7 @@ templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Even
 				if deleted {
 					<div class="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
 						<p class="text-sm text-red-700 dark:text-red-300 font-medium">
-							this group is soft-deleted. events shown here are served from the <code>deleted-groups</code> internal layer and are not available through the relay.
+							this group is soft-deleted. events shown here are not available through the relay.
 						</p>
 					</div>
 				}
@@ -124,32 +124,34 @@ templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Even
 					</div>
 				</div>
 				// external links
-				<div>
-					<h2 class="text-lg font-semibold mb-3 dark:text-stone-200">view on other clients</h2>
-					<div class="flex gap-3">
-						<a
-							href={ "https://grimoire2.netlify.app/run?cmd=chat%20" + group.Address.Relay + "%27" + group.Address.ID }
-							target="_blank"
-							class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
-						>
-							grimoire2.netlify.app
-						</a>
-						<a
-							href={ "https://app.flotilla.social/spaces/" + global.Settings.Domain + "/" + group.Address.ID }
-							target="_blank"
-							class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
-						>
-							flotilla.social
-						</a>
-						<a
-							href={ "https://web.nostrord.com/#/g/" + global.Settings.Domain + "/" + group.Address.ID }
-							target="_blank"
-							class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
-						>
-							nostrord
-						</a>
+				if !deleted {
+					<div>
+						<h2 class="text-lg font-semibold mb-3 dark:text-stone-200">view on other clients</h2>
+						<div class="flex gap-3">
+							<a
+								href={ "https://grimoire2.netlify.app/run?cmd=chat%20" + group.Address.Relay + "%27" + group.Address.ID }
+								target="_blank"
+								class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
+							>
+								grimoire2.netlify.app
+							</a>
+							<a
+								href={ "https://app.flotilla.social/spaces/" + global.Settings.Domain + "/" + group.Address.ID }
+								target="_blank"
+								class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
+							>
+								flotilla.social
+							</a>
+							<a
+								href={ "https://web.nostrord.com/#/g/" + global.Settings.Domain + "/" + group.Address.ID }
+								target="_blank"
+								class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
+							>
+								nostrord
+							</a>
+						</div>
 					</div>
-				</div>
+				}
 				// recent events
 				if len(events) > 0 {
 					<div>
@@ -197,7 +199,7 @@ templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Even
 																resolve();
 																clearTimeout(timeout);
 																ws.close();
-																alert("group deleted successfully!");
+																alert("group soft-deleted successfully!");
 																window.location.href = "/groups/";
 															} else if (message[2] === false) {
 																reject(new Error(message[3] || "event rejected by relay"));
@@ -213,14 +215,14 @@ templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Even
 													});
 												} catch (error) {
 													console.error("error deleting group:", error);
-													alert("failed to delete group: " + error.message);
+													alert("failed to soft-delete group: " + String(error));
 												}
 											}
 										}` }
 									@click="deleteGroup()"
 									class="cursor-pointer px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded font-medium"
 								>
-									delete group
+									soft-delete group
 								</button>
 							</div>
 							<div>
