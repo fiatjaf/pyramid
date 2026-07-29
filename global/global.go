@@ -91,6 +91,7 @@ func Init() error {
 		return fmt.Errorf("failed to ensure 'personal': %w", err)
 	}
 
+	// TODO: delete this eventually
 	if err := migrateGroupsLayer(); err != nil {
 		return fmt.Errorf("groups migration: %w", err)
 	}

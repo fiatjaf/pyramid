@@ -114,6 +114,7 @@ nextgroup:
 			Tags:  nostr.TagMap{"h": []string{id}},
 		}, 50000) {
 			if event.Kind == nostr.KindSimpleGroupDeleteGroup {
+				// TODO: delete this later
 				// one-time migration: groups deleted before this layer existed are
 				// still sitting in IL.Main. move them to IL.DeletedGroups and skip
 				// loading them as live groups. includes metadata events (which use
