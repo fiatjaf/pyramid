@@ -51,7 +51,7 @@ var (
 	log  = global.Log.With().Str("service", "search").Logger()
 	Main *bleve.BleveBackend
 
-	indexableKinds = []nostr.Kind{0, 1, 6, 11, 16, 20, 21, 22, 24, 1111, 9802, 30023, 30818}
+	indexableKinds = []nostr.Kind{0, 1, 6, 11, 16, 20, 21, 22, 24, 1111, 9802, 30023, 30617, 30818}
 )
 
 func Init() error {
