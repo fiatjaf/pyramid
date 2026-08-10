@@ -585,6 +585,8 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Blossom.AllowGroupMembers = v[0] == "on"
 			case "blossom_max_group_member_upload_size":
 				global.Settings.Blossom.MaxGroupMemberUploadSize, _ = strconv.Atoi(v[0])
+			case "blossom_reclaim_on_event_deletion":
+				global.Settings.Blossom.ReclaimOnEventDeletion = v[0] == "on"
 			case "nsite_enabled":
 				global.Settings.Nsite.Enabled = v[0] == "on"
 				go restartSoon()

@@ -245,6 +245,7 @@ templ blossomPage(loggedUser nostr.PubKey) {
 								maxUserUploadSize: ` + global.JSONString(global.Settings.GetMaxUserUploadSizeDisplay()) + `,
 								allowGroupMembers: ` + strconv.FormatBool(global.Settings.Blossom.AllowGroupMembers) + `,
 								maxGroupMemberUploadSize: ` + strconv.Itoa(global.Settings.Blossom.MaxGroupMemberUploadSize) + `,
+								reclaimOnEventDeletion: ` + strconv.FormatBool(global.Settings.Blossom.ReclaimOnEventDeletion) + `,
 								async saveSettings() {
 									const response = await fetch(this.$refs.form.action, {
 										method: 'POST',
@@ -306,6 +307,23 @@ templ blossomPage(loggedUser nostr.PubKey) {
 								/>
 								<p class="text-xs text-stone-500 dark:text-stone-400 mt-2">
 									a single number (0 = unlimited)
+								</p>
+							</div>
+							<div>
+								<label class="flex items-center cursor-pointer">
+									<input type="hidden" name="blossom_reclaim_on_event_deletion" :value="reclaimOnEventDeletion ? 'on' : 'off'"/>
+									<input
+										type="checkbox"
+										x-model="reclaimOnEventDeletion"
+										@change="saveSettings()"
+										class="rounded text-blue-500 focus:ring-blue-500"
+									/>
+									<span class="text-sm font-medium text-stone-700 dark:text-stone-300 ml-2">
+										delete blobs when their events are deleted
+									</span>
+								</label>
+								<p class="text-xs text-stone-500 dark:text-stone-400 mt-2">
+									when an event is deleted (by its author or by a group admin), any blob hosted here that it references is released and removed if no other event owns it
 								</p>
 							</div>
 							<div

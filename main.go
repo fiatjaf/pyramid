@@ -241,6 +241,11 @@ func main() {
 			}
 		}
 
+		// release blossom blobs linked to this event before it's gone
+		if global.ReclaimBlobsFromEvent != nil {
+			global.ReclaimBlobsFromEvent(ctx, id)
+		}
+
 		// try to delete from everywhere
 		if err := deleteFromMain(id); err != nil {
 			return err

@@ -120,6 +120,7 @@ type UserSettings struct {
 		MaxUserUploadSizeAtEachLevel []int `json:"max_user_upload_size_at_each_level,omitempty"`
 		AllowGroupMembers            bool  `json:"allow_group_members,omitempty"`          // allow members of any nip-29 group to use blossom
 		MaxGroupMemberUploadSize     int   `json:"max_group_member_upload_size,omitempty"` // in megabytes, 0 means unlimited
+		ReclaimOnEventDeletion       bool  `json:"reclaim_on_event_deletion,omitempty"`    // delete blobs linked to an event when that event is deleted
 	} `json:"blossom"`
 
 	Nsite struct {

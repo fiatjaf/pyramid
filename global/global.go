@@ -1,6 +1,7 @@
 package global
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -263,3 +264,5 @@ var IL struct {
 	// only used internally and via the root-only /database inspector; not exposed by any relay.
 	DeletedGroups *mmm.IndexingLayer
 }
+
+var ReclaimBlobsFromEvent func(ctx context.Context, id nostr.ID)
