@@ -136,7 +136,7 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 							reject(new Error("websocket connection error"))
 						}
 					})
-				}
+				},
 			}` }
 		>
 			<h1 class="text-4xl font-bold mb-4 font-[family-name:var(--primary-font)]">groups</h1>
@@ -492,6 +492,72 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 								:disabled="creating"
 							>
 								create group
+							</button>
+						</form>
+					</div>
+					// import group section
+					<div class="mt-8">
+						<h3 class="text-lg font-semibold dark:text-stone-200">import existing group</h3>
+						<form method="POST" action="/groups/import" class="space-y-4">
+							<p class="text-sm text-stone-600 dark:text-stone-400">
+								paste the group's naddr (NIP-19 for kind 39000) or its address in the form
+								<code class="px-1 rounded bg-stone-100 dark:bg-stone-800">&lt;domain&gt;'&lt;id&gt;</code>. the group
+								will be fetched from the relay in the address and imported.
+							</p>
+							<div>
+								<label for="import_address" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+									group address
+								</label>
+								<input
+									type="text"
+									id="import_address"
+									name="address"
+									placeholder="naddr1... or relay.example.com'mygroup"
+									class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
+								/>
+							</div>
+							<details class="rounded-lg border border-stone-200 dark:border-stone-700 p-3">
+								<summary class="cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">
+									rename roles
+								</summary>
+								<p class="text-sm text-stone-600 dark:text-stone-400 mt-2 mb-3">
+									when the source group uses role names different from
+									<code class="px-1 rounded bg-stone-100 dark:bg-stone-800">admin</code> and
+									<code class="px-1 rounded bg-stone-100 dark:bg-stone-800">moderator</code>, specify which
+									source role should become each one.
+								</p>
+								<div class="space-y-3">
+									<div>
+										<label for="import_primary_from" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+											source role → admin
+										</label>
+										<input
+											type="text"
+											id="import_primary_from"
+											name="primary_from"
+											placeholder="e.g. owner"
+											class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
+										/>
+									</div>
+									<div>
+										<label for="import_secondary_from" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+											source role → moderator
+										</label>
+										<input
+											type="text"
+											id="import_secondary_from"
+											name="secondary_from"
+											placeholder="e.g. mod"
+											class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
+										/>
+									</div>
+								</div>
+							</details>
+							<button
+								type="submit"
+								class="cursor-pointer px-4 py-2 rounded themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] themed:text-white light:bg-stone-200 light:hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+							>
+								import group
 							</button>
 						</form>
 					</div>

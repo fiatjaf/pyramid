@@ -1,6 +1,7 @@
 package groups
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -50,6 +51,7 @@ func setupEnabled() {
 	Handler.mux.HandleFunc("POST /groups/livekit/stop", stopEmbeddedLiveKitHandler)
 	Handler.mux.HandleFunc("POST /groups/livekit/log", livekitLogHandler)
 	Handler.mux.HandleFunc("POST /groups/livekit/webhook", livekitWebhookHandler)
+	Handler.mux.HandleFunc("POST /groups/import", importGroupHandler)
 	Handler.mux.HandleFunc("POST /groups/wipe/{groupId}", wipeGroupHandler)
 	Handler.mux.HandleFunc("GET /groups/deleted", deletedGroupsHandler)
 	Handler.mux.HandleFunc("/groups/{groupId}", func(w http.ResponseWriter, r *http.Request) {
@@ -238,4 +240,42 @@ type MuxHandler struct {
 
 func (mh *MuxHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mh.mux.ServeHTTP(w, r)
+}
+
+func importGroupHandler(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "invalid form: "+err.Error(), 400)
+		return
+	}
+
+	loggedUser, isLoggedIn := global.GetLoggedUser(r)
+	if !isLoggedIn {
+		http.Error(w, "auth-required: must be logged in to import a group", 401)
+		return
+	}
+	if !pyramid.IsMember(loggedUser) {
+		http.Error(w, "restricted: only relay members can import groups", 403)
+		return
+	}
+
+	res, err := State.ImportGroup(r.Context(), loggedUser,
+		r.FormValue("address"),
+		r.FormValue("primary_from"),
+		r.FormValue("secondary_from"),
+	)
+	if err != nil {
+		http.Error(w, "import failed: "+err.Error(), 500)
+		return
+	}
+
+	if res.Skipped {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(200)
+		fmt.Fprintf(w, "skipped: %s", res.Reason)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	fmt.Fprintf(w, "imported group %q (%d events downloaded, %d put-user events)\n",
+		res.GroupID, res.Downloaded, res.PutUserEvents)
 }
