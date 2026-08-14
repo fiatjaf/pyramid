@@ -168,7 +168,75 @@ func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, addr
 		act.Apply(&group.Group)
 	}
 
-	newPutUserEvents := buildImportPutUserEvents(group, caller, adminRoles, adminMode, primaryFrom, secondaryFrom)
+	newPutUserEvents := make([]nostr.Event, 0, len(group.Members)+len(adminRoles)+1)
+	now := nostr.Now()
+
+	// members that get a role granted below don't need a strip event — their
+	// grant overwrites the strip anyway
+	granted := make(map[nostr.PubKey]bool, len(adminRoles)+1)
+
+	switch adminMode {
+	case "keep":
+		primaryLower := strings.ToLower(strings.TrimSpace(primaryFrom))
+		secondaryLower := strings.ToLower(strings.TrimSpace(secondaryFrom))
+
+		// rewrite each admin's roles according to the mapping
+		for pk, roles := range adminRoles {
+			newRoles := make([]string, 0, 2)
+			for _, r := range roles {
+				switch {
+				case strings.EqualFold(r, PRIMARY_ROLE_NAME) || (primaryLower != "" && strings.EqualFold(r, primaryLower)):
+					newRoles = append(newRoles, PRIMARY_ROLE_NAME)
+				case strings.EqualFold(r, SECONDARY_ROLE_NAME) || (secondaryLower != "" && strings.EqualFold(r, secondaryLower)):
+					newRoles = append(newRoles, SECONDARY_ROLE_NAME)
+				}
+			}
+			if len(newRoles) == 0 {
+				continue
+			}
+			granted[pk] = true
+			tag := nostr.Tag{"p", pk.Hex()}
+			tag = append(tag, newRoles...)
+			newPutUserEvents = append(newPutUserEvents, nostr.Event{
+				Kind:      nostr.KindSimpleGroupPutUser,
+				CreatedAt: now + 1,
+				Tags: nostr.Tags{
+					{"h", group.Address.ID},
+					tag,
+				},
+			})
+		}
+
+		// "reset" clears everything and makes the caller the only admin; "keep"
+		// only preserves the source admins, so the caller only becomes admin if
+		// they already were one
+	case "reset":
+		granted[caller] = true
+		newPutUserEvents = append(newPutUserEvents, nostr.Event{
+			Kind:      nostr.KindSimpleGroupPutUser,
+			CreatedAt: now + 2,
+			Tags: nostr.Tags{
+				{"h", group.Address.ID},
+				{"p", caller.Hex(), PRIMARY_ROLE_NAME},
+			},
+		})
+	}
+
+	// strip every role assignment that wouldn't be overwritten by a grant above:
+	// members with no roles and members re-granted here don't need a strip event
+	for pk, roles := range group.Members {
+		if granted[pk] || len(roles) == 0 {
+			continue
+		}
+		newPutUserEvents = append(newPutUserEvents, nostr.Event{
+			Kind:      nostr.KindSimpleGroupPutUser,
+			CreatedAt: now,
+			Tags: nostr.Tags{
+				{"h", group.Address.ID},
+				{"p", pk.Hex()},
+			},
+		})
+	}
 
 	// stash the group in memory before we start saving events so the search
 	// indexing path and the metadata sync hooks work
@@ -278,74 +346,4 @@ func foreignRoles(adminRoles map[nostr.PubKey][]string) []string {
 	}
 	slices.Sort(roles)
 	return roles
-}
-
-// buildImportPutUserEvents constructs the put-user events that apply the admin
-// strategy. Every existing role assignment is cleared; in "reset" mode nothing
-// else is done and the caller becomes the only admin; in "keep" mode the
-// admins listed in the source's kind 39001 event get their roles rewritten to
-// our PRIMARY/SECONDARY names (renamed from the caller's primaryFrom /
-// secondaryFrom if provided). The caller is always made the PRIMARY admin.
-func buildImportPutUserEvents(group *Group, caller nostr.PubKey, adminRoles map[nostr.PubKey][]string, adminMode, primaryFrom, secondaryFrom string) []nostr.Event {
-	events := make([]nostr.Event, 0, len(group.Members)+len(adminRoles)+1)
-	now := nostr.Now()
-
-	// strip every existing role assignment so the 39001 list is the source of
-	// truth for who holds which role
-	for pk := range group.Members {
-		events = append(events, nostr.Event{
-			Kind:      nostr.KindSimpleGroupPutUser,
-			CreatedAt: now,
-			Tags: nostr.Tags{
-				{"h", group.Address.ID},
-				{"p", pk.Hex()},
-			},
-		})
-	}
-
-	if adminMode != "reset" {
-		primaryLower := strings.ToLower(strings.TrimSpace(primaryFrom))
-		secondaryLower := strings.ToLower(strings.TrimSpace(secondaryFrom))
-
-		// rewrite each admin's roles according to the mapping
-		for pk, roles := range adminRoles {
-			newRoles := make([]string, 0, 2)
-			for _, r := range roles {
-				switch {
-				case strings.EqualFold(r, PRIMARY_ROLE_NAME) || (primaryLower != "" && strings.EqualFold(r, primaryLower)):
-					newRoles = append(newRoles, PRIMARY_ROLE_NAME)
-				case strings.EqualFold(r, SECONDARY_ROLE_NAME) || (secondaryLower != "" && strings.EqualFold(r, secondaryLower)):
-					newRoles = append(newRoles, SECONDARY_ROLE_NAME)
-				}
-			}
-			if len(newRoles) == 0 {
-				continue
-			}
-			tag := nostr.Tag{"p", pk.Hex()}
-			tag = append(tag, newRoles...)
-			events = append(events, nostr.Event{
-				Kind:      nostr.KindSimpleGroupPutUser,
-				CreatedAt: now + 1,
-				Tags: nostr.Tags{
-					{"h", group.Address.ID},
-					tag,
-				},
-			})
-		}
-	}
-
-	// "reset" clears everything and makes the caller the only admin; "keep"
-	// only preserves the source admins, so the caller only becomes admin if
-	// they already were one
-	if adminMode == "reset" {
-		events = append(events, nostr.Event{
-			Kind:      nostr.KindSimpleGroupPutUser,
-			CreatedAt: now + 2,
-			Tags: nostr.Tags{
-				{"h", group.Address.ID},
-				{"p", caller.Hex(), PRIMARY_ROLE_NAME},
-			},
-		})
-	}
-	return events
 }
