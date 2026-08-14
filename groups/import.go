@@ -76,7 +76,7 @@ type importResult struct {
 // admin. If the source group uses roles other than our admin/moderator and no
 // mapping was provided, the import fails so the caller can specify how to
 // rename them.
-func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, address, primaryFrom, secondaryFrom string) (*importResult, error) {
+func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, address, adminMode, primaryFrom, secondaryFrom string) (*importResult, error) {
 	relay, groupID, err := parseImportAddress(address)
 	if err != nil {
 		return nil, err
@@ -135,19 +135,22 @@ func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, addr
 		return nil, fmt.Errorf("no moderation events found for group %q on %s", groupID, relay)
 	}
 
-	// refuse to import groups whose admins carry roles this relay doesn't
-	// know, unless the caller provided a rename mapping that covers them
-	if foreign := foreignRoles(adminRoles); len(foreign) > 0 {
-		primaryLower := strings.ToLower(strings.TrimSpace(primaryFrom))
-		secondaryLower := strings.ToLower(strings.TrimSpace(secondaryFrom))
-		covered := func(r string) bool {
-			r = strings.ToLower(r)
-			return r == primaryLower || r == secondaryLower
-		}
-		for _, r := range foreign {
-			if !covered(r) {
-				pool.Close("foreign roles found")
-				return nil, fmt.Errorf("source group uses roles %s, which are different from this relay's %q and %q roles; to import the group these roles must be renamed — specify which source role becomes %q and which becomes %q", strings.Join(foreign, ", "), PRIMARY_ROLE_NAME, SECONDARY_ROLE_NAME, PRIMARY_ROLE_NAME, SECONDARY_ROLE_NAME)
+	// for "keep" mode, refuse to import groups whose admins carry roles this
+	// relay doesn't know, unless the caller provided a rename mapping that
+	// covers them; "reset" clears all roles anyway so it needs no mapping
+	if adminMode == "keep" {
+		if foreign := foreignRoles(adminRoles); len(foreign) > 0 {
+			primaryLower := strings.ToLower(strings.TrimSpace(primaryFrom))
+			secondaryLower := strings.ToLower(strings.TrimSpace(secondaryFrom))
+			covered := func(r string) bool {
+				r = strings.ToLower(r)
+				return r == primaryLower || r == secondaryLower
+			}
+			for _, r := range foreign {
+				if !covered(r) {
+					pool.Close("foreign roles found")
+					return nil, fmt.Errorf("source group uses roles \"%s\", which are different from this relay's %q and %q roles; to import the group these roles must be renamed — specify which source role becomes %q and which becomes %q", strings.Join(foreign, "\", \""), PRIMARY_ROLE_NAME, SECONDARY_ROLE_NAME, PRIMARY_ROLE_NAME, SECONDARY_ROLE_NAME)
+				}
 			}
 		}
 	}
@@ -165,7 +168,7 @@ func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, addr
 		act.Apply(&group.Group)
 	}
 
-	newPutUserEvents := buildImportPutUserEvents(group, caller, adminRoles, primaryFrom, secondaryFrom)
+	newPutUserEvents := buildImportPutUserEvents(group, caller, adminRoles, adminMode, primaryFrom, secondaryFrom)
 
 	// stash the group in memory before we start saving events so the search
 	// indexing path and the metadata sync hooks work
@@ -277,16 +280,15 @@ func foreignRoles(adminRoles map[nostr.PubKey][]string) []string {
 	return roles
 }
 
-// buildImportPutUserEvents constructs the put-user events that apply the role
-// strategy: every existing role assignment is cleared, then the admins listed
-// in the source's kind 39001 event have their roles rewritten to our
-// PRIMARY/SECONDARY names (renamed from the caller's primaryFrom/secondaryFrom
-// if provided), and the caller is made the PRIMARY admin.
-func buildImportPutUserEvents(group *Group, caller nostr.PubKey, adminRoles map[nostr.PubKey][]string, primaryFrom, secondaryFrom string) []nostr.Event {
+// buildImportPutUserEvents constructs the put-user events that apply the admin
+// strategy. Every existing role assignment is cleared; in "reset" mode nothing
+// else is done and the caller becomes the only admin; in "keep" mode the
+// admins listed in the source's kind 39001 event get their roles rewritten to
+// our PRIMARY/SECONDARY names (renamed from the caller's primaryFrom /
+// secondaryFrom if provided). The caller is always made the PRIMARY admin.
+func buildImportPutUserEvents(group *Group, caller nostr.PubKey, adminRoles map[nostr.PubKey][]string, adminMode, primaryFrom, secondaryFrom string) []nostr.Event {
 	events := make([]nostr.Event, 0, len(group.Members)+len(adminRoles)+1)
 	now := nostr.Now()
-	primaryLower := strings.ToLower(strings.TrimSpace(primaryFrom))
-	secondaryLower := strings.ToLower(strings.TrimSpace(secondaryFrom))
 
 	// strip every existing role assignment so the 39001 list is the source of
 	// truth for who holds which role
@@ -301,39 +303,41 @@ func buildImportPutUserEvents(group *Group, caller nostr.PubKey, adminRoles map[
 		})
 	}
 
-	// rewrite each admin's roles according to the mapping
-	callerIsAdmin := false
-	for pk, roles := range adminRoles {
-		newRoles := make([]string, 0, 2)
-		for _, r := range roles {
-			switch {
-			case strings.EqualFold(r, PRIMARY_ROLE_NAME) || (primaryLower != "" && strings.EqualFold(r, primaryLower)):
-				newRoles = append(newRoles, PRIMARY_ROLE_NAME)
-			case strings.EqualFold(r, SECONDARY_ROLE_NAME) || (secondaryLower != "" && strings.EqualFold(r, secondaryLower)):
-				newRoles = append(newRoles, SECONDARY_ROLE_NAME)
+	if adminMode != "reset" {
+		primaryLower := strings.ToLower(strings.TrimSpace(primaryFrom))
+		secondaryLower := strings.ToLower(strings.TrimSpace(secondaryFrom))
+
+		// rewrite each admin's roles according to the mapping
+		for pk, roles := range adminRoles {
+			newRoles := make([]string, 0, 2)
+			for _, r := range roles {
+				switch {
+				case strings.EqualFold(r, PRIMARY_ROLE_NAME) || (primaryLower != "" && strings.EqualFold(r, primaryLower)):
+					newRoles = append(newRoles, PRIMARY_ROLE_NAME)
+				case strings.EqualFold(r, SECONDARY_ROLE_NAME) || (secondaryLower != "" && strings.EqualFold(r, secondaryLower)):
+					newRoles = append(newRoles, SECONDARY_ROLE_NAME)
+				}
 			}
+			if len(newRoles) == 0 {
+				continue
+			}
+			tag := nostr.Tag{"p", pk.Hex()}
+			tag = append(tag, newRoles...)
+			events = append(events, nostr.Event{
+				Kind:      nostr.KindSimpleGroupPutUser,
+				CreatedAt: now + 1,
+				Tags: nostr.Tags{
+					{"h", group.Address.ID},
+					tag,
+				},
+			})
 		}
-		if len(newRoles) == 0 {
-			continue
-		}
-		if pk == caller {
-			callerIsAdmin = true
-		}
-		tag := nostr.Tag{"p", pk.Hex()}
-		tag = append(tag, newRoles...)
-		events = append(events, nostr.Event{
-			Kind:      nostr.KindSimpleGroupPutUser,
-			CreatedAt: now + 1,
-			Tags: nostr.Tags{
-				{"h", group.Address.ID},
-				tag,
-			},
-		})
 	}
 
-	// ensure the caller ends up with the PRIMARY role so they can administer
-	// the group they imported
-	if !callerIsAdmin {
+	// "reset" clears everything and makes the caller the only admin; "keep"
+	// only preserves the source admins, so the caller only becomes admin if
+	// they already were one
+	if adminMode == "reset" {
 		events = append(events, nostr.Event{
 			Kind:      nostr.KindSimpleGroupPutUser,
 			CreatedAt: now + 2,

@@ -258,8 +258,14 @@ func importGroupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	adminMode := r.FormValue("admin_mode")
+	if adminMode == "" {
+		adminMode = "keep"
+	}
+
 	res, err := State.ImportGroup(r.Context(), loggedUser,
 		r.FormValue("address"),
+		adminMode,
 		r.FormValue("primary_from"),
 		r.FormValue("secondary_from"),
 	)
