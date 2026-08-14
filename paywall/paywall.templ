@@ -105,6 +105,10 @@ templ paywallPage(loggedUser nostr.PubKey) {
 							selectedPubkey: '',
 							adding: false,
 							baseURL: window.location.href.split('/').slice(0, 3).join('/'),
+							async onUserSelected(event) {
+								const profile = await event.detail;
+								this.selectedPubkey = profile?.pubkey || '';
+							},
 							async addViewer() {
 								if (!this.selectedPubkey) {
 									alert('select a user first');
@@ -137,7 +141,7 @@ templ paywallPage(loggedUser nostr.PubKey) {
 							<div class="flex items-center gap-4">
 								<div class="flex-1">
 									<nostr-user-search
-										@selected={ "selectedPubkey = $event.detail.pubkey" }
+										@selected={ "onUserSelected($event)" }
 										placeholder="search or paste npub..."
 										class="part-[input]:w-full part-[input]:px-3 part-[input]:py-2 part-[input]:border part-[input]:border-stone-300 part-[input]:dark:border-stone-600 part-[input]:rounded-lg part-[input]:bg-white part-[input]:dark:bg-stone-800 part-[input]:text-stone-900 part-[input]:dark:text-stone-100 part-[input]:focus:outline-none part-[input]:focus:ring-2 part-[input]:focus:ring-stone-500 part-[results]:z-10 part-[item]:px-3 part-[item]:py-2 part-[item]:cursor-pointer part-[item]:hover:bg-stone-100 part-[item]:dark:hover:bg-stone-700 part-[item]:text-stone-700 part-[item]:dark:text-stone-300 part-[picture]:w-10 part-[picture]:h-10 part-[picture]:rounded-full part-[name]:font-semibold part-[name]:text-stone-900 part-[name]:dark:text-stone-100"
 										limit="5"
