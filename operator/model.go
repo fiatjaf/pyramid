@@ -16,6 +16,7 @@ var ErrAccountNotFound = fmt.Errorf("account not found")
 
 type Registration struct {
 	Email         string `json:"email"`
+	PubKey        string `json:"pubkey"`
 	Central       string `json:"central"`
 	CentralPubKey string `json:"central_pubkey"`
 	Shard         string `json:"shard"`

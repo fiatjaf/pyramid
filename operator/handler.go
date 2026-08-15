@@ -274,8 +274,34 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var existing Registration
+	existing, err = loadRegistration(emailTag[1])
+	if err != nil && !errors.Is(err, ErrAccountNotFound) {
+		L.Error().Err(err).Str("email", emailTag[1]).Msg("op-register: load existing registration")
+		http.Error(w, "failed to load registration", http.StatusInternalServerError)
+		return
+	}
+	if err == nil {
+		// if a registration already exists for this email, require it to be from the same public key
+		// (this prevents rogue actors from overwriting other people's shard registrations)
+		// if one wants to use a new keypair with their previous email they'll have to delete their shards manually first
+		if existing.PubKey == "" {
+			// DEPRECATED, remove these hardcoded urls in 2028, start enforcing only full pubkey match (or maybe trust some preconfigured centrals?)
+			if centralTag[1] != "auth.njump.me" && centralTag[1] != "auth.yakihonne.com" {
+				L.Warn().Str("email", emailTag[1]).Str("central", centralTag[1]).Msg("op-register: legacy empty pubkey registration rejected by central")
+				http.Error(w, "a pubkey is already registered for this email, but it was never stored; this central cannot claim it", http.StatusForbidden)
+				return
+			}
+		} else if existing.PubKey != evt.PubKey.Hex() {
+			L.Warn().Str("email", emailTag[1]).Str("old", existing.PubKey).Str("new", evt.PubKey.Hex()).Msg("op-register: pubkey mismatch")
+			http.Error(w, "a different pubkey is already registered for this email", http.StatusForbidden)
+			return
+		}
+	}
+
 	reg := Registration{
 		Email:         emailTag[1],
+		PubKey:        evt.PubKey.Hex(),
 		Central:       centralTag[1],
 		CentralPubKey: centralInfo.Self.Hex(),
 		Shard:         evt.Content,
