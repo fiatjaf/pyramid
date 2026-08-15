@@ -1105,6 +1105,12 @@ func syncHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func nip05Handler(w http.ResponseWriter, r *http.Request) {
+	// NIP-AD: path-based web address resolution for groups
+	if path := r.URL.Query().Get("path"); path != "" {
+		groups.WebAddressHandler(w, r)
+		return
+	}
+
 	resp := nip05.WellKnownResponse{
 		Names: global.Settings.NIP05.Names,
 	}
