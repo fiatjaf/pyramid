@@ -2,11 +2,13 @@ package blossom
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"fiatjaf.com/nostr"
@@ -17,6 +19,35 @@ import (
 	"github.com/fiatjaf/pyramid/groups"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
+
+// safeBlobHash returns the sha256 hash only when it's exactly 64 lowercase
+// hex characters; anything else is rejected to keep it from ever being used
+// to build a file path.
+func safeBlobHash(sha256 string) string {
+	if len(sha256) != 64 {
+		return ""
+	}
+	for i := 0; i < len(sha256); i++ {
+		c := sha256[i]
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return ""
+		}
+	}
+	return sha256
+}
+
+var blobExtRe = regexp.MustCompile(`^\.[a-z0-9]{1,10}$`)
+
+// safeBlobExt strips anything that isn't a plain ".ext" so a crafted
+// extension (e.g. one derived from an attacker-controlled URL, full of
+// slashes and "..") can never escape the blob directory.
+func safeBlobExt(ext string) string {
+	ext = strings.ToLower(strings.TrimSpace(ext))
+	if !blobExtRe.MatchString(ext) {
+		return ""
+	}
+	return ext
+}
 
 var (
 	log       = global.Log.With().Str("service", "blossom").Logger()
@@ -61,10 +92,18 @@ func setupEnabled() {
 	Server.Store = BlobIndex
 
 	Server.StoreBlob = func(ctx context.Context, sha256 string, ext string, body []byte) error {
-		return os.WriteFile(filepath.Join(blobDir, sha256+ext), body, 0644)
+		sha256 = safeBlobHash(sha256)
+		if sha256 == "" {
+			return fmt.Errorf("invalid blob sha256")
+		}
+		return os.WriteFile(filepath.Join(blobDir, sha256+safeBlobExt(ext)), body, 0644)
 	}
 	Server.LoadBlob = func(ctx context.Context, sha256 string, ext string) (io.ReadSeeker, *url.URL, error) {
-		file, err := os.Open(filepath.Join(blobDir, sha256+ext))
+		sha256 = safeBlobHash(sha256)
+		if sha256 == "" {
+			return nil, nil, fmt.Errorf("invalid blob sha256")
+		}
+		file, err := os.Open(filepath.Join(blobDir, sha256+safeBlobExt(ext)))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -124,6 +163,10 @@ func setupEnabled() {
 }
 
 func deleteBlob(ctx context.Context, sha256 string, ext string) error {
+	sha256 = safeBlobHash(sha256)
+	if sha256 == "" {
+		return fmt.Errorf("invalid blob sha256")
+	}
 	entries, err := os.ReadDir(blobDir)
 	if err != nil {
 		return err
