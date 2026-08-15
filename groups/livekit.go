@@ -95,10 +95,15 @@ func livekitAuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	readOnly := false
 	if (group.Restricted || !pyramid.IsMember(event.PubKey)) &&
 		!group.AnyOfTheseIsAMember([]nostr.PubKey{event.PubKey}) {
-		http.Error(w, "not allowed to access livekit for this group", 403)
-		return
+		// not a member: only allowed into public groups, read-only
+		if group.Private {
+			http.Error(w, "not allowed to access livekit for this group", 403)
+			return
+		}
+		readOnly = true
 	}
 
 	// only proceed if LiveKit is enabled for this group
@@ -113,7 +118,7 @@ func livekitAuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token := group.generateLiveKitToken(event.PubKey)
+	token := group.generateLiveKitToken(event.PubKey, readOnly)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(TokenSourceResponse{
 		ServerURL:        global.Settings.Groups.LiveKitServerURL,
@@ -290,14 +295,18 @@ func (group *Group) generateLiveKitServerToken() string {
 	return jwt
 }
 
-func (group *Group) generateLiveKitToken(pubkey nostr.PubKey) string {
+func (group *Group) generateLiveKitToken(pubkey nostr.PubKey, readOnly bool) string {
 	at := auth.NewAccessToken(global.Settings.Groups.LiveKitAPIKey, global.Settings.Groups.LiveKitAPISecret)
-	at.SetVideoGrant(
-		&auth.VideoGrant{
-			RoomJoin: true,
-			Room:     group.Address.ID,
-		},
-	)
+	grant := &auth.VideoGrant{
+		RoomJoin: true,
+		Room:     group.Address.ID,
+	}
+	if readOnly {
+		grant.SetCanPublish(false)
+		grant.SetCanPublishData(false)
+		grant.SetCanPublishSources(nil)
+	}
+	at.SetVideoGrant(grant)
 
 	at.SetIdentity(pubkey.Hex() + ":" + global.RandomString(2))
 	jwt, _ := at.ToJWT()
