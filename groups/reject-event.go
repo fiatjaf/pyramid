@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
@@ -46,6 +47,12 @@ func RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg strin
 		if isAuthed {
 			if group != nil {
 				return true, "duplicate: group already exists"
+			}
+
+			// group ids are used as filesystem paths for search indexes, so forbid
+			// anything that could escape the data directory (see ensureIndex).
+			if strings.Contains(groupId, "..") {
+				return true, "invalid: group id must not contain '..'"
 			}
 
 			if global.IL.DeletedGroups != nil {
