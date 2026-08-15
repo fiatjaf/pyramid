@@ -232,6 +232,10 @@ func secretHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid url", http.StatusUnauthorized)
 		return
 	}
+	if !pyramid.IsMember(evt.PubKey) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	secret := pubkeySecretFor(evt.PubKey[:])
 	w.Write([]byte(hex.EncodeToString(secret)))
