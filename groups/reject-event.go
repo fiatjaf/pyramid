@@ -169,6 +169,22 @@ func RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg strin
 				return true, "a private group must also be closed"
 			}
 		case nip29.PutUser:
+			if !isPrimaryRole {
+				// moderators can't grant roles, and can't change the roles of users who already have them
+				group.mu.RLock()
+				for _, t := range a.Targets {
+					if len(t.RoleNames) > 0 {
+						group.mu.RUnlock()
+						return true, "restricted: only admins can add or change user roles"
+					}
+					if currentRoles, isMember := group.Members[t.PubKey]; isMember && len(currentRoles) > 0 {
+						group.mu.RUnlock()
+						return true, "restricted: only admins can modify users with roles"
+					}
+				}
+				group.mu.RUnlock()
+			}
+
 			ineffective := true
 			group.mu.RLock()
 			for _, t := range a.Targets {
@@ -183,6 +199,18 @@ func RejectEvent(ctx context.Context, event nostr.Event) (reject bool, msg strin
 			}
 			group.mu.RUnlock()
 		case nip29.RemoveUser:
+			if !isPrimaryRole {
+				// moderators can't remove admins or other moderators
+				group.mu.RLock()
+				for _, t := range a.Targets {
+					if roles, isMember := group.Members[t]; isMember && len(roles) > 0 {
+						group.mu.RUnlock()
+						return true, "restricted: only admins can remove admins or moderators"
+					}
+				}
+				group.mu.RUnlock()
+			}
+
 			ineffective := true
 			group.mu.RLock()
 			for _, t := range a.Targets {
