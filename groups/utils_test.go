@@ -4,7 +4,35 @@ import (
 	"testing"
 
 	"fiatjaf.com/nostr/nip29"
+	"github.com/fiatjaf/pyramid/global"
 )
+
+func TestResolveNickname(t *testing.T) {
+	global.Settings.Groups.NIPAD.Names = map[string]string{
+		"pizza": "abc123",
+	}
+
+	tests := []struct {
+		name       string
+		nickname   string
+		wantGroup  string
+		wantExists bool
+	}{
+		{"registered nickname", "pizza", "abc123", true},
+		{"case insensitive", "PIZZA", "abc123", true},
+		{"unregistered nickname", "unknown", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			groupId, exists := ResolveNickname(tt.nickname)
+			if exists != tt.wantExists || groupId != tt.wantGroup {
+				t.Errorf("ResolveNickname(%q) = (%q, %v), expected (%q, %v)",
+					tt.nickname, groupId, exists, tt.wantGroup, tt.wantExists)
+			}
+		})
+	}
+}
 
 func TestSameRoles(t *testing.T) {
 	tests := []struct {

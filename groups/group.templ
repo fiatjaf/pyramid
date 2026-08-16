@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/nip19"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
@@ -123,10 +124,66 @@ templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Even
 						}
 					</div>
 				</div>
+				// nip-ad nickname section
+				if !deleted && global.Settings.Groups.NIPAD.Enabled && (group.IsPrimaryRole(loggedUser) || pyramid.IsRoot(loggedUser)) {
+					<div>
+						<h2 class="text-lg font-semibold mb-3 dark:text-stone-200">group nickname</h2>
+						<p class="text-sm text-stone-600 dark:text-stone-400 mb-3">
+							nicknames are used for NIP-AD web address resolution, e.g.
+							<code class="px-1 rounded bg-stone-100 dark:bg-stone-800">{ "https://" + global.Settings.Domain + "/<nickname>" }</code>.
+							must be a single word with only ascii letters, numbers and underscores, and can't be used by
+							another group.
+						</p>
+						<form
+							method="POST"
+							action={ "/groups/nickname/" + group.Address.ID }
+							class="flex items-center gap-3"
+						>
+							<input
+								type="text"
+								name="nickname"
+								value={ groupNickname(group.Address.ID) }
+								placeholder="e.g. quichelovers"
+								class="w-full max-w-xs px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
+							/>
+							<button
+								type="submit"
+								class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+							>
+								save
+							</button>
+							<p class="text-xs text-stone-500 dark:text-stone-400">leave empty to remove the nickname</p>
+						</form>
+					</div>
+				}
+				// share group
+				if !deleted {
+					<div>
+						<h2 class="text-lg font-semibold mb-3 dark:text-stone-200">share group</h2>
+						<div class="space-y-4">
+							if name := groupNickname(group.Address.ID); name != "" {
+								<div class="space-y-1">
+									<p class="text-sm text-stone-600 dark:text-stone-400">web address</p>
+									<a
+										href={ global.Settings.HTTPScheme() + global.Settings.Domain + "/" + name }
+										target="_blank"
+										class="block px-3 py-2 rounded-lg bg-stone-100 dark:bg-stone-800 text-emerald-600 dark:text-emerald-400 font-mono text-sm break-all hover:underline"
+									>{ global.Settings.HTTPScheme() + global.Settings.Domain + "/" + name }</a>
+								</div>
+							}
+							<div class="space-y-1">
+								<p class="text-sm text-stone-600 dark:text-stone-400">nostr address pointer</p>
+								<code
+									class="block px-3 py-2 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-mono text-sm break-all"
+								>{ "nostr:" + nip19.EncodeNaddr(global.Settings.RelayInternalSecretKey.Public(), nostr.KindSimpleGroupMetadata, group.Address.ID, []string{global.Settings.WSScheme() + global.Settings.Domain}) }</code>
+							</div>
+						</div>
+					</div>
+				}
 				// external links
 				if !deleted {
 					<div>
-						<h2 class="text-lg font-semibold mb-3 dark:text-stone-200">view on other clients</h2>
+						<h2 class="text-lg font-semibold mb-3 dark:text-stone-200">open in dedicated clients</h2>
 						<div class="flex gap-3">
 							<a
 								href={ "https://grimoire2.netlify.app/run?cmd=chat%20" + group.Address.Relay + "%27" + group.Address.ID }

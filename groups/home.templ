@@ -157,6 +157,9 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 								<thead class="bg-stone-50 dark:bg-stone-800">
 									<tr>
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">group id</th>
+										if global.Settings.Groups.NIPAD.Enabled {
+											<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">nickname</th>
+										}
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">group</th>
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">members</th>
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">moderators</th>
@@ -185,6 +188,19 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 														class="text-stone-600 dark:text-stone-400 hover:underline"
 													>{ group.Address.ID }</a>
 												</td>
+												if global.Settings.Groups.NIPAD.Enabled {
+													<td class="px-4 py-3 text-sm text-center">
+														if name := groupNickname(group.Address.ID); name != "" {
+															<a
+																href={ global.Settings.HTTPScheme() + global.Settings.Domain + "/" + name }
+																target="_blank"
+																class="text-emerald-600 dark:text-emerald-400 hover:underline"
+															>{ name }</a>
+														} else {
+															<span class="text-stone-400 dark:text-stone-600">—</span>
+														}
+													</td>
+												}
 												<td class="px-4 py-3 text-sm text-center">
 													<a
 														href={ "/groups/" + group.Address.ID }
@@ -274,6 +290,9 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 								<thead class="bg-stone-50 dark:bg-stone-800">
 									<tr>
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">group id</th>
+										if global.Settings.Groups.NIPAD.Enabled {
+											<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">nickname</th>
+										}
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">group</th>
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">members</th>
 										<th class="px-1 py-3 text-xs font-medium text-stone-500 dark:text-stone-400">moderators</th>
@@ -295,6 +314,19 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 														class="text-stone-600 dark:text-stone-400 hover:underline"
 													>{ group.Address.ID }</a>
 												</td>
+												if global.Settings.Groups.NIPAD.Enabled {
+													<td class="px-4 py-3 text-sm text-center">
+														if name := groupNickname(group.Address.ID); name != "" {
+															<a
+																href={ global.Settings.HTTPScheme() + global.Settings.Domain + "/" + name }
+																target="_blank"
+																class="text-emerald-600 dark:text-emerald-400 hover:underline"
+															>{ name }</a>
+														} else {
+															<span class="text-stone-400 dark:text-stone-600">—</span>
+														}
+													</td>
+												}
 												<td class="px-4 py-3 text-sm text-center">
 													<a
 														href={ "/groups/" + group.Address.ID }
@@ -761,6 +793,32 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 									save LiveKit settings
 								</button>
 							</form>
+						</details>
+						<details>
+							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">NIP-AD group nicknames</summary>
+							if !global.Settings.Groups.NIPAD.Enabled {
+								<form class="my-4" method="POST" action="/groups/nipad/enable">
+									<p class="text-sm text-stone-600 dark:text-stone-400 mb-3">
+										enables group nicknames: each group admin can register a short word that identifies
+										the group (e.g. <code class="px-1 rounded bg-stone-100 dark:bg-stone-800">/foo</code>).
+									</p>
+									<button
+										type="submit"
+										class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+									>
+										enable
+									</button>
+								</form>
+							} else {
+								<form class="my-4" method="POST" action="/groups/nipad/disable">
+									<button
+										type="submit"
+										class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"
+									>
+										disable
+									</button>
+								</form>
+							}
 						</details>
 						<details>
 							<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">disable groups</summary>

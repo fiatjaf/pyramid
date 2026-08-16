@@ -545,7 +545,18 @@ func run(ctx context.Context) error {
 	mux.Handle("/scheduled/", scheduled)
 	mux.Handle("/scheduled", scheduled)
 
-	mux.Handle("/", relay)
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// nip-ad group nickname redirects: /<nickname> -> /groups/<groupId>
+		if global.Settings.Groups.NIPAD.Enabled && r.Header.Get("Upgrade") != "websocket" {
+			if nickname := strings.Trim(r.URL.Path, "/"); nickname != "" && !strings.Contains(nickname, "/") {
+				if groupId, ok := groups.ResolveNickname(nickname); ok {
+					http.Redirect(w, r, "/groups/"+groupId, http.StatusFound)
+					return
+				}
+			}
+		}
+		relay.ServeHTTP(w, r)
+	}))
 
 	mainHandler := setupCheckMiddleware(mux)
 	externalHandler := ipBlockMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -108,6 +108,10 @@ type UserSettings struct {
 		LiveKitServerURL       string `json:"livekit_server_url"`
 		LiveKitAPIKey          string `json:"livekit_apikey"`
 		LiveKitAPISecret       string `json:"livekit_apisecret"`
+		NIPAD                  struct {
+			Enabled bool              `json:"enabled"`
+			Names   map[string]string `json:"names"`
+		} `json:"nipad"`
 	} `json:"groups"`
 
 	Grasp struct {
@@ -397,6 +401,9 @@ func loadUserSettings() error {
 
 	// nip05
 	Settings.NIP05.Names = make(map[string]nostr.PubKey)
+
+	// nip-ad group nicknames
+	Settings.Groups.NIPAD.Names = make(map[string]string)
 
 	path := getUserSettingsPath()
 	os.MkdirAll(filepath.Dir(path), 0700)

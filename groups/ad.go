@@ -21,6 +21,15 @@ func WebAddressHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	groupId, ok := strings.CutPrefix(path, "/groups/")
+	if ok && groupId == "" {
+		ok = false
+	}
+	if !ok {
+		// bare nickname resolution, e.g. /<nickname>
+		if global.Settings.Groups.NIPAD.Enabled {
+			groupId, ok = global.Settings.Groups.NIPAD.Names[strings.TrimPrefix(path, "/")]
+		}
+	}
 	if !ok || groupId == "" || strings.Contains(groupId, "/") {
 		http.NotFound(w, r)
 		return

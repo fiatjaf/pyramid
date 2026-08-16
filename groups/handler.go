@@ -3,6 +3,8 @@ package groups
 import (
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"fiatjaf.com/nostr"
@@ -47,6 +49,9 @@ func setupEnabled() {
 	Handler.mux = http.NewServeMux()
 
 	Handler.mux.HandleFunc("POST /groups/disable", disableHandler)
+	Handler.mux.HandleFunc("POST /groups/nipad/enable", nipadEnableHandler)
+	Handler.mux.HandleFunc("POST /groups/nipad/disable", nipadDisableHandler)
+	Handler.mux.HandleFunc("POST /groups/nickname/{groupId}", groupNicknameHandler)
 	Handler.mux.HandleFunc("POST /groups/livekit/start", startEmbeddedLiveKitHandler)
 	Handler.mux.HandleFunc("POST /groups/livekit/stop", stopEmbeddedLiveKitHandler)
 	Handler.mux.HandleFunc("POST /groups/livekit/log", livekitLogHandler)
@@ -171,6 +176,104 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 
 	setupDisabled()
 	http.Redirect(w, r, "/groups/", 302)
+}
+
+func nipadEnableHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	global.Settings.Groups.NIPAD.Enabled = true
+
+	if err := global.SaveUserSettings(); err != nil {
+		http.Error(w, "failed to save settings: "+err.Error(), 500)
+		return
+	}
+
+	http.Redirect(w, r, "/groups/", 302)
+}
+
+func nipadDisableHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	global.Settings.Groups.NIPAD.Enabled = false
+
+	if err := global.SaveUserSettings(); err != nil {
+		http.Error(w, "failed to save settings: "+err.Error(), 500)
+		return
+	}
+
+	http.Redirect(w, r, "/groups/", 302)
+}
+
+var groupNicknameRe = regexp.MustCompile(`^[a-z0-9_]+$`)
+
+// groupNicknameHandler lets a group admin set or update the group's NIP-AD nickname.
+func groupNicknameHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, isLoggedIn := global.GetLoggedUser(r)
+	if !isLoggedIn {
+		http.Error(w, "auth-required: must be logged in", 401)
+		return
+	}
+
+	groupId := r.PathValue("groupId")
+	group, exists := State.Groups.Load(groupId)
+	if !exists || !group.IsPrimaryRole(loggedUser) {
+		http.Error(w, "unauthorized: only group admins can set the nickname", 403)
+		return
+	}
+
+	nickname := strings.TrimSpace(r.FormValue("nickname"))
+	nickname = strings.ToLower(nickname)
+
+	if nickname == "" {
+		// clearing the nickname
+		for name, gid := range global.Settings.Groups.NIPAD.Names {
+			if gid == groupId {
+				delete(global.Settings.Groups.NIPAD.Names, name)
+			}
+		}
+	} else {
+		if !groupNicknameRe.MatchString(nickname) {
+			http.Error(w, "invalid nickname: must be a single word with only ascii letters, numbers and underscores", 400)
+			return
+		}
+
+		if isReservedNickname(nickname) {
+			http.Error(w, "nickname already taken: this name is reserved for a relay path", 400)
+			return
+		}
+
+		// check no other group already has this nickname
+		if existing, inUse := global.Settings.Groups.NIPAD.Names[nickname]; inUse && existing != groupId {
+			http.Error(w, "nickname already taken", 400)
+			return
+		}
+
+		// clear any previous nickname for this group
+		for name, gid := range global.Settings.Groups.NIPAD.Names {
+			if gid == groupId {
+				delete(global.Settings.Groups.NIPAD.Names, name)
+			}
+		}
+
+		global.Settings.Groups.NIPAD.Names[nickname] = groupId
+	}
+
+	if err := global.SaveUserSettings(); err != nil {
+		http.Error(w, "failed to save settings: "+err.Error(), 500)
+		return
+	}
+
+	http.Redirect(w, r, "/groups/"+groupId, 302)
 }
 
 func wipeGroupHandler(w http.ResponseWriter, r *http.Request) {
