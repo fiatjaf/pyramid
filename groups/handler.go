@@ -226,8 +226,8 @@ func groupNicknameHandler(w http.ResponseWriter, r *http.Request) {
 
 	groupId := r.PathValue("groupId")
 	group, exists := State.Groups.Load(groupId)
-	if !exists || !group.IsPrimaryRole(loggedUser) {
-		http.Error(w, "unauthorized: only group admins can set the nickname", 403)
+	if !exists || (!group.IsPrimaryRole(loggedUser) && !pyramid.IsRoot(loggedUser)) {
+		http.Error(w, "unauthorized: only group admins and the relay owner can set the nickname", 403)
 		return
 	}
 
