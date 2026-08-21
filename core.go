@@ -205,7 +205,7 @@ func basicRejectionLogic(ctx context.Context, event nostr.Event) (reject bool, m
 	if pyramid.IsMember(event.PubKey) {
 		return false, ""
 	} else {
-		return true, "not authorized"
+		return true, "restricted: not authorized"
 	}
 }
 
