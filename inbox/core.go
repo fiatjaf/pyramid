@@ -78,6 +78,10 @@ func rejectFilter(ctx context.Context, filter nostr.Filter) (bool, string) {
 }
 
 func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
+	if evt.Kind == 1984 {
+		return rejectReport(evt)
+	}
+
 	// if this is a deletion event, check if it tags events that exist in our stores
 	if evt.Kind == 5 {
 		del := evt
@@ -118,11 +122,13 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 	// count p-tags and check if they tag pyramid members
 	pTagCount := 0
 	PTagCount := 0
-	tagsPyramidMember := false
+	noAcceptableTargets := true
 	sender := evt.PubKey
 
 	for _, tag := range evt.Tags {
 		if len(tag) >= 2 {
+			var member nostr.PubKey
+
 			if tag[0] == "p" {
 				pTagCount++
 
@@ -132,7 +138,7 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 				}
 
 				if pyramid.IsMember(pubkey) {
-					tagsPyramidMember = true
+					member = pubkey
 				}
 			} else if tag[0] == "P" {
 				PTagCount++
@@ -146,17 +152,25 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 				case 1111, 1244:
 					// in this case the 'P' is kinda like the 'p'
 					if pyramid.IsMember(pubkey) {
-						tagsPyramidMember = true
+						member = pubkey
 					}
 				case 9735:
 					// in this case the 'P' is the original author
 					sender = pubkey
 				}
+			} else {
+				continue
+			}
+
+			// we got a p-tag to a member, now check if that member hasn't specifically flagged the author
+			if !isBannedByMember(member, evt.PubKey) {
+				// it's not banned by this, so this message has at least one acceptable target
+				noAcceptableTargets = false
 			}
 		}
 	}
 
-	if !tagsPyramidMember {
+	if noAcceptableTargets {
 		return true, "blocked: event must tag at least one pyramid relay member"
 	}
 
@@ -256,6 +270,10 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 	}
 
 	// ensure this comes from someone in the relay combined extended network
+	if !pyramid.IsMember(evt.PubKey) && isBannedByMembers(evt) {
+		return true, "blocked: you're filtered out on this relay"
+	}
+
 	if !wot.Contains(sender) {
 		if evt.Kind == 9735 && sender == evt.PubKey {
 			// we'll make an exception for zap providers that do not include the "P" temporarily

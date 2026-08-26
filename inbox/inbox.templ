@@ -3,6 +3,7 @@ package inbox
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"fiatjaf.com/nostr"
 
@@ -27,6 +28,35 @@ templ inboxPage(loggedUser nostr.PubKey) {
 		</div>
 		<div class="space-y-4 text-gray-700 dark:text-gray-300">
 			<p class="text-lg leading-relaxed">{ global.Settings.Inbox.GetDescription() }</p>
+			if pyramid.IsMember(loggedUser) {
+				{{ reports := reportsForMember(loggedUser) }}
+				<div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+					<div class="flex items-center justify-between px-4 py-3">
+						<h2 class="font-semibold text-gray-800 dark:text-gray-100">your reports</h2>
+						<span class="text-sm text-gray-600 dark:text-gray-400">banned users: { fmt.Sprint(bannedCount(loggedUser)) }</span>
+					</div>
+					<table class="w-full text-left text-sm">
+						<thead class="bg-gray-50 dark:bg-gray-800">
+							<tr><th class="px-4 py-2">date</th><th class="px-4 py-2">pubkey target</th><th class="px-4 py-2">reason</th><th class="px-4 py-2">action</th></tr>
+						</thead>
+						<tbody>
+							for _, report := range reports {
+								<tr class="border-t border-gray-200 dark:border-gray-700">
+									<td class="px-4 py-2 whitespace-nowrap">{ report.Date.Time().Format(time.DateTime) }</td>
+									<td class="px-4 py-2 font-mono">{ report.Target.Hex() }</td>
+									<td class="px-4 py-2">{ report.Reason }</td>
+									<td class="px-4 py-2">
+										<form method="POST" action={ global.Settings.Inbox.GetPageURL() + "/delete-report" }>
+											<input type="hidden" name="report_id" value={ report.ID.Hex() }/>
+											<button type="submit" class="text-red-600 hover:underline">delete</button>
+										</form>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
 			<div class="bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
 				<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">what gets through:</h2>
 				<ul class="list-disc list-inside space-y-1 text-sm">

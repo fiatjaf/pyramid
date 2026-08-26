@@ -123,6 +123,12 @@ func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
 	if !ok {
 		return fmt.Errorf("not authenticated")
 	}
+	for report := range global.IL.InboxReports.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+		if !pyramid.IsMember(caller) || (!pyramid.IsRoot(caller) && report.PubKey != caller) {
+			return fmt.Errorf("only report author or root can delete report")
+		}
+		return deleteReport(id)
+	}
 
 	// allow if caller is a root user
 	if pyramid.IsRoot(caller) {
@@ -163,6 +169,14 @@ func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
 	if err := global.IL.Secret.DeleteEvent(id); err != nil {
 		return err
 	}
+	return nil
+}
+
+func deleteReport(id nostr.ID) error {
+	if err := global.IL.InboxReports.DeleteEvent(id); err != nil {
+		return err
+	}
+	rebuildBanState()
 	return nil
 }
 

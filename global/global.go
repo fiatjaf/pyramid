@@ -116,6 +116,11 @@ func Init() error {
 		return fmt.Errorf("failed to ensure 'inbox': %w", err)
 	}
 
+	IL.InboxReports, err = MMMM.EnsureLayer("inbox-reports")
+	if err != nil {
+		return fmt.Errorf("failed to ensure 'inbox-reports': %w", err)
+	}
+
 	IL.Secret, err = MMMM.EnsureLayer("secret")
 	if err != nil {
 		return fmt.Errorf("failed to ensure 'secret': %w", err)
@@ -238,6 +243,7 @@ var IL struct {
 	PendingAccess *mmm.IndexingLayer
 	Personal      *mmm.IndexingLayer
 	Inbox         *mmm.IndexingLayer
+	InboxReports  *mmm.IndexingLayer
 
 	// only nip44-encrypted DMs for now
 	Secret *mmm.IndexingLayer
