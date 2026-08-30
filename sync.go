@@ -18,6 +18,7 @@ import (
 func streamingSync(
 	ctx context.Context,
 	loggedUser nostr.PubKey,
+	kinds []nostr.Kind,
 	remoteUrl string,
 	upload,
 	download bool,
@@ -74,6 +75,7 @@ func streamingSync(
 			remoteUrl,
 			nostr.Filter{
 				Authors: []nostr.PubKey{loggedUser},
+				Kinds:   kinds,
 			},
 			source,
 			target,

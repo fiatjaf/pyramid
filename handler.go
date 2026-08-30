@@ -1101,7 +1101,13 @@ func syncHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	streamingSync(r.Context(), targetUser, remoteUrl, upload, download, w)
+	kinds, err := global.ParseKinds(global.Settings.AllowedKindsSpec, global.SupportedKindsDefault)
+	if err != nil {
+		http.Error(w, "invalid kinds on settings", http.StatusBadRequest)
+		return
+	}
+
+	streamingSync(r.Context(), targetUser, kinds, remoteUrl, upload, download, w)
 }
 
 func nip05Handler(w http.ResponseWriter, r *http.Request) {
