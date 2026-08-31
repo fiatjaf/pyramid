@@ -54,8 +54,8 @@ func processReactions(ctx context.Context, event nostr.Event) {
 		}
 	}
 
-	popularThreshold := max(2, (totalMembers*global.Settings.Popular.PercentThreshold)/100)
-	uppermostThreshold := max(3, (totalMembers*global.Settings.Uppermost.PercentThreshold)/100)
+	popularThreshold := max(2, global.Settings.Popular.Threshold.Get(totalMembers))
+	uppermostThreshold := max(3, global.Settings.Uppermost.Threshold.Get(totalMembers))
 
 	// for all events we meet the popular threshold for
 	for target, votes := range popularVotes {

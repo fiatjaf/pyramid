@@ -1,8 +1,6 @@
 package popular
 
 import (
-	"fmt"
-
 	"fiatjaf.com/nostr"
 
 	"github.com/fiatjaf/pyramid/global"
@@ -43,7 +41,7 @@ templ popularPage(loggedUser nostr.PubKey) {
 							method="POST"
 							action="/settings"
 							x-data={ `{
-									percentThreshold: ` + fmt.Sprint(global.Settings.Popular.PercentThreshold) + `,
+									percentThreshold: ` + global.JSONString(global.Settings.Popular.Threshold.Display()) + `,
 									saved: false,
 									async saveSettings() {
 										const response = await fetch(this.$refs.form.action, {
@@ -60,12 +58,11 @@ templ popularPage(loggedUser nostr.PubKey) {
 						>
 							<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">popular relay</h3>
 							<div>
-								<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="popular_percent_threshold">percent threshold (%)</label>
+								<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="popular_percent_threshold">threshold (percent or number)</label>
 								<input
-									type="number"
+									type="text"
 									name="popular_percent_threshold"
-									min="0"
-									max="100"
+									placeholder="e.g. 2 or 20%"
 									class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-4"
 									x-model="percentThreshold"
 									@blur="saveSettings()"

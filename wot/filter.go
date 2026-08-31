@@ -44,6 +44,8 @@ func ComputeAggregated(ctx context.Context) (XorFilter, error) {
 	}
 
 	queue := xsync.NewMapOf[nostr.PubKey, struct{}](xsync.WithPresize(len(members) * 200))
+	followedBy := make(map[nostr.PubKey]int)
+	var followedByMu sync.Mutex
 	wg := sync.WaitGroup{}
 	sem := semaphore.NewWeighted(15)
 
@@ -62,17 +64,26 @@ func ComputeAggregated(ctx context.Context) (XorFilter, error) {
 			defer cancel()
 			defer sem.Release(1)
 
+			seen := make(map[nostr.PubKey]struct{})
 			for _, f := range global.Nostr.FetchFollowList(ctx, member).Items {
 				if slices.Contains(global.Settings.Inbox.SpecificallyBlocked, f.Pubkey) {
 					continue
 				}
 
+				if _, ok := seen[f.Pubkey]; ok {
+					continue
+				}
+				seen[f.Pubkey] = struct{}{}
+				followedByMu.Lock()
+				followedBy[f.Pubkey]++
+				followedByMu.Unlock()
 				queue.Store(f.Pubkey, struct{}{})
 			}
 		})
 	}
 
 	wg.Wait()
+	minFollowedBy := global.Settings.WotMinFollowedBy.Get(len(members))
 
 	res := make(chan nostr.PubKey)
 	all := sync.WaitGroup{}
@@ -82,6 +93,7 @@ func ComputeAggregated(ctx context.Context) (XorFilter, error) {
 		if slices.Contains(global.Settings.Inbox.SpecificallyBlocked, user) {
 			continue
 		}
+		includeFollows := followedBy[user] >= minFollowedBy
 
 		all.Add(1)
 		go func() {
@@ -94,6 +106,12 @@ func ComputeAggregated(ctx context.Context) (XorFilter, error) {
 			go func() {
 				ctx, cancel := context.WithTimeout(ctx, time.Second*7)
 				defer cancel()
+				if !includeFollows {
+					res <- user
+					sem.Release(1)
+					all.Done()
+					return
+				}
 
 				fl := global.Nostr.FetchFollowList(ctx, user).Items
 				sem.Release(1)

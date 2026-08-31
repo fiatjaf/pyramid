@@ -3,6 +3,7 @@ package global
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -36,15 +37,16 @@ type UserSettings struct {
 	} `json:"theme"`
 
 	// general
-	BrowseURI                string `json:"browse_uri"`
-	LinkURL                  string `json:"link_url"`
-	MaxInvitesPerPerson      int    `json:"max_invites_per_person,omitempty"`
-	MaxInvitesAtEachLevel    []int  `json:"max_invites_at_each_level,omitempty"`
-	RequireCurrentTimestamp  bool   `json:"require_current_timestamp"`
-	AcceptScheduledEvents    bool   `json:"accept_scheduled_events"`
-	AllowAccessRequest       bool   `json:"allow_access_request"`
-	AllowEphemeralFromAnyone bool   `json:"allow_ephemeral_from_anyone"`
-	ValidateSchema           bool   `json:"validate_schema"`
+	BrowseURI                string    `json:"browse_uri"`
+	LinkURL                  string    `json:"link_url"`
+	MaxInvitesPerPerson      int       `json:"max_invites_per_person,omitempty"`
+	MaxInvitesAtEachLevel    []int     `json:"max_invites_at_each_level,omitempty"`
+	WotMinFollowedBy         Threshold `json:"wot_min_followed_by,omitempty"`
+	RequireCurrentTimestamp  bool      `json:"require_current_timestamp"`
+	AcceptScheduledEvents    bool      `json:"accept_scheduled_events"`
+	AllowAccessRequest       bool      `json:"allow_access_request"`
+	AllowEphemeralFromAnyone bool      `json:"allow_ephemeral_from_anyone"`
+	ValidateSchema           bool      `json:"validate_schema"`
 	Search                   struct {
 		Enable    bool     `json:"enable"`
 		Languages []string `json:"languages"`
@@ -150,12 +152,12 @@ type UserSettings struct {
 
 	Popular struct {
 		RelayMetadata
-		PercentThreshold int `json:"percent_threshold"`
+		Threshold Threshold `json:"threshold,omitempty"`
 	} `json:"popular"`
 
 	Uppermost struct {
 		RelayMetadata
-		PercentThreshold int `json:"percent_threshold"`
+		Threshold Threshold `json:"threshold,omitempty"`
 	} `json:"uppermost"`
 
 	Moderated struct {
@@ -184,6 +186,60 @@ type Limits struct {
 	MaxIndexableTags       int `json:"max_indexable_tags"`
 	MaxEntriesInFollowList int `json:"max_entries_in_follow_list"`
 	MaxQueryLimit          int `json:"max_query_limit"`
+}
+
+type Threshold struct {
+	Absolute int
+	Percent  int
+}
+
+func (thre Threshold) Get(total int) int {
+	if thre.Absolute > 0 {
+		return thre.Absolute
+	}
+	return int(math.Ceil(float64(total) * float64(thre.Percent) / 100))
+}
+
+func (thre Threshold) Display() string {
+	if thre.Absolute > 0 {
+		return strconv.Itoa(thre.Absolute)
+	}
+	return fmt.Sprintf("%d%%", thre.Percent)
+}
+
+func (thre Threshold) MarshalJSON() ([]byte, error) {
+	if thre.Absolute > 0 {
+		return json.Marshal(thre.Absolute)
+	}
+	return json.Marshal(fmt.Sprintf("%d%%", thre.Percent))
+}
+
+func (thre *Threshold) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err == nil {
+		return thre.FromString(s)
+	}
+	return thre.FromString(string(b))
+}
+
+func (thre *Threshold) FromString(s string) error {
+	s = strings.TrimSpace(s)
+	if strings.HasSuffix(s, "%") {
+		pct, err := strconv.Atoi(strings.TrimSuffix(s, "%"))
+		if err != nil {
+			return fmt.Errorf("invalid threshold %q: %w", s, err)
+		}
+		thre.Percent = pct
+		thre.Absolute = 0
+		return nil
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		return fmt.Errorf("invalid threshold %q: %w", s, err)
+	}
+	thre.Absolute = n
+	thre.Percent = 0
+	return nil
 }
 
 type RelayMetadata struct {
@@ -325,6 +381,7 @@ func loadUserSettings() error {
 		BrowseURI:               "https://jumble.social/?r={url}",
 		LinkURL:                 "nostr:{code}",
 		MaxInvitesPerPerson:     4,
+		WotMinFollowedBy:        Threshold{Absolute: 2},
 		RequireCurrentTimestamp: false,
 		Limits: Limits{
 			MaxEventSize:           10_000,
@@ -347,8 +404,8 @@ func loadUserSettings() error {
 	Settings.Personal.Enabled = true
 	Settings.Favorites.Enabled = true
 	Settings.Inbox.HellthreadLimit = 10
-	Settings.Popular.PercentThreshold = 20
-	Settings.Uppermost.PercentThreshold = 33
+	Settings.Popular.Threshold = Threshold{Percent: 5}
+	Settings.Uppermost.Threshold = Threshold{Percent: 10}
 	Settings.Internal.HTTPBasePath = "internal"
 	Settings.Personal.HTTPBasePath = "personal"
 	Settings.Favorites.HTTPBasePath = "favorites"
@@ -434,6 +491,26 @@ func loadUserSettings() error {
 	if err := json.Unmarshal(data, &loadedSettings); err == nil {
 		if _, ok := loadedSettings["allow_access_request"]; !ok {
 			Settings.AllowAccessRequest = true
+		}
+	}
+	if section, ok := loadedSettings["popular"]; ok {
+		var values map[string]json.RawMessage
+		json.Unmarshal(section, &values)
+		if raw, ok := values["percent_threshold"]; ok {
+			var pct int
+			if json.Unmarshal(raw, &pct) == nil {
+				Settings.Popular.Threshold = Threshold{Percent: pct}
+			}
+		}
+	}
+	if section, ok := loadedSettings["uppermost"]; ok {
+		var values map[string]json.RawMessage
+		json.Unmarshal(section, &values)
+		if raw, ok := values["percent_threshold"]; ok {
+			var pct int
+			if json.Unmarshal(raw, &pct) == nil {
+				Settings.Uppermost.Threshold = Threshold{Percent: pct}
+			}
 		}
 	}
 

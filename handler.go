@@ -134,6 +134,8 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 					global.Settings.MaxInvitesPerPerson, _ = strconv.Atoi(v[0])
 					global.Settings.MaxInvitesAtEachLevel = nil
 				}
+			case "wot_min_followed_by":
+				global.Settings.WotMinFollowedBy.FromString(strings.TrimSpace(v[0]))
 			case "max_event_size":
 				global.Settings.Limits.MaxEventSize, _ = strconv.Atoi(v[0])
 			case "max_subscriptions_open":
@@ -538,15 +540,11 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				//
 				// popular-specific
 			case "popular_percent_threshold":
-				if val, err := strconv.Atoi(v[0]); err == nil {
-					global.Settings.Popular.PercentThreshold = val
-				}
+				global.Settings.Popular.Threshold.FromString(v[0])
 				//
 				// uppermost-specific
 			case "uppermost_percent_threshold":
-				if val, err := strconv.Atoi(v[0]); err == nil {
-					global.Settings.Uppermost.PercentThreshold = val
-				}
+				global.Settings.Uppermost.Threshold.FromString(v[0])
 				//
 				// allowed kinds settings
 			case "allowed_kinds_spec":

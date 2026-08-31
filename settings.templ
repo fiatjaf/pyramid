@@ -246,6 +246,7 @@ templ settingsPage(loggedUser nostr.PubKey) {
 				x-data={ `{
 					nip05Enabled: ` + fmt.Sprint(global.Settings.NIP05.Enabled) + `,
 					maxInvitesPerPerson: ` + global.JSONString(global.Settings.GetMaxInvitesDisplay()) + `,
+					wotMinFollowedBy: ` + global.JSONString(global.Settings.WotMinFollowedBy.Display()) + `,
 					requireCurrentTimestamp: ` + fmt.Sprint(global.Settings.RequireCurrentTimestamp) + `,
 					acceptScheduledEvents: ` + fmt.Sprint(global.Settings.AcceptScheduledEvents) + `,
 					allowAccessRequest: ` + fmt.Sprint(global.Settings.AllowAccessRequest) + `,
@@ -353,6 +354,19 @@ templ settingsPage(loggedUser nostr.PubKey) {
 							</label>
 							<input type="hidden" name="allow_access_request" value="off"/>
 						</div>
+					</div>
+					<div>
+						<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="wot_min_followed_by">minimum member follows for external follows in web-of-trust</label>
+						<input
+							type="text"
+							name="wot_min_followed_by"
+							id="wot_min_followed_by"
+							placeholder="e.g. 2 or 10%"
+							class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
+							x-model="wotMinFollowedBy"
+							@blur="saveSettings()"
+						/>
+						<p class="text-xs text-stone-500 dark:text-stone-400 mt-1">external users enter web-of-trust after one member follow; their follows enter only after this threshold. use a number or percentage of members.</p>
 					</div>
 					<div class="flex items-center">
 						<input
