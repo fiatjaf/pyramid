@@ -821,6 +821,11 @@ func run(ctx context.Context) error {
 
 		g.Go(func() error {
 			<-ctx.Done()
+
+			groups.ShutdownEmbeddedLiveKit()
+			global.End()
+			search.End()
+
 			if err := server.Shutdown(context.Background()); err != nil {
 				return err
 			}
