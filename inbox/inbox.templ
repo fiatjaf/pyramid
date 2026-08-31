@@ -40,7 +40,7 @@ templ inboxPage(loggedUser nostr.PubKey) {
 							<tr><th class="px-4 py-2">date</th><th class="px-4 py-2">pubkey target</th><th class="px-4 py-2">reason</th><th class="px-4 py-2">action</th></tr>
 						</thead>
 						<tbody>
-							for _, report := range reports {
+							for report := range reports {
 								<tr class="border-t border-gray-200 dark:border-gray-700">
 									<td class="px-4 py-2 whitespace-nowrap">{ report.Date.Time().Format(time.DateTime) }</td>
 									<td class="px-4 py-2 font-mono">{ report.Target.Hex() }</td>

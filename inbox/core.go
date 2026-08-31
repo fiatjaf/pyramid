@@ -270,7 +270,14 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 	}
 
 	// ensure this comes from someone in the relay combined extended network
-	if !pyramid.IsMember(evt.PubKey) && isBannedByMembers(evt) {
+	bannedByAll := true
+	for member := range pyramid.Members.Range {
+		if !isBannedByMember(member, evt.PubKey) {
+			bannedByAll = false
+			break
+		}
+	}
+	if !pyramid.IsMember(evt.PubKey) && bannedByAll {
 		return true, "blocked: you're filtered out on this relay"
 	}
 
