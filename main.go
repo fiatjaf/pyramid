@@ -151,6 +151,7 @@ func main() {
 	relay.Router().HandleFunc("GET /clients/{clientId}", clientDetailsHandler)
 	relay.Router().HandleFunc("GET /event/{db}/{id}", databaseEventJSONHandler)
 	relay.Router().HandleFunc("DELETE /database/{db}/{id}", deleteDatabaseEventHandler)
+	relay.Router().HandleFunc("POST /database/delete", deleteDatabaseEventsHandler)
 	relay.Router().HandleFunc("GET /database", databaseHandler)
 	relay.Router().HandleFunc("POST /database", databaseHandler)
 	relay.Router().HandleFunc("GET /database/blocks", databaseBlocksHandler)

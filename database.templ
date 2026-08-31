@@ -13,6 +13,7 @@ import (
 	"github.com/fiatjaf/pyramid/layout"
 	"github.com/fiatjaf/pyramid/pyramid"
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -102,6 +103,48 @@ func deleteDatabaseEventHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func deleteDatabaseEventsHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, ok := global.GetLoggedUser(r)
+	if !ok || !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "invalid form", 400)
+		return
+	}
+	if len(r.Form["events"]) == 0 {
+		http.Error(w, "no events selected", 400)
+		return
+	}
+
+	for _, value := range r.Form["events"] {
+		parts := strings.SplitN(value, "/", 2)
+		if len(parts) != 2 {
+			http.Error(w, "invalid event", 400)
+			return
+		}
+
+		db := databaseByName(parts[0])
+		if db == nil {
+			http.Error(w, "database not found", 404)
+			return
+		}
+
+		id, err := nostr.IDFromHex(parts[1])
+		if err != nil {
+			http.Error(w, "invalid event id", 400)
+			return
+		}
+
+		if err := db.DeleteEvent(id); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+	}
 }
 
 func databaseEventJSONHandler(w http.ResponseWriter, r *http.Request) {
@@ -276,112 +319,146 @@ templ databaseResults(results []dbResult, errMsg string) {
 	}
 	if len(results) > 0 {
 		<div>
-			@layout.SubSectionTitle("results")
-			<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 overflow-x-auto">
-				<table class="w-full text-sm">
-					<thead>
-						<tr class="text-left text-stone-500 dark:text-stone-400 border-b border-stone-200 dark:border-stone-700">
-							<th class="px-4 py-3">database</th>
-							<th class="px-4 py-3">kind</th>
-							<th class="px-4 py-3">id</th>
-							<th class="px-4 py-3">pubkey</th>
-							<th class="px-4 py-3">created at</th>
-							<th class="px-4 py-3">tags</th>
-							<th class="px-4 py-3">content</th>
-							<th class="px-4 py-3">actions</th>
-						</tr>
-					</thead>
-					<tbody>
-						for _, result := range results {
-							<tr class="border-b border-stone-100 dark:border-stone-700 last:border-b-0">
-								<td class="px-4 py-3 font-medium">{ result.DatabaseName }</td>
-								<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", result.Event.Kind) }</td>
-								<td class="px-4 py-3 font-mono">
-									<a
-										href={ "/event/" + result.DatabaseName + "/" + result.Event.ID.Hex() }
-										target="_blank"
-										class="block w-20 truncate text-xs break-all hover:text-blue-500 dark:hover:text-blue-400 font-mono"
-									>{ result.Event.ID.Hex() }</a>
-								</td>
-								<td class="px-4 py-3 font-mono" x-data="{ mode: 'name' }">
-									<span
-										class="cursor-pointer hover:text-blue-500 dark:hover:text-blue-400"
-										@click="mode = mode === 'name' ? 'hex' : (mode === 'hex' ? 'npub' : 'name')"
-										title="click to toggle"
-									>
-										<span :class="mode === 'name' ? '' : 'hidden'">
-											<nostr-name pubkey={ nip19.EncodeNprofile(result.Event.PubKey, []string{global.Settings.WSScheme() + global.Settings.Domain}) }>{ result.Event.PubKey.Hex() }</nostr-name>
-										</span>
-										<code :class="mode === 'hex' ? '' : 'hidden'" class="text-xs">{ result.Event.PubKey.Hex() }</code>
-										<code :class="mode === 'npub' ? '' : 'hidden'" class="text-xs">{ nip19.EncodeNpub(result.Event.PubKey) }</code>
-									</span>
-								</td>
-								<td class="px-4 py-3" x-data="{ unix: false }">
-									<span
-										class="cursor-pointer hover:text-blue-500 dark:hover:text-blue-400"
-										@click="unix = !unix"
-										title="click to toggle"
-									>
-										<span :class="unix ? 'hidden' : ''">{ result.Event.CreatedAt.Time().Format(time.DateTime) }</span>
-										<code :class="unix ? '' : 'hidden'" class="text-xs">{ fmt.Sprintf("%d", result.Event.CreatedAt) }</code>
-									</span>
-								</td>
-								<td class="px-4 py-3 break-all max-w-md">
-									if len(result.Event.Tags) == 0 {
-										<code class="text-xs whitespace-pre-wrap">[]</code>
-									} else {
-										<details>
-											<summary class="text-xs whitespace-pre-wrap font-mono">
-												for i, tag := range result.Event.Tags {
-													if i == 10 {
-														{{ break }}
-													}
-													if len(tag) == 0 {
-														{{ continue }}
-													}
-													"{ tag[0] }"
-												}
-											</summary>
-											<code class="text-xs whitespace-pre-wrap">
-												for _, tag := range result.Event.Tags {
-													{{ v, _ := json.Marshal(tag) }}
-													<div>
-														{ string(v) }
-													</div>
-												}
-											</code>
-										</details>
-									}
-								</td>
-								<td class="px-4 py-3 break-all max-w-md">
-									if len(result.Event.Content) < 200 {
-										<code class="text-xs whitespace-pre-wrap">{ result.Event.Content }</code>
-									} else {
-										<details>
-											<summary class="text-xs whitespace-pre-wrap font-mono">{ result.Event.Content[:50] }... ({ len(result.Event.Content) } chars)</summary>
-											<code class="text-xs whitespace-pre-wrap">{ result.Event.Content }</code>
-										</details>
-									}
-								</td>
-								<td class="px-4 py-3">
-									<button
-										type="button"
-										class="cursor-pointer px-3 py-1 rounded-md text-xs font-medium text-white bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 transition"
-										hx-delete={ "/database/" + result.DatabaseName + "/" + result.Event.ID.Hex() }
-										hx-target="closest tr"
-										hx-swap="delete"
-										if result.Event.PubKey == pyramid.AbsoluteKey {
-											hx-confirm="this event was signed by the relay itself, are you sure?"
-										} else {
-											hx-confirm="delete event from this database?"
-										}
-									>delete</button>
-								</td>
+			<form
+				x-data="{ selected: [] }"
+				hx-post="/database/delete"
+				hx-target="#database-results"
+				hx-swap="innerHTML"
+				hx-confirm="delete selected events from these databases?"
+			>
+				<div class="flex items-center justify-between mb-3">
+					@layout.SubSectionTitle("results")
+				</div>
+				<div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 overflow-x-auto">
+					<table class="w-full text-sm">
+						<thead>
+							<tr class="text-left text-stone-500 dark:text-stone-400 border-b border-stone-200 dark:border-stone-700">
+								<th class="px-4 py-3">
+									<input
+										type="checkbox"
+										aria-label="select all events"
+										:checked="selected.length === $root.querySelectorAll('input[name=events]').length"
+										@change="selected = $event.target.checked ? [...$root.querySelectorAll('input[name=events]')].map(input => input.value) : []"
+										class="rounded text-blue-500 focus:ring-blue-500"
+									/>
+								</th>
+								<th class="px-4 py-3">database</th>
+								<th class="px-4 py-3">kind</th>
+								<th class="px-4 py-3">id</th>
+								<th class="px-4 py-3">pubkey</th>
+								<th class="px-4 py-3">created at</th>
+								<th class="px-4 py-3">tags</th>
+								<th class="px-4 py-3">content</th>
+								<th class="px-4 py-3">actions</th>
 							</tr>
-						}
-					</tbody>
-				</table>
-			</div>
+						</thead>
+						<tbody>
+							for _, result := range results {
+								<tr class="border-b border-stone-100 dark:border-stone-700 last:border-b-0">
+									<td class="px-4 py-3">
+										<input
+											type="checkbox"
+											name="events"
+											value={ result.DatabaseName + "/" + result.Event.ID.Hex() }
+											aria-label="select event"
+											x-model="selected"
+											class="rounded text-blue-500 focus:ring-blue-500"
+										/>
+									</td>
+									<td class="px-4 py-3 font-medium">{ result.DatabaseName }</td>
+									<td class="px-4 py-3 font-mono">{ fmt.Sprintf("%d", result.Event.Kind) }</td>
+									<td class="px-4 py-3 font-mono">
+										<a
+											href={ "/event/" + result.DatabaseName + "/" + result.Event.ID.Hex() }
+											target="_blank"
+											class="block w-20 truncate text-xs break-all hover:text-blue-500 dark:hover:text-blue-400 font-mono"
+										>{ result.Event.ID.Hex() }</a>
+									</td>
+									<td class="px-4 py-3 font-mono" x-data="{ mode: 'name' }">
+										<span
+											class="cursor-pointer hover:text-blue-500 dark:hover:text-blue-400"
+											@click="mode = mode === 'name' ? 'hex' : (mode === 'hex' ? 'npub' : 'name')"
+											title="click to toggle"
+										>
+											<span :class="mode === 'name' ? '' : 'hidden'">
+												<nostr-name pubkey={ nip19.EncodeNprofile(result.Event.PubKey, []string{global.Settings.WSScheme() + global.Settings.Domain}) }>{ result.Event.PubKey.Hex() }</nostr-name>
+											</span>
+											<code :class="mode === 'hex' ? '' : 'hidden'" class="text-xs">{ result.Event.PubKey.Hex() }</code>
+											<code :class="mode === 'npub' ? '' : 'hidden'" class="text-xs">{ nip19.EncodeNpub(result.Event.PubKey) }</code>
+										</span>
+									</td>
+									<td class="px-4 py-3" x-data="{ unix: false }">
+										<span
+											class="cursor-pointer hover:text-blue-500 dark:hover:text-blue-400"
+											@click="unix = !unix"
+											title="click to toggle"
+										>
+											<span :class="unix ? 'hidden' : ''">{ result.Event.CreatedAt.Time().Format(time.DateTime) }</span>
+											<code :class="unix ? '' : 'hidden'" class="text-xs">{ fmt.Sprintf("%d", result.Event.CreatedAt) }</code>
+										</span>
+									</td>
+									<td class="px-4 py-3 break-all max-w-md">
+										if len(result.Event.Tags) == 0 {
+											<code class="text-xs whitespace-pre-wrap">[]</code>
+										} else {
+											<details>
+												<summary class="text-xs whitespace-pre-wrap font-mono">
+													for i, tag := range result.Event.Tags {
+														if i == 10 {
+															{{ break }}
+														}
+														if len(tag) == 0 {
+															{{ continue }}
+														}
+														"{ tag[0] }"
+													}
+												</summary>
+												<code class="text-xs whitespace-pre-wrap">
+													for _, tag := range result.Event.Tags {
+														{{ v, _ := json.Marshal(tag) }}
+														<div>
+															{ string(v) }
+														</div>
+													}
+												</code>
+											</details>
+										}
+									</td>
+									<td class="px-4 py-3 break-all max-w-md">
+										if len(result.Event.Content) < 200 {
+											<code class="text-xs whitespace-pre-wrap">{ result.Event.Content }</code>
+										} else {
+											<details>
+												<summary class="text-xs whitespace-pre-wrap font-mono">{ result.Event.Content[:50] }... ({ len(result.Event.Content) } chars)</summary>
+												<code class="text-xs whitespace-pre-wrap">{ result.Event.Content }</code>
+											</details>
+										}
+									</td>
+									<td class="px-4 py-3">
+										<button
+											type="button"
+											class="cursor-pointer px-3 py-1 rounded-md text-xs font-medium text-white bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 transition"
+											hx-delete={ "/database/" + result.DatabaseName + "/" + result.Event.ID.Hex() }
+											hx-target="closest tr"
+											hx-swap="delete"
+											if result.Event.PubKey == pyramid.AbsoluteKey {
+												hx-confirm="this event was signed by the relay itself, are you sure?"
+											} else {
+												hx-confirm="delete event from this database?"
+											}
+										>delete</button>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+				<button
+					type="submit"
+					x-show="selected.length > 0"
+					class="cursor-pointer px-3 py-1 rounded-md text-xs font-medium text-white bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 transition"
+				>delete selected</button>
+			</form>
 			<p class="text-sm text-stone-500 dark:text-stone-400 mt-2">{ fmt.Sprintf("%d events returned", len(results)) }</p>
 		</div>
 	}
