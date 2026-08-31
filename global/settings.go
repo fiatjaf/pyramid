@@ -67,10 +67,10 @@ type UserSettings struct {
 	AllowedKindsSpec string   `json:"allowed_kinds_spec,omitempty"`
 	Limits           Limits   `json:"limits"`
 
-	// Deprecated: remove this after people have migrated
+	// DEPRECATED: remove this after people have migrated
 	AllowedKindsLegacy []nostr.Kind `json:"allowed_kinds,omitempty"`
 
-	// Deprecated: remove this after people have migrated
+	// DEPRECATED: remove this after people have migrated
 	MaxEventSize int `json:"max_event_size,omitempty"`
 
 	// per-relay
@@ -96,7 +96,7 @@ type UserSettings struct {
 		SpecificallyBlocked []nostr.PubKey `json:"specifically_blocked"`
 		AllowedKindsSpec    string         `json:"allowed_kinds_spec,omitempty"`
 
-		// Deprecated: remove this after people have migrated
+		// DEPRECATED: remove this after people have migrated
 		AllowedKindsLegacy []nostr.Kind `json:"allowed_kinds,omitempty"`
 
 		HellthreadLimit  int    `json:"hellthread_limit"`
@@ -493,24 +493,34 @@ func loadUserSettings() error {
 			Settings.AllowAccessRequest = true
 		}
 	}
-	if section, ok := loadedSettings["popular"]; ok {
-		var values map[string]json.RawMessage
-		json.Unmarshal(section, &values)
-		if raw, ok := values["percent_threshold"]; ok {
-			var pct int
-			if json.Unmarshal(raw, &pct) == nil {
-				Settings.Popular.Threshold = Threshold{Percent: pct}
+
+	// DEPRECATED: get rid of this once everybody has migrated
+	if _, err := os.Stat(filepath.Join(S.DataPath, "migrated_thresholds")); os.IsNotExist(err) {
+		if section, ok := loadedSettings["popular"]; ok {
+			var values map[string]json.RawMessage
+			json.Unmarshal(section, &values)
+			if raw, ok := values["percent_threshold"]; ok {
+				var pct int
+				if json.Unmarshal(raw, &pct) == nil {
+					Settings.Popular.Threshold = Threshold{Percent: pct}
+				}
 			}
 		}
-	}
-	if section, ok := loadedSettings["uppermost"]; ok {
-		var values map[string]json.RawMessage
-		json.Unmarshal(section, &values)
-		if raw, ok := values["percent_threshold"]; ok {
-			var pct int
-			if json.Unmarshal(raw, &pct) == nil {
-				Settings.Uppermost.Threshold = Threshold{Percent: pct}
+		if section, ok := loadedSettings["uppermost"]; ok {
+			var values map[string]json.RawMessage
+			json.Unmarshal(section, &values)
+			if raw, ok := values["percent_threshold"]; ok {
+				var pct int
+				if json.Unmarshal(raw, &pct) == nil {
+					Settings.Uppermost.Threshold = Threshold{Percent: pct}
+				}
 			}
+		}
+		if err := os.WriteFile(filepath.Join(S.DataPath, "migrated_thresholds"), nil, 0644); err != nil {
+			Log.Warn().Err(err).Msg("failed to write migrated_thresholds marker file, will retry on next startup")
+		}
+		if err := SaveUserSettings(); err != nil {
+			return fmt.Errorf("failed to save settings after threshold migration: %w", err)
 		}
 	}
 

@@ -135,7 +135,10 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 					global.Settings.MaxInvitesAtEachLevel = nil
 				}
 			case "wot_min_followed_by":
-				global.Settings.WotMinFollowedBy.FromString(strings.TrimSpace(v[0]))
+				if err := global.Settings.WotMinFollowedBy.FromString(strings.TrimSpace(v[0])); err != nil {
+					http.Error(w, "invalid wot_min_followed_by: "+err.Error(), 400)
+					return
+				}
 			case "max_event_size":
 				global.Settings.Limits.MaxEventSize, _ = strconv.Atoi(v[0])
 			case "max_subscriptions_open":
@@ -539,12 +542,18 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Inbox.SpecificallyBlocked = blocked
 				//
 				// popular-specific
-			case "popular_percent_threshold":
-				global.Settings.Popular.Threshold.FromString(v[0])
+			case "popular_threshold":
+				if err := global.Settings.Popular.Threshold.FromString(v[0]); err != nil {
+					http.Error(w, "invalid popular_threshold: "+err.Error(), 400)
+					return
+				}
 				//
 				// uppermost-specific
-			case "uppermost_percent_threshold":
-				global.Settings.Uppermost.Threshold.FromString(v[0])
+			case "uppermost_threshold":
+				if err := global.Settings.Uppermost.Threshold.FromString(v[0]); err != nil {
+					http.Error(w, "invalid uppermost_threshold: "+err.Error(), 400)
+					return
+				}
 				//
 				// allowed kinds settings
 			case "allowed_kinds_spec":

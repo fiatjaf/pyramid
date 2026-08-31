@@ -19,10 +19,6 @@ var reactionKinds = []nostr.Kind{6, 7, 9321, 9735, 9802, 1, 1111, 1244}
 
 func processReactions(ctx context.Context, event nostr.Event) {
 	totalMembers := pyramid.Members.Size()
-	if totalMembers <= 10 {
-		// makes no sense to have this in this case
-		return
-	}
 
 	// sum existing reactions for this target, a unique vote per member
 	popularVotes := make(map[string]map[nostr.PubKey]struct{})
@@ -66,10 +62,10 @@ func processReactions(ctx context.Context, event nostr.Event) {
 		// fetch
 		targetEvent := fetchEventBasedOnHintsWeHave(target)
 		if targetEvent == nil {
-			return
+			continue
 		}
 		if nip70.IsProtected(*targetEvent) || nip70.HasEmbeddedProtected(*targetEvent) {
-			return
+			continue
 		}
 
 		// add to the qualified layers

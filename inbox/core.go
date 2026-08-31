@@ -195,6 +195,10 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 			(global.Settings.Inbox.RequireAuthForDM == "when_no_pow" && global.Settings.Inbox.MinDMPoW == 0) ||
 			(global.Settings.Inbox.RequireAuthForDM == "when_no_pow" && powRejection != "") {
 
+			if !wot.IsComputed() {
+				return true, "blocked: wot still being computed, wait"
+			}
+
 			for _, pk := range khatru.GetAllAuthed(ctx) {
 				// at least one authenticated pubkey is in the wot
 				if wot.Contains(pk) {
@@ -222,6 +226,26 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 		return true, "blocked: you are blocked"
 	}
 
+	// ensure this comes from someone in the relay combined extended network
+	bannedByAll := true
+	for member := range pyramid.Members.Range {
+		if !isBannedByMember(member, evt.PubKey) {
+			bannedByAll = false
+			break
+		}
+	}
+	if !pyramid.IsMember(sender) && bannedByAll {
+		return true, "blocked: you're filtered out on this relay"
+	}
+
+	if wot.IsComputed() {
+		return true, "blocked: wot still being computed, wait some minutes"
+	}
+
+	if !wot.Contains(sender) {
+		return true, "blocked: you're not in the extended network of this relay"
+	}
+
 	if slices.Contains([]nostr.Kind{9735, 9321}, evt.Kind) {
 		// if this is money we must check if it's tagging only us
 		if pTagCount != 1 {
@@ -237,6 +261,7 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 			if evt.PubKey != global.Nostr.FetchZapProvider(zctx, receiver) {
 				return true, "this came from an invalid zap provider"
 			}
+
 			return false, ""
 		case 9321:
 			// check nutzap validity
@@ -267,27 +292,6 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 		default:
 			return true, "unexpected money kind"
 		}
-	}
-
-	// ensure this comes from someone in the relay combined extended network
-	bannedByAll := true
-	for member := range pyramid.Members.Range {
-		if !isBannedByMember(member, evt.PubKey) {
-			bannedByAll = false
-			break
-		}
-	}
-	if !pyramid.IsMember(evt.PubKey) && bannedByAll {
-		return true, "blocked: you're filtered out on this relay"
-	}
-
-	if !wot.Contains(sender) {
-		if evt.Kind == 9735 && sender == evt.PubKey {
-			// we'll make an exception for zap providers that do not include the "P" temporarily
-			return false, ""
-		}
-
-		return true, "blocked: you're not in the extended network of this relay"
 	}
 
 	return false, ""
