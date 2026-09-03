@@ -2,6 +2,7 @@ package pyramid
 
 import (
 	"math"
+	"sync"
 	"testing"
 
 	"fiatjaf.com/nostr"
@@ -332,6 +333,82 @@ func TestDuplicateInviteBySamePubkey(t *testing.T) {
 	member3, _ := Members.Load(user3)
 	require.Len(t, member3.Parents, 1)
 	require.Equal(t, user1, member3.Parents[0])
+}
+
+func TestAddActionAuthorization(t *testing.T) {
+	root := nostr.PubKey{1}
+	userA := nostr.PubKey{'A'}
+	userB := nostr.PubKey{'B'}
+
+	AbsoluteKey = nostr.MustPubKeyFromHex("4444444444444444444444444444444444444444444444444444444444444444")
+	Members.Clear()
+	global.Settings.MaxInvitesAtEachLevel = nil
+	global.Settings.MaxInvitesPerPerson = 10
+	global.S.DataPath = t.TempDir()
+
+	// setup tree: AbsoluteKey -> root -> userA -> userB
+	applyAction(managementAction{Type: ActionInvite, Author: AbsoluteKey.Hex(), Target: root.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: root.Hex(), Target: userA.Hex()})
+	applyAction(managementAction{Type: ActionInvite, Author: userA.Hex(), Target: userB.Hex()})
+
+	// a member can't make anyone else leave -- that would erase the target and all
+	// its descendants, so a leaf member could otherwise wipe the entire pyramid
+	require.Error(t, AddAction(ActionLeave, userB, root))
+	require.Error(t, AddAction(ActionLeave, userB, userA))
+	require.True(t, IsRoot(root))
+	require.True(t, IsMember(userA))
+
+	// leaving on one's own behalf still works
+	require.NoError(t, AddAction(ActionLeave, userB, userB))
+	require.False(t, IsMember(userB))
+
+	// the zero pubkey (what invalid input decodes to) can never become a member,
+	// otherwise every unauthenticated visitor would be seen as one
+	require.Error(t, AddAction(ActionInvite, root, nostr.ZeroPK))
+	require.False(t, IsMember(nostr.ZeroPK))
+	require.Error(t, AddAction(ActionInvite, nostr.ZeroPK, nostr.PubKey{'Z'}))
+}
+
+func TestConcurrentInvitesDontCreateCycles(t *testing.T) {
+	root := nostr.PubKey{1}
+
+	AbsoluteKey = nostr.MustPubKeyFromHex("5555555555555555555555555555555555555555555555555555555555555555")
+	Members.Clear()
+	global.Settings.MaxInvitesAtEachLevel = nil
+	global.Settings.MaxInvitesPerPerson = 10
+	global.S.DataPath = t.TempDir()
+
+	applyAction(managementAction{Type: ActionInvite, Author: AbsoluteKey.Hex(), Target: root.Hex()})
+
+	// two members inviting each other at the same time: each invite is fine against
+	// the tree as it was before the other one, but together they would close a cycle
+	// (a -> b -> a) and make every tree walk recurse until the process dies
+	for i := range 50 {
+		a := nostr.PubKey{byte(i), 'a'}
+		b := nostr.PubKey{byte(i), 'b'}
+		applyAction(managementAction{Type: ActionInvite, Author: root.Hex(), Target: a.Hex()})
+		applyAction(managementAction{Type: ActionInvite, Author: root.Hex(), Target: b.Hex()})
+
+		start := make(chan struct{})
+		errs := make([]error, 2)
+		var wg sync.WaitGroup
+		for j, pair := range [][2]nostr.PubKey{{a, b}, {b, a}} {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-start
+				errs[j] = AddAction(ActionInvite, pair[0], pair[1])
+			}()
+		}
+		close(start)
+		wg.Wait()
+
+		// exactly one of them must have been refused as "can't invite an ancestor"
+		require.True(t, (errs[0] == nil) != (errs[1] == nil), "one invite must fail: %v / %v", errs[0], errs[1])
+		require.False(t, IsParentOf(a, b) && IsParentOf(b, a), "cycle between a and b")
+		require.NotEqual(t, math.MaxInt, GetLevel(a))
+		require.NotEqual(t, math.MaxInt, GetLevel(b))
+	}
 }
 
 func TestGetMaxInvitesFor(t *testing.T) {

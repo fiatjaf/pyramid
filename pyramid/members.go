@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sync"
 
 	"fiatjaf.com/nostr"
 	"github.com/puzpuzpuz/xsync/v3"
@@ -21,6 +22,12 @@ var (
 	AbsoluteKey nostr.PubKey
 	Members     = xsync.NewMapOf[nostr.PubKey, Member]()
 	Roles       = xsync.NewMapOf[string, Role]()
+
+	// actionsMu serializes management actions: each one is checked against the
+	// current tree and only then applied to it, so two of them running at the
+	// same time could both pass checks that the other invalidates -- two invites
+	// could create a parent cycle, which makes the tree walks here recurse forever
+	actionsMu sync.Mutex
 )
 
 type Member struct {
@@ -252,6 +259,16 @@ type managementAction struct {
 }
 
 func AddAction(type_ Action, author nostr.PubKey, target nostr.PubKey) error {
+	actionsMu.Lock()
+	defer actionsMu.Unlock()
+
+	// the zero pubkey is what invalid or missing input decodes to (both in HTTP forms
+	// and in nostr tags), so it must never make it into the tree: an unauthenticated
+	// visitor is also seen as the zero pubkey, so a zero member would make everybody a member
+	if author == nostr.ZeroPK || target == nostr.ZeroPK {
+		return fmt.Errorf("invalid pubkey")
+	}
+
 	if !IsMember(author) && author != AbsoluteKey {
 		return fmt.Errorf("pubkey %s isn't an active member", author)
 	}
@@ -276,7 +293,11 @@ func AddAction(type_ Action, author nostr.PubKey, target nostr.PubKey) error {
 			return fmt.Errorf("not an ancestor, can't drop")
 		}
 	case ActionLeave:
-		// anyone can leave anytime
+		// anyone can leave anytime, but only on their own behalf: leaving erases the
+		// target and everybody who descends from it, so it can't be done to others
+		if target != author {
+			return fmt.Errorf("can't make someone else leave")
+		}
 	case ActionDisable:
 		if !IsAncestorOf(author, target) {
 			return fmt.Errorf("not an ancestor, can't disable")
@@ -299,6 +320,9 @@ func AddAction(type_ Action, author nostr.PubKey, target nostr.PubKey) error {
 }
 
 func AddRoleAction(type_ Action, author nostr.PubKey, roleID, label, desc, color string, order int) error {
+	actionsMu.Lock()
+	defer actionsMu.Unlock()
+
 	if !IsRoot(author) {
 		return fmt.Errorf("only root users can manage roles")
 	}
@@ -316,6 +340,9 @@ func AddRoleAction(type_ Action, author nostr.PubKey, roleID, label, desc, color
 }
 
 func AddRoleAssignmentAction(type_ Action, author nostr.PubKey, target nostr.PubKey, roleID string) error {
+	actionsMu.Lock()
+	defer actionsMu.Unlock()
+
 	if !IsRoot(author) {
 		return fmt.Errorf("only root users can assign roles")
 	}
@@ -332,6 +359,9 @@ func AddRoleAssignmentAction(type_ Action, author nostr.PubKey, target nostr.Pub
 }
 
 func LoadManagement() error {
+	actionsMu.Lock()
+	defer actionsMu.Unlock()
+
 	file, err := os.Open(filepath.Join(global.S.DataPath, "management.jsonl"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -490,6 +520,8 @@ func applyAction(action managementAction) {
 	}
 }
 
+// appendActionToFile persists an action and applies it. it doesn't take actionsMu:
+// its callers already hold it, so that the checks they made still hold here.
 func appendActionToFile(action managementAction) error {
 	b, err := json.Marshal(action)
 	if err != nil {

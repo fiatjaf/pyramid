@@ -346,13 +346,15 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				global.Settings.Moderated.Pinned = checkPinnedID(v[0], global.IL.Moderated)
 				global.CachePinnedEvent(global.RelayModerated)
 			case "moderated_httpBasePath":
-				if len(v[0]) > 0 {
-					global.Settings.Moderated.HTTPBasePath = v[0]
-					moderated.Relay.ServiceURL = global.Settings.Moderated.GetServiceURL()
-					delayedRedirectTarget = global.Settings.Moderated.GetPageURL()
-					moderated.Init()
-					go restartSoon()
+				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
+					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)
+					return
 				}
+				global.Settings.Moderated.HTTPBasePath = v[0]
+				moderated.Relay.ServiceURL = global.Settings.Moderated.GetServiceURL()
+				delayedRedirectTarget = global.Settings.Moderated.GetPageURL()
+				moderated.Init()
+				go restartSoon()
 			case "moderated_httpDomain":
 				domain, err := normalizeDomainInput(v[0])
 				if err != nil {
