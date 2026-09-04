@@ -1,0 +1,159 @@
+package main
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"fiatjaf.com/nostr"
+	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
+	"github.com/fiatjaf/pyramid/pyramid"
+)
+
+func injectHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, ok := global.GetLoggedUser(r)
+	if !ok || !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		var eventJSON string
+		var selectedDB string
+		var errMsg string
+		var successMsg string
+
+		r.ParseForm()
+		selectedDB = r.FormValue("db")
+		eventJSON = r.FormValue("event")
+
+		db := databaseByName(selectedDB)
+		if db == nil {
+			errMsg = "invalid database: " + selectedDB
+		} else {
+			var evt nostr.Event
+			if err := json.Unmarshal([]byte(eventJSON), &evt); err != nil {
+				errMsg = "invalid event JSON: " + err.Error()
+			} else if !evt.CheckID() || !evt.VerifySignature() {
+				errMsg = "invalid event signature"
+			} else if err := db.SaveEvent(evt); err != nil {
+				errMsg = "failed to save event: " + err.Error()
+			} else {
+				successMsg = "event " + evt.ID.Hex() + " injected into " + selectedDB
+				eventJSON = ""
+			}
+		}
+
+		if isHTMX := r.Header.Get("Hx-Request") == "true"; isHTMX {
+			injectResult(errMsg, successMsg).Render(r.Context(), w)
+			return
+		}
+	}
+
+	injectPage(loggedUser).Render(r.Context(), w)
+}
+
+templ injectPage(loggedUser nostr.PubKey) {
+	@layout.Layout(loggedUser, "inject") {
+		<div class="max-w-6xl mx-auto space-y-6">
+			<div class="flex items-center justify-between gap-4">
+				@layout.SubSectionTitle("inject")
+			</div>
+			<p class="text-lg leading-relaxed">
+				paste a signed event below to forcefully save it into one of the internal databases, bypassing all relay rules. the event signature still has to be valid.
+			</p>
+			<div id="inject-result"></div>
+			<form
+				hx-post="/database/inject"
+				hx-target="#inject-result"
+				hx-swap="innerHTML"
+				hx-indicator="#inject-spinner"
+				class="space-y-6"
+			>
+				<div>
+					<label class="block text-sm font-medium mb-1 dark:text-stone-300">event JSON</label>
+					<textarea
+						id="inject-event"
+						name="event"
+						rows="12"
+						required
+						class="w-full font-mono text-sm bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-600 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+						placeholder={ `{
+  "kind": 1,
+  "id": "2e46451585a53e4e7eb0d2e8eddb0bab0d8577774033c8a5e527a16cf6f60a89",
+  "pubkey": "f497bd38379e00ee6756ad88e929bbe67c5fdc7c14ce12ec64253d0cfa80a0a2",
+  "created_at": 1788564774,
+  "tags": [],
+  "content": "surreptitiously injected content",
+  "sig": "65ea4c958f31632c713323bfbe90f42d195bdd6aa58824d8f5ccefe77ac85e15555174eb1c4a6ac3ef2dd753562e477d17d9069bd7155571340bf9fd87b74d19"
+}` }
+					></textarea>
+				</div>
+				<fieldset class="space-y-2">
+					<legend class="text-sm font-medium dark:text-stone-300">database to inject into (pick one)</legend>
+					<div class="flex flex-col flex-wrap gap-2 h-36">
+						@dbRadio("system", "System", false)
+						@dbRadio("main", "Main", true)
+						@dbRadio("internal", "Internal", false)
+						@dbRadio("favorites", "Favorites", false)
+						@dbRadio("invites", "Invites", false)
+						@dbRadio("pending-access", "Pending Access", false)
+						@dbRadio("personal", "Personal", false)
+						@dbRadio("inbox", "Inbox", false)
+						@dbRadio("secret", "Secret", false)
+						@dbRadio("moderation-queue", "Moderation Queue", false)
+						@dbRadio("moderated", "Moderated", false)
+						@dbRadio("popular", "Popular", false)
+						@dbRadio("uppermost", "Uppermost", false)
+						@dbRadio("scheduled", "Scheduled", false)
+						@dbRadio("blossom", "Blossom", false)
+						@dbRadio("deleted-groups", "Deleted Groups", false)
+					</div>
+				</fieldset>
+				<div class="flex items-center gap-4">
+					<button
+						type="submit"
+						class="cursor-pointer px-6 py-2 rounded-lg font-medium text-white shadow-md hover:shadow-lg themed:bg-[var(--accent-color)] themed:hover:bg-[rgb(from_var(--accent-color)_r_g_b_/_80%)] light:bg-blue-500 light:hover:bg-blue-600 dark:bg-blue-500 dark:hover:bg-blue-600 transition"
+					>
+						inject event
+					</button>
+					<img
+						id="inject-spinner"
+						src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='12' y1='2' x2='12' y2='6'/%3E%3Cline x1='12' y1='18' x2='12' y2='22'/%3E%3Cline x1='4.93' y1='4.93' x2='7.76' y2='7.76'/%3E%3Cline x1='16.24' y1='16.24' x2='19.07' y2='19.07'/%3E%3Cline x1='2' y1='12' x2='6' y2='12'/%3E%3Cline x1='18' y1='12' x2='22' y2='12'/%3E%3Cline x1='4.93' y1='19.07' x2='7.76' y2='16.24'/%3E%3Cline x1='16.24' y1='7.76' x2='19.07' y2='4.93'/%3E%3C/svg%3E"
+						class="h-6 w-6 hidden"
+						hx-swap-oob="true"
+					/>
+				</div>
+			</form>
+		</div>
+	}
+}
+
+templ injectResult(errMsg string, successMsg string) {
+	if errMsg != "" {
+		<div class="text-sm text-red-600 dark:text-red-400 font-medium mb-4">
+			{ errMsg }
+		</div>
+	}
+	if successMsg != "" {
+		<div class="text-sm text-sm text-green-600 dark:text-green-400 font-medium mb-4">
+			{ successMsg }
+		</div>
+	}
+}
+
+templ dbRadio(name string, label string, selected bool) {
+	<div class="flex items-center cursor-pointer">
+		<input
+			type="radio"
+			name="db"
+			value={ name }
+			id={ "inject-db-" + name }
+			class="rounded text-blue-500 focus:ring-blue-500"
+			if selected {
+				checked
+			}
+		/>
+		<label for={ "inject-db-" + name } class="text-sm dark:text-stone-300 ml-1 font-mono">{ label }</label>
+	</div>
+}
