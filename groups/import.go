@@ -243,6 +243,16 @@ func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, addr
 	s.Groups.Store(group.Address.ID, group)
 
 	modSaved := 0
+	hasCreate := false
+	var oldest nostr.Timestamp
+	for _, evt := range moderationEvts {
+		if evt.Kind == nostr.KindSimpleGroupCreateGroup {
+			hasCreate = true
+		}
+		if oldest == 0 || evt.CreatedAt < oldest {
+			oldest = evt.CreatedAt
+		}
+	}
 	for _, evt := range moderationEvts {
 		if err := global.IL.Main.SaveEvent(evt); err != nil && err != eventstore.ErrDupEvent {
 			log.Warn().Err(err).Stringer("event", evt.ID).Msg("failed to save moderation event during import")
@@ -262,6 +272,9 @@ func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, addr
 		if nip29.ModerationEventKinds.Includes(evt.Kind) || nip29.MetadataEventKinds.Includes(evt.Kind) {
 			continue
 		}
+		if oldest == 0 || evt.CreatedAt < oldest {
+			oldest = evt.CreatedAt
+		}
 		if err := global.IL.Main.SaveEvent(evt); err != nil && err != eventstore.ErrDupEvent {
 			log.Warn().Err(err).Stringer("event", evt.ID).Msg("failed to save other group event during import")
 			continue
@@ -270,6 +283,27 @@ func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, addr
 	}
 
 	pool.Close("import done")
+
+	// if the source relay didn't give us a create-group event synthesize one
+	// so the group survives restarts, which load groups from kind 9007 events.
+	// backdate it to just before the oldest event we have so it sorts first.
+	if !hasCreate && oldest != 0 {
+		createEvt := nostr.Event{
+			Kind:      nostr.KindSimpleGroupCreateGroup,
+			CreatedAt: oldest - 1,
+			Tags:      nostr.Tags{{"h", group.Address.ID}},
+			Content:   "created during group import",
+		}
+		if err := createEvt.Sign(global.Settings.RelayInternalSecretKey); err != nil {
+			log.Warn().Err(err).Msg("failed to sign import create-group event")
+		} else {
+			if err := global.IL.Main.SaveEvent(createEvt); err != nil && err != eventstore.ErrDupEvent {
+				log.Warn().Err(err).Stringer("event", createEvt.ID).Msg("failed to save import create-group event")
+			} else {
+				hostRelay.BroadcastEvent(createEvt)
+			}
+		}
+	}
 
 	// sign, save and broadcast the new put-user events we built
 	for _, evt := range newPutUserEvents {
