@@ -793,7 +793,10 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var domainRegex = regexp.MustCompile(`^((xn--|_)?[a-z0-9-]{0,61}[a-z0-9]{1,1}\.)*(xn--)?([a-z0-9][a-z0-9\-]{0,60}|[a-z0-9-]{1,30}\.[a-z]{2,})?$`)
+// Labels may be up to 63 octets (RFC 1035 §2.3.4). The quantifiers below
+// are one less than the label length they allow, since each alternative
+// spells out a leading and/or trailing character separately.
+var domainRegex = regexp.MustCompile(`^((xn--|_)?[a-z0-9-]{0,62}[a-z0-9]{1,1}\.)*(xn--)?([a-z0-9][a-z0-9\-]{0,62}|[a-z0-9-]{1,30}\.[a-z]{2,})?$`)
 
 func domainSetupHandler(w http.ResponseWriter, r *http.Request) {
 	if global.Settings.Domain != "" {
