@@ -23,7 +23,14 @@ type Registration struct {
 }
 
 func saveRegistration(reg Registration) error {
-	data, err := json.Marshal(reg)
+	stored := reg
+	ct, err := encryptShard(reg.Shard)
+	if err != nil {
+		return err
+	}
+	stored.Shard = ct
+
+	data, err := json.Marshal(stored)
 	if err != nil {
 		return err
 	}
@@ -58,6 +65,16 @@ func loadRegistrationEvent(email string) (nostr.Event, Registration, error) {
 		var reg Registration
 		if err := json.Unmarshal([]byte(evt.Content), &reg); err != nil {
 			return nostr.Event{}, Registration{}, err
+		}
+		plain, migrated, err := revealShard(reg.Shard)
+		if err != nil {
+			return nostr.Event{}, Registration{}, err
+		}
+		reg.Shard = plain
+		if migrated {
+			if err := saveRegistration(reg); err != nil {
+				return nostr.Event{}, Registration{}, err
+			}
 		}
 		return evt, reg, nil
 	}
