@@ -61,7 +61,11 @@ type UserSettings struct {
 		Names   map[string]nostr.PubKey `json:"names"`
 	} `json:"nip05"`
 
-	RelayInternalSecretKey nostr.SecretKey `json:"relay_internal_secret_key"`
+	// RelayInternalSecretKey is loaded from DataPath/relay_internal_secret_key
+	// (0600), never serialized into settings.json.
+	RelayInternalSecretKey nostr.SecretKey `json:"-"`
+	// RelayInternalSecretKeyPath is the on-disk path of that file, if known.
+	RelayInternalSecretKeyPath string `json:"relay_internal_secret_key_path,omitempty"`
 
 	BlockedIPs       []string `json:"blocked_ips"`
 	AllowedKindsSpec string   `json:"allowed_kinds_spec,omitempty"`
@@ -375,6 +379,80 @@ func getUserSettingsPath() string {
 	return filepath.Join(S.DataPath, "settings.json")
 }
 
+func relayInternalSecretKeyFilePath() string {
+	return filepath.Join(S.DataPath, "relay_internal_secret_key")
+}
+
+func persistRelayInternalSecretKey(sk nostr.SecretKey) error {
+	path := relayInternalSecretKeyFilePath()
+	if err := WriteRestrictedKeyFile(path, []byte(sk.Hex()+"\n")); err != nil {
+		return err
+	}
+	Settings.RelayInternalSecretKey = sk
+	Settings.RelayInternalSecretKeyPath = path
+	return nil
+}
+
+func loadRelayInternalSecretKeyFromFile() (nostr.SecretKey, error) {
+	path := relayInternalSecretKeyFilePath()
+	data, err := ReadRestrictedKeyFile(path)
+	if err != nil {
+		return nostr.SecretKey{}, err
+	}
+	defer zeroBytes(data)
+	hexstr := strings.TrimSpace(string(data))
+	sk, err := nostr.SecretKeyFromHex(hexstr)
+	if err != nil {
+		return nostr.SecretKey{}, fmt.Errorf("invalid relay internal secret key in %s: %w", path, err)
+	}
+	return sk, nil
+}
+
+func ensureRelayInternalSecretKey(legacy *nostr.SecretKey) error {
+	path := relayInternalSecretKeyFilePath()
+	_, err := os.Stat(path)
+	if err == nil {
+		sk, err := loadRelayInternalSecretKeyFromFile()
+		if err != nil {
+			return err
+		}
+		Settings.RelayInternalSecretKey = sk
+		Settings.RelayInternalSecretKeyPath = path
+		return nil
+	}
+	if !os.IsNotExist(err) {
+		return err
+	}
+
+	var sk nostr.SecretKey
+	if legacy != nil {
+		sk = *legacy
+	} else {
+		sk = nostr.Generate()
+	}
+	return persistRelayInternalSecretKey(sk)
+}
+
+func legacyRelayInternalSecretKeyFromJSON(loaded map[string]json.RawMessage) *nostr.SecretKey {
+	raw, ok := loaded["relay_internal_secret_key"]
+	if !ok {
+		return nil
+	}
+	var hexstr string
+	if err := json.Unmarshal(raw, &hexstr); err != nil {
+		return nil
+	}
+	hexstr = strings.TrimSpace(hexstr)
+	if hexstr == "" || strings.Contains(hexstr, "/") {
+		return nil
+	}
+	sk, err := nostr.SecretKeyFromHex(hexstr)
+	if err != nil {
+		return nil
+	}
+	return &sk
+}
+
 func loadUserSettings() error {
 	// start it with the defaults
 	Settings = UserSettings{
@@ -472,7 +550,9 @@ func loadUserSettings() error {
 			Settings.RelayName = "<unnamed pyramid>"
 			Settings.RelayDescription = "<an undescribed relay>"
 			Settings.RelayIcon = "https://cdn.britannica.com/06/122506-050-C8E03A8A/Pyramid-of-Khafre-Giza-Egypt.jpg"
-			Settings.RelayInternalSecretKey = nostr.Generate()
+			if err := ensureRelayInternalSecretKey(nil); err != nil {
+				return fmt.Errorf("failed to create relay internal secret key: %w", err)
+			}
 
 			if err := SaveUserSettings(); err != nil {
 				return fmt.Errorf("failed to save initial settings: %w", err)
@@ -551,6 +631,17 @@ func loadUserSettings() error {
 		return err
 	} else {
 		KindIsAllowed = kindIsAllowed
+	}
+
+	legacySK := legacyRelayInternalSecretKeyFromJSON(loadedSettings)
+	migratedKeyOutOfJSON := legacySK != nil
+	if err := ensureRelayInternalSecretKey(legacySK); err != nil {
+		return fmt.Errorf("relay internal secret key: %w", err)
+	}
+	if migratedKeyOutOfJSON {
+		if err := SaveUserSettings(); err != nil {
+			return fmt.Errorf("failed to save settings after moving relay_internal_secret_key: %w", err)
+		}
 	}
 
 	return nil
