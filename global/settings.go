@@ -311,7 +311,11 @@ func (rm RelayMetadata) GetPageURL() string {
 }
 
 func (us UserSettings) HTTPScheme() string {
-	if strings.HasPrefix(us.Domain, "127.0.0.1") || strings.HasPrefix(us.Domain, "0.0.0.0") || strings.HasPrefix(us.Domain, "localhost") || strings.HasSuffix(us.Domain, "i2p") || strings.HasSuffix(us.Domain, "onion") {
+	// the domain may carry a port, which the suffix checks below would
+	// otherwise never match ("x.onion" does, "x.onion:3334" does not)
+	host, _, _ := strings.Cut(us.Domain, ":")
+
+	if strings.HasPrefix(host, "127.0.0.1") || strings.HasPrefix(host, "0.0.0.0") || strings.HasPrefix(host, "localhost") || strings.HasSuffix(host, "i2p") || strings.HasSuffix(host, "onion") || strings.HasSuffix(host, "fips") {
 		return "http://"
 	} else {
 		return "https://"
