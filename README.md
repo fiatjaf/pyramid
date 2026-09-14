@@ -67,13 +67,9 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
   - _uppermost_: only the notes most loved by a higher percentage of relay members
   - _moderated_: a multi-use relay open to the public, but for which pyramid members have to approve each post manually
   - _personal_: a relay in which only each member can read their own notes, i.e. a personal note-taking service
-  - _groups_: a relay that also listens at the top-level path, but provides moderated group functionality
-    - members can create groups and they become admins of such groups
-    - non-pyramid members can join these groups, provided that their admins allow
-    - groups can be private, in which case messages will only be shown to members of each group
-    - invite code functionality also supported
-    - pyramid root admin can see all the groups and moderate them
-    - integrated livekit server for audio and video chats
+  - _bookmarks_: a per-user bookmarking relay
+    - each member gets a private database, only readable by themselves after NIP-42 auth
+    - a read-only `/all` subpath aggregates public bookmarks from all members, configurable as public, members-only or disabled
 
 <br clear="all">
 
@@ -102,6 +98,13 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
 <div align="center"><img width="600" src="https://github.com/user-attachments/assets/ae238bcf-6908-49af-adad-52455871b074" /></div>
 
 ## services
+- **groups**
+  - members can create groups and they become admins of such groups
+  - non-pyramid members can join these groups, provided that their admins allow
+  - groups can be private, in which case messages will only be shown to members of each group
+  - invite code functionality also supported
+  - pyramid root admin can see all the groups and moderate them
+  - integrated livekit server for audio and video chats
 
 - **statistics**
   - each member can view their own event count by kind, with a chart displaying usage trends on their account page
@@ -111,6 +114,10 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
   - each member can claim their own user address by visiting the homepage
 
 - **NIP-34 GRASP support**
+  - embedded grasp git server, repositories announced on the main relay can be cloned/pushed over nostr
+
+- **NIP-50 search**
+  - optional full-text search over the main relay, with configurable languages and streaming reindex page
 
 - **negentropy sync**
   - fetch missing events from any remote relay
@@ -129,6 +136,27 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
   - each member can keep a list of "subscribers"
   - notes published as 'protected' are served only to the subscribers on the list
   - this system can be integrated with a 3rd party payment processor of any kind
+
+- **nsite static hosting**
+  - hosts static sites from nsite manifests stored in the relay, using blobs from the blossom server
+  - sites served at subdomains of a configured domain
+
+- **operator key-shard backup**
+  - pomegranate operator service for FROST key shard management
+  - google login for shard recovery and erasure, optional members-only or web-of-trust registration filter
+
+- **imgproxy image resizing**
+  - embedded imgproxy server for on-the-fly resizing, converting and caching remote images
+  - per-member HMAC tokens, secret issued after NIP-98 auth
+
+- **link preview**
+  - dufflepud-compatible `/link/preview` endpoint returning title, description and image for URLs
+  - per-member tokens or allowed-domains list
+
+- **scheduled notes**
+  - accept future-dated events on the main relay, hold them in a separate store and publish automatically when due
+  - follows this [half-standard](https://nostrhub.io/naddr1qvzqqqrcvypzqwlsccluhy6xxsr6l9a9uhhxf75g85g8a709tprjcn4e42h053vaqqjrxcenve3kxwfh95ur2cny956r2wpk94snwetr95cnxdnzvvmxzwrzxqmrqexy0d2)
+
 ## community
 
 join the group of users at `pyramid.fiatjaf.com'Tnq7x2ZTgrPZWFrC` ([grimoire](https://grimoire2.netlify.app/run?cmd=chat%20pyramid.fiatjaf.com%27Tnq7x2ZTgrPZWFrC), [Nostrord](https://web.nostrord.com/?relay=pyramid.fiatjaf.com&group=Tnq7x2ZTgrPZWFrC)) to talk about your experience or complain about things.
