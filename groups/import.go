@@ -9,6 +9,7 @@ import (
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/eventstore"
+	"fiatjaf.com/nostr/keyer"
 	"fiatjaf.com/nostr/nip19"
 	"fiatjaf.com/nostr/nip29"
 	"github.com/fiatjaf/pyramid/global"
@@ -76,7 +77,7 @@ type importResult struct {
 // admin. If the source group uses roles other than our admin/moderator and no
 // mapping was provided, the import fails so the caller can specify how to
 // rename them.
-func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, address, adminMode, primaryFrom, secondaryFrom string) (*importResult, error) {
+func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, address, adminMode, primaryFrom, secondaryFrom, bunkerURL string) (*importResult, error) {
 	relay, groupID, err := parseImportAddress(address)
 	if err != nil {
 		return nil, err
@@ -94,10 +95,21 @@ func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, addr
 	// read groups on the source relay that require NIP-42 auth. we can't
 	// sign as the caller -- we don't have their secret -- so private groups
 	// the caller can read but we can't will still fail, transparently below.
+	// if a temporary bunker URL was passed, authenticate with it instead.
 	pool := nostr.NewPool()
 	defer pool.Close("import done")
-	pool.AuthRequiredHandler = func(ctx context.Context, evt *nostr.Event) error {
-		return evt.Sign(global.Settings.RelayInternalSecretKey)
+	if bunkerURL = strings.TrimSpace(bunkerURL); bunkerURL != "" {
+		signer, err := keyer.New(ctx, pool, bunkerURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to bunker: %w", err)
+		}
+		pool.AuthRequiredHandler = func(ctx context.Context, evt *nostr.Event) error {
+			return signer.SignEvent(ctx, evt)
+		}
+	} else {
+		pool.AuthRequiredHandler = func(ctx context.Context, evt *nostr.Event) error {
+			return evt.Sign(global.Settings.RelayInternalSecretKey)
+		}
 	}
 
 	// surface dial errors instead of silently ending up with zero events

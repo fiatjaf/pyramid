@@ -613,6 +613,47 @@ templ homeGroupsPage(loggedUser nostr.PubKey) {
 									</div>
 								</div>
 							</details>
+							<details class="rounded-lg border border-stone-200 dark:border-stone-700 p-3">
+								<summary class="cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">
+									special authentication
+								</summary>
+								<div x-data="{ useBunker: false }" class="mt-2 space-y-3">
+									<p class="text-sm text-stone-600 dark:text-stone-400">
+										this is only necessary if the source group is private and can't be read by this server.
+									</p>
+									<label class="flex items-center gap-2 cursor-pointer">
+										<input
+											type="checkbox"
+											x-model="useBunker"
+											class="h-4 w-4 border-stone-300 text-stone-600 focus:ring-stone-500"
+										/>
+										<span class="text-sm text-stone-700 dark:text-stone-300">
+											use temporary bunker
+										</span>
+									</label>
+									<p class="text-sm text-stone-600 dark:text-stone-400">
+										as an alternative to this bunker stuff you can also add this relay's self-pubkey <span class="font-mono truncate inline-block w-32 align-bottom">{ global.Settings.RelayInternalSecretKey.Public().Hex() }</span> as a member to the target group, so it will be able to read.
+									</p>
+									<div>
+										<label for="import_bunker" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+											bunker URL
+										</label>
+										<input
+											type="text"
+											id="import_bunker"
+											name="bunker"
+											placeholder="bunker://..."
+											:disabled="!useBunker"
+											class="w-full px-3 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500 disabled:opacity-50"
+										/>
+										<p class="text-sm text-stone-600 dark:text-stone-400">
+											paste a
+											temporary bunker URL here so the fetch authenticates as you instead of as
+											this relay's internal key.
+										</p>
+									</div>
+								</div>
+							</details>
 							<button
 								type="submit"
 								class="cursor-pointer px-4 py-2 rounded themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] themed:text-white light:bg-stone-200 light:hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium"

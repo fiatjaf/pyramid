@@ -371,6 +371,7 @@ func importGroupHandler(w http.ResponseWriter, r *http.Request) {
 		adminMode,
 		r.FormValue("primary_from"),
 		r.FormValue("secondary_from"),
+		r.FormValue("bunker"),
 	)
 	if err != nil {
 		http.Error(w, "import failed: "+err.Error(), 500)
