@@ -90,24 +90,35 @@ func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, addr
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
-	// open a fresh pool; sign auth events as the caller so we can read private
-	// groups the caller has access to on the source relay
+	// open a fresh pool; sign auth events with our internal key so we can
+	// read groups on the source relay that require NIP-42 auth. we can't
+	// sign as the caller -- we don't have their secret -- so private groups
+	// the caller can read but we can't will still fail, transparently below.
 	pool := nostr.NewPool()
+	defer pool.Close("import done")
 	pool.AuthRequiredHandler = func(ctx context.Context, evt *nostr.Event) error {
-		evt.PubKey = caller
-		return evt.Sign(caller)
+		return evt.Sign(global.Settings.RelayInternalSecretKey)
+	}
+
+	// surface dial errors instead of silently ending up with zero events
+	if _, err := pool.EnsureRelay(relay); err != nil {
+		return nil, fmt.Errorf("failed to connect to %s: %w", relay, err)
 	}
 
 	// fetch the group admins list (kind 39001) — the authoritative source of
 	// admin role names; each admin is a p tag with the role names in the 3rd+
 	// items
 	adminRoles := map[nostr.PubKey][]string{}
-	adminsCh := pool.FetchMany(ctx, []string{relay}, nostr.Filter{
+	adminEvts, adminClosed := fetchImportEvents(ctx, pool, relay, nostr.Filter{
 		Kinds: []nostr.Kind{nostr.KindSimpleGroupAdmins},
 		Tags:  nostr.TagMap{"d": []string{groupID}},
-	}, nostr.SubscriptionOptions{})
-	for ie := range adminsCh {
-		for _, tag := range ie.Event.Tags {
+		Limit: 1,
+	})
+	if adminClosed != nil {
+		return nil, fmt.Errorf("admins event fetch failed with reason: %s", adminClosed.Reason)
+	}
+	for _, evt := range adminEvts {
+		for _, tag := range evt.Tags {
 			if len(tag) < 2 || tag[0] != "p" {
 				continue
 			}
@@ -121,18 +132,16 @@ func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, addr
 
 	// download the moderation events tagged with the group's h tag to rebuild
 	// the full membership
-	moderationEvts := make([]nostr.Event, 0, 64)
-	modCh := pool.FetchMany(ctx, []string{relay}, nostr.Filter{
+	moderationEvts, modClosed := fetchImportEvents(ctx, pool, relay, nostr.Filter{
 		Kinds: nip29.ModerationEventKinds,
 		Tags:  nostr.TagMap{"h": []string{groupID}},
-	}, nostr.SubscriptionOptions{})
-	for ie := range modCh {
-		moderationEvts = append(moderationEvts, ie.Event)
-	}
+	})
 
 	if len(moderationEvts) == 0 {
-		pool.Close("no moderation events found")
-		return nil, fmt.Errorf("no moderation events found for group %q on %s", groupID, relay)
+		if modClosed != nil {
+			return nil, fmt.Errorf("moderation events fetch failed with reason: %s", modClosed.Reason)
+		}
+		return nil, fmt.Errorf("no moderation events found, can't import", groupID, relay)
 	}
 
 	// for "keep" mode, refuse to import groups whose admins carry roles this
@@ -148,7 +157,6 @@ func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, addr
 			}
 			for _, r := range foreign {
 				if !covered(r) {
-					pool.Close("foreign roles found")
 					return nil, fmt.Errorf("source group uses roles \"%s\", which are different from this relay's %q and %q roles; to import the group these roles must be renamed — specify which source role becomes %q and which becomes %q", strings.Join(foreign, "\", \""), PRIMARY_ROLE_NAME, SECONDARY_ROLE_NAME, PRIMARY_ROLE_NAME, SECONDARY_ROLE_NAME)
 				}
 			}
@@ -263,12 +271,14 @@ func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, addr
 
 	// download the rest of the group (notes, reactions, etc) — anything with
 	// the h tag that isn't moderation/metadata — and save it
-	otherCh := pool.FetchMany(ctx, []string{relay}, nostr.Filter{
+	otherEvts, otherClosed := fetchImportEvents(ctx, pool, relay, nostr.Filter{
 		Tags: nostr.TagMap{"h": []string{groupID}},
-	}, nostr.SubscriptionOptions{})
+	})
+	if otherClosed != nil {
+		return nil, fmt.Errorf("actual group events fetch failed with reason: %s", modClosed.Reason)
+	}
 	otherSaved := 0
-	for ie := range otherCh {
-		evt := ie.Event
+	for _, evt := range otherEvts {
 		if nip29.ModerationEventKinds.Includes(evt.Kind) || nip29.MetadataEventKinds.Includes(evt.Kind) {
 			continue
 		}
@@ -281,8 +291,6 @@ func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, addr
 		}
 		otherSaved++
 	}
-
-	pool.Close("import done")
 
 	// if the source relay didn't give us a create-group event synthesize one
 	// so the group survives restarts, which load groups from kind 9007 events.
@@ -357,6 +365,41 @@ func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, addr
 		OtherSaved:      otherSaved,
 		PutUserEvents:   len(newPutUserEvents),
 	}, nil
+}
+
+func fetchImportEvents(
+	ctx context.Context,
+	pool *nostr.Pool,
+	relay string,
+	filter nostr.Filter,
+) ([]nostr.Event, *nostr.RelayClosed) {
+	eventsCh, closedCh := pool.FetchManyNotifyClosed(ctx, []string{relay}, filter, nostr.SubscriptionOptions{
+		Label: "pyramid-group-import",
+	})
+
+	var closed *nostr.RelayClosed
+	closedDone := make(chan struct{})
+	go func() {
+		defer close(closedDone)
+		for c := range closedCh {
+			closed = &c
+		}
+	}()
+
+	evts := make([]nostr.Event, 0, 64)
+	for {
+		select {
+		case c := <-closedCh:
+			closed = &c
+			return evts, closed
+		case ie, ok := <-eventsCh:
+			if ok {
+				evts = append(evts, ie.Event)
+			} else {
+				return evts, closed
+			}
+		}
+	}
 }
 
 // foreignRoles returns the role names used by the group's admins (from the
