@@ -28,6 +28,7 @@ import (
 	"github.com/fiatjaf/pyramid/inbox"
 	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/moderated"
+	"github.com/fiatjaf/pyramid/network"
 	"github.com/fiatjaf/pyramid/operator"
 	"github.com/fiatjaf/pyramid/personal"
 	"github.com/fiatjaf/pyramid/popular"
@@ -35,7 +36,6 @@ import (
 	"github.com/fiatjaf/pyramid/search"
 	"github.com/fiatjaf/pyramid/stream"
 	"github.com/fiatjaf/pyramid/uppermost"
-	"github.com/fiatjaf/pyramid/network"
 	"github.com/pemistahl/lingua-go"
 )
 
@@ -136,10 +136,25 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 					global.Settings.MaxInvitesAtEachLevel = nil
 				}
 			case "wot_min_followed_by":
-				if err := global.Settings.WotMinFollowedBy.FromString(strings.TrimSpace(v[0])); err != nil {
+				if err := global.Settings.Wot.MinFollowedBy.FromString(strings.TrimSpace(v[0])); err != nil {
 					http.Error(w, "invalid wot_min_followed_by: "+err.Error(), 400)
 					return
 				}
+				//
+				// wot-specific (global web-of-trust)
+			case "wot_specifically_blocked":
+				var blocked []nostr.PubKey
+				for _, s := range v {
+					s = strings.TrimSpace(s)
+					if s == "" {
+						continue
+					}
+					pk := global.PubKeyFromInput(s)
+					if pk != nostr.ZeroPK && !slices.Contains(blocked, pk) {
+						blocked = append(blocked, pk)
+					}
+				}
+				global.Settings.Wot.SpecificallyBlocked = blocked
 			case "max_event_size":
 				global.Settings.Limits.MaxEventSize, _ = strconv.Atoi(v[0])
 			case "max_subscriptions_open":
@@ -538,20 +553,11 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				network.Init()
 				go restartSoon()
 				//
-				// moderated-specific
-			case "moderated_enabled":
-				global.Settings.Moderated.Enabled = v[0] == "on"
-			case "moderated_min_pow":
-				pow, _ := strconv.ParseUint(v[0], 10, 64)
-				global.Settings.Moderated.MinPoW = uint(pow)
-				//
 				// inbox-specific
 			case "inbox_hellthread_limit":
 				global.Settings.Inbox.HellthreadLimit, _ = strconv.Atoi(v[0])
-			case "inbox_min_dm_pow":
-				global.Settings.Inbox.MinDMPoW, _ = strconv.Atoi(v[0])
 			case "inbox_require_auth_for_dm":
-				if v[0] == "always" || v[0] == "when_no_pow" || v[0] == "" {
+				if v[0] == "always" || v[0] == "" {
 					global.Settings.Inbox.RequireAuthForDM = v[0]
 				}
 			case "inbox_allowed_kinds":
@@ -559,19 +565,6 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 					http.Error(w, "invalid inbox_allowed_kinds: "+err.Error(), 400)
 					return
 				}
-			case "inbox_specifically_blocked":
-				var blocked []nostr.PubKey
-				for _, s := range v {
-					s = strings.TrimSpace(s)
-					if s == "" {
-						continue
-					}
-					pk := global.PubKeyFromInput(s)
-					if pk != nostr.ZeroPK && !slices.Contains(blocked, pk) {
-						blocked = append(blocked, pk)
-					}
-				}
-				global.Settings.Inbox.SpecificallyBlocked = blocked
 				//
 				// popular-specific
 			case "popular_threshold":

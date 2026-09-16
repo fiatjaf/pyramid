@@ -197,7 +197,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							<button
 								@click="open = !open"
 								class={ "cursor-pointer rounded-lg px-4 py-2 font-medium flex items-center gap-1 themed:text-[var(--text-color)] themed:hover:bg-[rgb(from_var(--text-color)_r_g_b_/10%)] light:hover:bg-stone-100 dark:hover:bg-stone-700",
-                                    templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "bookmarks" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "moderated" || currentPage == "network"),
+                                    templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "bookmarks" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "moderated" || currentPage == "network" || currentPage == "wot"),
                                     templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Bookmarks.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !global.Settings.Network.Enabled && !(global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)) && !(global.Settings.Personal.Enabled && pyramid.IsMember(loggedUser)) && !global.Settings.Moderated.Enabled ) }
 							>
 								switch currentPage {
@@ -273,6 +273,9 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 											}
 										}
 									}
+								}
+								@NavLink("/wot/", currentPage == "wot") {
+									wot
 								}
 							</div>
 						</div>

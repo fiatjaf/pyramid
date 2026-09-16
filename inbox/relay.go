@@ -2,7 +2,6 @@ package inbox
 
 import (
 	"context"
-	"fmt"
 	"iter"
 	"net/http"
 	"slices"
@@ -17,7 +16,6 @@ import (
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
-	"github.com/fiatjaf/pyramid/wot"
 )
 
 var (
@@ -205,7 +203,6 @@ func setupEnabled() {
 	})
 
 	mux.HandleFunc("POST /"+global.Settings.Inbox.HTTPBasePath+"/disable", disableHandler)
-	mux.HandleFunc("POST /"+global.Settings.Inbox.HTTPBasePath+"/check-wot", checkWoTHandler)
 	mux.HandleFunc("POST /"+global.Settings.Inbox.HTTPBasePath+"/delete-report", deleteReportHandler)
 	Relay.SetRouter(mux)
 
@@ -276,23 +273,4 @@ func disableHandler(w http.ResponseWriter, r *http.Request) {
 
 	setupDisabled()
 	http.Redirect(w, r, global.Settings.Inbox.GetPageURL(), 302)
-}
-
-func checkWoTHandler(w http.ResponseWriter, r *http.Request) {
-	pubkeyInput := r.FormValue("pubkey")
-	if pubkeyInput == "" {
-		http.Error(w, "pubkey parameter required", 400)
-		return
-	}
-
-	pk := global.PubKeyFromInput(pubkeyInput)
-	if pk == nostr.ZeroPK {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(400)
-		fmt.Fprintf(w, `{"error": "%s"}`, "invalid pubkey")
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, "%v", wot.Contains(pk))
 }

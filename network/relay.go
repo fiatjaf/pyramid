@@ -105,28 +105,7 @@ func setupEnabled() {
 		networkPage(loggedUser).Render(r.Context(), w)
 	})
 	mux.HandleFunc("POST /"+global.Settings.Network.HTTPBasePath+"/disable", disableHandler)
-	mux.HandleFunc("POST /"+global.Settings.Network.HTTPBasePath+"/check-wot", checkWoTHandler)
 	Relay.SetRouter(mux)
-}
-
-func checkWoTHandler(w http.ResponseWriter, r *http.Request) {
-	pubkeyInput := r.FormValue("pubkey")
-	if pubkeyInput == "" {
-		http.Error(w, "pubkey parameter required", 400)
-		return
-	}
-
-	pk := global.PubKeyFromInput(pubkeyInput)
-	if pk == nostr.ZeroPK {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(400)
-		fmt.Fprintf(w, `{"error": "%s"}`, "invalid pubkey")
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	// members can always write, so membership counts as being in the wot here
-	fmt.Fprintf(w, "%v", wot.Contains(pk) || pyramid.IsMember(pk))
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {

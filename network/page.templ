@@ -1,14 +1,11 @@
 package network
 
 import (
-	"fmt"
-
 	"fiatjaf.com/nostr"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
 	"github.com/fiatjaf/pyramid/pyramid"
-	wot "github.com/fiatjaf/pyramid/wot"
 )
 
 templ networkPage(loggedUser nostr.PubKey) {
@@ -26,6 +23,14 @@ templ networkPage(loggedUser nostr.PubKey) {
 		</div>
 		<div class="space-y-4 text-gray-700 dark:text-gray-300">
 			<p class="text-lg leading-relaxed">{ global.Settings.Network.GetDescription() }</p>
+			<div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+				<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">how the network relay works:</h2>
+				<ul class="list-disc list-inside space-y-1 text-sm">
+					<li>any kind can be written here</li>
+					<li>writes come only from authenticated pubkeys that are members or in the aggregated <a href="/wot/" class="text-blue-600 dark:text-blue-400 themed:text-[var(--accent-color)] hover:underline">web-of-trust</a></li>
+					<li>read access is public</li>
+				</ul>
+			</div>
 			if global.Settings.Network.Enabled {
 				<a
 					class="mb-4 inline-flex items-center gap-2 px-2 py-1 text-blue-600 dark:text-blue-400 hover:underline themed:text-[var(--accent-color)]"
@@ -35,85 +40,6 @@ templ networkPage(loggedUser nostr.PubKey) {
 				>
 					browse network →
 				</a>
-				<div class="mt-6 border border-gray-200 dark:border-gray-700 p-4">
-					if !wot.IsComputed() {
-						<span>calculating aggregated web-of-trust...</span>
-					} else {
-						<div class="flex items-center gap-4">
-							<h3 class="font-semibold text-gray-800 dark:text-gray-200">check who can write</h3>
-							<div class="text-sm text-gray-600 dark:text-gray-400">
-								{ fmt.Sprintf("(total: %d pubkeys)", wot.Count()) }
-							</div>
-						</div>
-						<form
-							x-data="{
-							pubkey: '',
-							loading: false,
-							result: null,
-							error: null,
-							async checkWot() {
-								if (!this.pubkey.trim()) {
-									this.error = 'Please enter a hex pubkey or npub';
-									return;
-								}
-
-								this.loading = true;
-								this.result = null;
-								this.error = null;
-
-								try {
-									const response = await fetch('./check-wot', {
-										method: 'POST',
-										headers: {
-											'Content-Type': 'application/x-www-form-urlencoded',
-										},
-										body: 'pubkey=' + encodeURIComponent(this.pubkey.trim())
-									});
-									const data = await response.json();
-
-									if (response.ok && !data.error) {
-										this.result = data;
-									} else {
-										this.error = data.error || 'failed to check pubkey';
-									}
-								} catch (err) {
-									this.error = 'network error: ' + err.message;
-								} finally {
-									this.loading = false;
-								}
-							}
-						}"
-							@submit.prevent="checkWot()"
-						>
-							<div class="flex items-center gap-2 mb-3">
-								<input
-									type="text"
-									name="pubkey"
-									placeholder="hex pubkey or npub..."
-									class="flex-1 px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-									x-model="pubkey"
-									@input="result = null"
-								/>
-								<div x-show="error" x-transition class="text-red-600 dark:text-red-400 text-sm">
-									<span x-text="error"></span>
-								</div>
-								<div x-show="typeof result == 'boolean'" x-transition class="text-sm">
-									<div x-show="result" class="text-green-600 dark:text-green-400">
-										✓
-									</div>
-									<div x-show="!result" class="text-orange-600 dark:text-orange-400">
-										✗
-									</div>
-								</div>
-								<button
-									type="submit"
-									:disabled="loading"
-									class="cursor-pointer px-3 py-1 text-sm bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
-								>check</button>
-							</div>
-						</form>
-					}
-				</div>
 			}
 		</div>
 	}

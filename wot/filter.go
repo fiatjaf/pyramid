@@ -51,7 +51,7 @@ func ComputeAggregated(ctx context.Context) (XorFilter, error) {
 
 	log.Info().Int("n", len(members)).Msg("fetching primary follow lists for members")
 	for _, member := range members {
-		if slices.Contains(global.Settings.Inbox.SpecificallyBlocked, member) {
+		if slices.Contains(global.Settings.Wot.SpecificallyBlocked, member) {
 			continue
 		}
 
@@ -66,7 +66,7 @@ func ComputeAggregated(ctx context.Context) (XorFilter, error) {
 
 			seen := make(map[nostr.PubKey]struct{})
 			for _, f := range global.Nostr.FetchFollowList(ctx, member).Items {
-				if slices.Contains(global.Settings.Inbox.SpecificallyBlocked, f.Pubkey) {
+				if slices.Contains(global.Settings.Wot.SpecificallyBlocked, f.Pubkey) {
 					continue
 				}
 
@@ -83,14 +83,14 @@ func ComputeAggregated(ctx context.Context) (XorFilter, error) {
 	}
 
 	wg.Wait()
-	minFollowedBy := global.Settings.WotMinFollowedBy.Get(len(members))
+	minFollowedBy := global.Settings.Wot.MinFollowedBy.Get(len(members))
 
 	res := make(chan nostr.PubKey)
 	all := sync.WaitGroup{}
 
 	log.Info().Int("n", queue.Size()).Msg("fetching secondary follow lists for follows")
 	for user := range queue.Range {
-		if slices.Contains(global.Settings.Inbox.SpecificallyBlocked, user) {
+		if slices.Contains(global.Settings.Wot.SpecificallyBlocked, user) {
 			continue
 		}
 		includeFollows := followedBy[user] >= minFollowedBy
@@ -118,7 +118,7 @@ func ComputeAggregated(ctx context.Context) (XorFilter, error) {
 
 				res <- user
 				for _, f := range fl {
-					if slices.Contains(global.Settings.Inbox.SpecificallyBlocked, f.Pubkey) {
+					if slices.Contains(global.Settings.Wot.SpecificallyBlocked, f.Pubkey) {
 						continue
 					}
 					res <- f.Pubkey
@@ -140,7 +140,7 @@ func makeFilter(m chan nostr.PubKey) XorFilter {
 	shids := make([]uint64, 0, 60000)
 	shidMap := make(map[uint64]struct{}, 60000)
 	for pk := range m {
-		if slices.Contains(global.Settings.Inbox.SpecificallyBlocked, pk) {
+		if slices.Contains(global.Settings.Wot.SpecificallyBlocked, pk) {
 			continue
 		}
 

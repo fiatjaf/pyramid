@@ -39,6 +39,7 @@ import (
 	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/linkpreview"
 	"github.com/fiatjaf/pyramid/moderated"
+	"github.com/fiatjaf/pyramid/network"
 	"github.com/fiatjaf/pyramid/nsite"
 	"github.com/fiatjaf/pyramid/operator"
 	"github.com/fiatjaf/pyramid/paywall"
@@ -48,7 +49,6 @@ import (
 	"github.com/fiatjaf/pyramid/search"
 	"github.com/fiatjaf/pyramid/stream"
 	"github.com/fiatjaf/pyramid/uppermost"
-	"github.com/fiatjaf/pyramid/network"
 	"github.com/fiatjaf/pyramid/wot"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
@@ -164,8 +164,10 @@ func main() {
 	relay.Router().HandleFunc("GET /u", memberPageHandler)
 	relay.Router().HandleFunc("POST /u", memberPageHandler)
 	relay.Router().HandleFunc("GET /u/{pubkey}", memberPageHandler)
-	relay.Router().HandleFunc("GET /u/sync", syncHandler)
 	relay.Router().HandleFunc("POST /u/sync", syncHandler)
+	relay.Router().HandleFunc("/wot", wot.PageHandler)
+	relay.Router().HandleFunc("/wot/", wot.PageHandler)
+	relay.Router().HandleFunc("POST /wot/check-wot", wot.CheckHandler)
 	relay.Router().HandleFunc("GET /stats", statsHandler)
 	relay.Router().HandleFunc("/update", updateHandler)
 	relay.Router().HandleFunc("/restart", restartHandler)

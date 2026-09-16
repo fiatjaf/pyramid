@@ -25,6 +25,14 @@ templ moderatedPage(loggedUser nostr.PubKey) {
 		</div>
 		<div class="space-y-4 text-gray-700 dark:text-gray-300">
 			<p class="text-lg leading-relaxed">{ global.Settings.Moderated.GetDescription() }</p>
+			<div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+				<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">how the moderated relay works:</h2>
+				<ul class="list-disc list-inside space-y-1 text-sm">
+					<li>anyone who can reach this site can write, but events wait in the moderation queue until a member approves them</li>
+					<li>authors in the <a href="/wot/" class="text-blue-600 dark:text-blue-400 themed:text-[var(--accent-color)] hover:underline">web-of-trust</a> skip the queue entirely and get published automatically</li>
+					<li>approved events are visible on the relay, but nothing is ever broadcasted to connected clients</li>
+				</ul>
+			</div>
 			if global.Settings.Moderated.Enabled {
 				<a
 					class="mb-4 inline-flex items-center gap-2 px-2 py-1 text-blue-600 dark:text-blue-400 hover:underline themed:text-[var(--accent-color)]"
@@ -37,49 +45,6 @@ templ moderatedPage(loggedUser nostr.PubKey) {
 			}
 			if pyramid.IsRoot(loggedUser) {
 				@layout.SubRelaySettings(global.RelayModerated, global.Settings.Moderated.Enabled, global.Settings.Moderated.Name, global.Settings.Moderated.Description, global.Settings.Moderated.Icon, global.Settings.Moderated.Pinned, global.Settings.Moderated.HTTPBasePath, global.Settings.Moderated.HTTPDomain) {
-					<details>
-						<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">preconditions</summary>
-						<form
-							method="POST"
-							action="/settings"
-							x-data={ `{
-								moderatedMinPoW: ` + fmt.Sprint(global.Settings.Moderated.MinPoW) + `,
-								saved: false,
-								async saveSettings() {
-									const response = await fetch(this.$refs.form.action, {
-										method: 'POST',
-										body: new URLSearchParams(new FormData(this.$refs.form))
-									})
-									if (response.ok) {
-										this.saved = true;
-										setTimeout(() => this.saved = false, 2000)
-									}
-								}
-							}` }
-							x-ref="form"
-						>
-							<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">moderated relay</h3>
-							<div>
-								<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="moderated_min_pow">minimum proof-of-work (bits, 0 to disable)</label>
-								<input
-									type="number"
-									name="moderated_min_pow"
-									min="0"
-									max="32"
-									class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-4"
-									x-model="moderatedMinPoW"
-									@blur="saveSettings()"
-								/>
-							</div>
-							<div
-								x-show="saved"
-								x-transition
-								class="text-sm text-green-600 dark:text-green-400 font-medium mb-4"
-							>
-								saved!
-							</div>
-						</form>
-					</details>
 				}
 			}
 			if pyramid.IsMember(loggedUser) && global.Settings.Moderated.Enabled {

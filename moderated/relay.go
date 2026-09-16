@@ -10,10 +10,10 @@ import (
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
 	"fiatjaf.com/nostr/nip11"
-	"fiatjaf.com/nostr/nip13"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
+	"github.com/fiatjaf/pyramid/wot"
 )
 
 var (
@@ -101,11 +101,10 @@ func setupEnabled() {
 			return true, "blocked: kind unallowed"
 		}
 
-		if global.Settings.Moderated.MinPoW > 0 {
-			difficulty := nip13.Difficulty(evt.ID)
-			if uint(difficulty) < global.Settings.Moderated.MinPoW {
-				return true, fmt.Sprintf("pow: requires %d bits, got %d", global.Settings.Moderated.MinPoW, difficulty)
-			}
+		// automatically filtered by the extended web-of-trust: non-members
+		// outside the wot don't even reach the moderation queue
+		if wot.IsComputed() && !pyramid.IsMember(evt.PubKey) && !wot.Contains(evt.PubKey) {
+			return true, "blocked: you're not in the extended network of this relay"
 		}
 
 		return false, ""

@@ -2,13 +2,11 @@ package inbox
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"time"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
-	"fiatjaf.com/nostr/nip13"
 	"fiatjaf.com/nostr/nip61"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/pyramid"
@@ -181,24 +179,17 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 
 	if slices.Contains(secretKinds, evt.Kind) {
 		// here are DM messages, they come from random pubkeys
-		// we may require either PoW, AUTH (and WoT check), at least one of the two, or both, or nothing
-
-		var powRejection string
-		if global.Settings.Inbox.MinDMPoW > 0 {
-			if pow := nip13.CommittedDifficulty(evt); pow < global.Settings.Inbox.MinDMPoW {
-				powRejection = fmt.Sprintf("pow: insufficient pow, got %d, needed %d",
-					pow, global.Settings.Inbox.MinDMPoW)
-			}
+		// they are filtered by web-of-trust; requiring the (stronger) AUTH
+		// check is an option set by the relay owner
+		if !wot.IsComputed() {
+			return true, "blocked: wot still being computed, wait"
 		}
 
-		if global.Settings.Inbox.RequireAuthForDM == "always" ||
-			(global.Settings.Inbox.RequireAuthForDM == "when_no_pow" && global.Settings.Inbox.MinDMPoW == 0) ||
-			(global.Settings.Inbox.RequireAuthForDM == "when_no_pow" && powRejection != "") {
+		if !wot.Contains(sender) {
+			return true, "blocked: you're not in the extended network of this relay"
+		}
 
-			if !wot.IsComputed() {
-				return true, "blocked: wot still being computed, wait"
-			}
-
+		if global.Settings.Inbox.RequireAuthForDM == "always" {
 			for _, pk := range khatru.GetAllAuthed(ctx) {
 				// at least one authenticated pubkey is in the wot
 				if wot.Contains(pk) {
@@ -208,13 +199,9 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 
 			// AUTH was required and failed
 			return true, "auth-required: must authenticate to send DMs to this relay"
-		} else if powRejection != "" {
-			// AUTH wasn't required, pow failed
-			return true, powRejection
-		} else {
-			// pow check succeeded or wasn't required and AUTH wasn't required either
-			return false, ""
 		}
+
+		return false, ""
 	}
 
 	// here are normal mentions
@@ -222,7 +209,7 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 		return true, "blocked: event kind not allowed"
 	}
 
-	if slices.Contains(global.Settings.Inbox.SpecificallyBlocked, evt.PubKey) {
+	if slices.Contains(global.Settings.Wot.SpecificallyBlocked, evt.PubKey) {
 		return true, "blocked: you are blocked"
 	}
 
@@ -239,11 +226,11 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 	}
 
 	if wot.IsComputed() {
+		if !wot.Contains(sender) {
+			return true, "blocked: you're not in the extended network of this relay"
+		}
+	} else {
 		return true, "blocked: wot still being computed, wait some minutes"
-	}
-
-	if !wot.Contains(sender) {
-		return true, "blocked: you're not in the extended network of this relay"
 	}
 
 	if slices.Contains([]nostr.Kind{9735, 9321}, evt.Kind) {

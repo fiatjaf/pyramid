@@ -100,8 +100,7 @@ type UserSettings struct {
 		AllowedKindsLegacy []nostr.Kind `json:"allowed_kinds,omitempty"`
 
 		HellthreadLimit  int    `json:"hellthread_limit"`
-		MinDMPoW         int    `json:"min_dm_pow"`
-		RequireAuthForDM string `json:"require_auth_for_dm,omitempty"` // "", "always", "when_no_pow"
+		RequireAuthForDM string `json:"require_auth_for_dm,omitempty"` // "", "always"
 	} `json:"inbox"`
 
 	Groups struct {
@@ -162,12 +161,19 @@ type UserSettings struct {
 
 	Moderated struct {
 		RelayMetadata
-		MinPoW uint `json:"min_pow"`
 	} `json:"moderated"`
 
 	Network struct {
 		RelayMetadata
 	} `json:"network"`
+
+	// global web-of-trust service, used by the inbox, network and moderated relays
+	Wot struct {
+		HTTPBasePath string `json:"path"`
+
+		MinFollowedBy       Threshold      `json:"min_followed_by,omitempty"`
+		SpecificallyBlocked []nostr.PubKey `json:"specifically_blocked"`
+	} `json:"wot"`
 
 	FTP struct {
 		Enabled  bool   `json:"enabled"`
@@ -426,6 +432,8 @@ func loadUserSettings() error {
 	Settings.Uppermost.HTTPBasePath = "uppermost"
 	Settings.Moderated.HTTPBasePath = "moderated"
 	Settings.Network.HTTPBasePath = "network"
+	Settings.Wot.HTTPBasePath = "wot"
+	Settings.Wot.SpecificallyBlocked = []nostr.PubKey{}
 
 	// Blossom settings
 	Settings.Blossom.MaxGroupMemberUploadSize = 1
@@ -467,7 +475,6 @@ func loadUserSettings() error {
 	Settings.Uppermost.base = "uppermost"
 	Settings.Moderated.base = "moderated"
 	Settings.Network.base = "network"
-
 	// nip05
 	Settings.NIP05.Names = make(map[string]nostr.PubKey)
 
@@ -499,6 +506,16 @@ func loadUserSettings() error {
 	if err := json.Unmarshal(data, &Settings); err != nil {
 		return err
 	}
+
+	// migrate settings that used to live elsewhere into the global wot service
+	// DEPRECATED: delete this once everybody has migrated
+	if Settings.Wot.MinFollowedBy.Absolute == 0 && Settings.Wot.MinFollowedBy.Percent == 0 {
+		Settings.Wot.MinFollowedBy = Settings.WotMinFollowedBy
+	}
+	if len(Settings.Wot.SpecificallyBlocked) == 0 && len(Settings.Inbox.SpecificallyBlocked) > 0 {
+		Settings.Wot.SpecificallyBlocked = Settings.Inbox.SpecificallyBlocked
+	}
+
 	var loadedSettings map[string]json.RawMessage
 	if err := json.Unmarshal(data, &loadedSettings); err == nil {
 		if _, ok := loadedSettings["allow_access_request"]; !ok {
