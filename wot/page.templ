@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/nip19"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
@@ -105,15 +106,19 @@ templ page(loggedUser nostr.PubKey) {
 				</div>
 			}
 			{{
-				blocked := make([]string, len(global.Settings.Wot.SpecificallyBlocked))
+				hexes := make([]string, len(global.Settings.Wot.SpecificallyBlocked))
+				npubs := make([]string, len(global.Settings.Wot.SpecificallyBlocked))
+				var blockedJSON strings.Builder
+				blockedJSON.WriteString("[")
 				for i, pk := range global.Settings.Wot.SpecificallyBlocked {
-					blocked[i] = pk.Hex()
+					hexes[i] = pk.Hex()
+					npubs[i] = nip19.EncodeNpub(pk)
+					if i > 0 {
+						blockedJSON.WriteString(",")
+					}
+					blockedJSON.WriteString(`{"hex":` + global.JSONString(hexes[i]) + `,"npub":` + global.JSONString(npubs[i]) + `}`)
 				}
-				var quoted []string
-				for _, b := range blocked {
-					quoted = append(quoted, fmt.Sprintf("'%s'", b))
-				}
-				quoted = append(quoted, "\"\"")
+				blockedJSON.WriteString("]")
 			}}
 			if pyramid.IsRoot(loggedUser) {
 				<div class="border border-gray-200 dark:border-gray-700 p-4">
@@ -123,17 +128,50 @@ templ page(loggedUser nostr.PubKey) {
 						action="/settings"
 						x-data={ `{
 							minFollowedBy: ` + global.JSONString(global.Settings.Wot.MinFollowedBy.Display()) + ` + '',
-							blocked: [` + strings.Join(quoted, ",") + `],
+							blocked: ` + blockedJSON.String() + `,
 							saved: false,
-							async saveSettings() {
+							async save() {
+								const data = new FormData(this.$refs.form)
+								data.delete('wot_specifically_blocked')
+								for (const b of this.blocked) {
+									data.append('wot_specifically_blocked', b.hex)
+								}
+								if (!this.blocked.length) {
+									data.append('wot_specifically_blocked', '')
+								}
 								const response = await fetch(this.$refs.form.action, {
 									method: 'POST',
-									body: new URLSearchParams(new FormData(this.$refs.form))
+									body: new URLSearchParams(data)
 								})
 								if (response.ok) {
 									this.saved = true;
 									setTimeout(() => this.saved = false, 2000)
 								}
+							},
+							async addUser(event) {
+								const profile = await event.detail;
+								if (!profile || !profile.pubkey) {
+									return;
+								}
+								const hex = profile.pubkey;
+								if (this.blocked.some((b) => b.hex === hex)) {
+									this.selected = '';
+									return;
+								}
+								let npub = hex;
+								try {
+									const nip19 = await import('https://esm.sh/nostr-tools@2/nip19');
+									npub = nip19.npubEncode(hex);
+								} catch (err) {
+									console.warn('failed to encode npub:', err);
+								}
+								this.blocked.push({hex: hex, npub: npub});
+								this.selected = '';
+								this.save();
+							},
+							async deleteUser(index) {
+								this.blocked.splice(index, 1);
+								this.save();
 							}
 						}` }
 						x-ref="form"
@@ -147,28 +185,50 @@ templ page(loggedUser nostr.PubKey) {
 								placeholder="e.g. 2 or 10%"
 								class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-2"
 								x-model="minFollowedBy"
-								@blur="saveSettings()"
+								@blur="save()"
 							/>
 							<p class="text-xs text-stone-500 dark:text-stone-400 mt-1 mb-4">external users enter web-of-trust after one member follow; their follows enter only after this threshold. use a number or percentage of members.</p>
 						</div>
 						<div>
 							<label class="block text-sm font-medium mb-2 mt-4 dark:text-stone-300">specifically blocked pubkeys</label>
 							<p class="text-xs text-stone-500 dark:text-stone-400 mb-2">blocked pubkeys and all their follows never enter the web-of-trust, in any relay.</p>
-							<div class="space-y-2 mb-4">
-								<template x-for="(pk, index) in blocked" :key="index">
-									<div class="flex items-center gap-2">
-										<input
-											type="text"
-											name="wot_specifically_blocked"
-											class="flex-1 px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100"
-											x-model="blocked[index]"
-											@input="if (blocked[index] && index === blocked.length - 1) blocked.push('')"
-											@blur="saveSettings()"
-										/>
-										<nostr-name x-show="blocked[index]" :pubkey="blocked[index]"></nostr-name>
-									</div>
-								</template>
-							</div>
+							<nostr-user-search
+								@selected={ "addUser($event)" }
+								placeholder="search for users to block..."
+								limit="5"
+								class="part-[wrapper]:rounded part-[wrapper]:shadow-sm part-[input]:w-full part-[input]:px-3 part-[input]:py-2 part-[input]:border part-[input]:border-stone-300 part-[input]:dark:border-stone-600 part-[input]:rounded part-[input]:bg-white part-[input]:dark:bg-stone-800 part-[input]:text-stone-900 part-[input]:dark:text-stone-100 part-[input]:focus:outline-none part-[input]:focus:ring-2 part-[input]:focus:ring-stone-500 part-[results]:z-10 part-[results]:rounded part-[results]:shadow-lg part-[item]:px-3 part-[item]:py-2 part-[item]:cursor-pointer part-[item]:hover:bg-stone-100 part-[item]:dark:hover:bg-stone-700 part-[item]:text-stone-700 part-[item]:dark:text-stone-300 part-[picture]:w-10 part-[picture]:h-10 part-[picture]:rounded-full part-[name]:font-semibold part-[name]:text-stone-900 part-[name]:dark:text-stone-100 part-[nip05]:text-xs part-[nip05]:text-stone-500 part-[nip05]:dark:text-stone-400"
+								relays="wss://search.nostrarchives.com,wss://relay.vertexlab.io"
+							></nostr-user-search>
+							<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700 mb-4">
+								<thead class="bg-stone-50 dark:bg-stone-800">
+									<tr>
+										<th class="px-4 py-2 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">name</th>
+										<th class="px-4 py-2 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">npub</th>
+										<th class="px-4 py-2"></th>
+									</tr>
+								</thead>
+								<tbody>
+									<template x-for="(b, index) in blocked" :key="b.hex">
+										<tr>
+											<td class="px-4 py-1.5 text-sm">
+												<nostr-name :pubkey="b.hex"></nostr-name>
+											</td>
+											<td class="px-4 py-1.5 text-sm text-stone-500 dark:text-stone-400" x-text="b.npub"></td>
+											<td class="px-4 py-1.5 text-right">
+												<button
+													type="button"
+													@click="deleteUser(index)"
+													class="cursor-pointer text-stone-400 hover:text-red-600 dark:hover:text-red-400 font-bold"
+													title="remove"
+												>x</button>
+											</td>
+										</tr>
+									</template>
+									<tr x-show="!blocked.length">
+										<td colspan="3" class="px-4 py-2 text-sm text-stone-400 dark:text-stone-500">none</td>
+									</tr>
+								</tbody>
+							</table>
 						</div>
 						<div
 							x-show="saved"
