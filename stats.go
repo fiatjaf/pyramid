@@ -131,6 +131,7 @@ func fillInRelevantUsersMapping() {
 		"popular":   {"popular", global.IL.Popular, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
 		"uppermost": {"uppermost", global.IL.Uppermost, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
 		"inbox":     {"inbox", global.IL.Inbox, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
+		"network":    {"network", global.IL.Network, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
 		"secret":    {"secret", global.IL.Secret, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
 		"moderated": {"moderated", global.IL.Moderated, make([]nostr.PubKey, 0, pyramid.Members.Size()), 0},
 	}

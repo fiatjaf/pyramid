@@ -11,6 +11,7 @@ import (
 	"github.com/fiatjaf/pyramid/personal"
 	"github.com/fiatjaf/pyramid/popular"
 	"github.com/fiatjaf/pyramid/uppermost"
+	"github.com/fiatjaf/pyramid/network"
 )
 
 var MainRelay *khatru.Relay
@@ -31,6 +32,7 @@ func GetAll() []struct {
 		{global.RelayBookmarks, bookmarks.Relay},
 		{global.RelayPopular, popular.Relay},
 		{global.RelayUppermost, uppermost.Relay},
+		{global.RelayNetwork, network.Relay},
 		{global.RelayPersonal, personal.Relay},
 	}
 }
@@ -53,6 +55,8 @@ func GetRelay(relayID global.RelayID) *khatru.Relay {
 		return popular.Relay
 	case global.RelayUppermost:
 		return uppermost.Relay
+	case global.RelayNetwork:
+		return network.Relay
 	case global.RelayPersonal:
 		return personal.Relay
 	}

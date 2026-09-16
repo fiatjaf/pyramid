@@ -34,6 +34,9 @@ func QueryStoredWithPinned(relayId RelayID) func(ctx context.Context, filter nos
 		case RelayModerated:
 			store = IL.Moderated
 			get = func() *nostr.Event { return PinnedCache.Moderated }
+		case RelayNetwork:
+			store = IL.Network
+			get = func() *nostr.Event { return PinnedCache.Network }
 		}
 
 		return func(yield func(nostr.Event) bool) {
@@ -144,6 +147,12 @@ func CachePinnedEvent(relayId RelayID) {
 			PinnedCache.Moderated = evt
 		}
 		pinnedID = Settings.Moderated.Pinned
+	case RelayNetwork:
+		store = IL.Network
+		set = func(evt *nostr.Event) {
+			PinnedCache.Network = evt
+		}
+		pinnedID = Settings.Network.Pinned
 	}
 
 	if pinnedID == nostr.ZeroID {
@@ -163,4 +172,5 @@ var PinnedCache struct {
 	Popular   *nostr.Event
 	Uppermost *nostr.Event
 	Moderated *nostr.Event
+	Network   *nostr.Event
 }

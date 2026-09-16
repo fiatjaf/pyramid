@@ -165,6 +165,10 @@ type UserSettings struct {
 		MinPoW uint `json:"min_pow"`
 	} `json:"moderated"`
 
+	Network struct {
+		RelayMetadata
+	} `json:"network"`
+
 	FTP struct {
 		Enabled  bool   `json:"enabled"`
 		Password string `json:"password"`
@@ -286,6 +290,8 @@ func (rm RelayMetadata) GetDescription() string {
 		return "this is like popular, but with higher thresholds for reactions and it doesn't consider replies."
 	case "moderated":
 		return "the moderated relay is a public relay where events from non-members are reviewed by members before publication."
+	case "network":
+		return "anyone in the web-of-trust (the extended network of relay members and their follows) can write anything here. all kinds are accepted."
 	default:
 		return ""
 	}
@@ -419,6 +425,7 @@ func loadUserSettings() error {
 	Settings.Popular.HTTPBasePath = "popular"
 	Settings.Uppermost.HTTPBasePath = "uppermost"
 	Settings.Moderated.HTTPBasePath = "moderated"
+	Settings.Network.HTTPBasePath = "network"
 
 	// Blossom settings
 	Settings.Blossom.MaxGroupMemberUploadSize = 1
@@ -459,6 +466,7 @@ func loadUserSettings() error {
 	Settings.Popular.base = "popular"
 	Settings.Uppermost.base = "uppermost"
 	Settings.Moderated.base = "moderated"
+	Settings.Network.base = "network"
 
 	// nip05
 	Settings.NIP05.Names = make(map[string]nostr.PubKey)

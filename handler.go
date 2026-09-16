@@ -35,6 +35,7 @@ import (
 	"github.com/fiatjaf/pyramid/search"
 	"github.com/fiatjaf/pyramid/stream"
 	"github.com/fiatjaf/pyramid/uppermost"
+	"github.com/fiatjaf/pyramid/network"
 	"github.com/pemistahl/lingua-go"
 )
 
@@ -507,6 +508,35 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				uppermost.Relay.ServiceURL = global.Settings.Uppermost.GetServiceURL()
 				uppermost.Init()
 				go restartSoon()
+			case "network_name":
+				global.Settings.Network.Name = v[0]
+			case "network_description":
+				global.Settings.Network.Description = v[0]
+			case "network_icon":
+				global.Settings.Network.Icon = v[0]
+			case "network_pinned":
+				global.Settings.Network.Pinned = checkPinnedID(v[0], global.IL.Network)
+				global.CachePinnedEvent(global.RelayNetwork)
+			case "network_httpBasePath":
+				if len(v[0]) == 0 || !justLetters.MatchString(v[0]) {
+					http.Error(w, "invalid path must contain only ascii letters and numbers", 400)
+					return
+				}
+				global.Settings.Network.HTTPBasePath = v[0]
+				network.Relay.ServiceURL = global.Settings.Network.GetServiceURL()
+				delayedRedirectTarget = global.Settings.Network.GetPageURL()
+				network.Init()
+				go restartSoon()
+			case "network_httpDomain":
+				domain, err := normalizeDomainInput(v[0])
+				if err != nil {
+					http.Error(w, err.Error(), 400)
+					return
+				}
+				global.Settings.Network.HTTPDomain = domain
+				network.Relay.ServiceURL = global.Settings.Network.GetServiceURL()
+				network.Init()
+				go restartSoon()
 				//
 				// moderated-specific
 			case "moderated_enabled":
@@ -782,6 +812,8 @@ func iconHandler(w http.ResponseWriter, r *http.Request) {
 			global.Settings.Uppermost.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		case "moderated":
 			global.Settings.Moderated.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
+		case "network":
+			global.Settings.Network.Icon = global.Settings.HTTPScheme() + global.Settings.Domain + "/icon/" + base + ext
 		}
 
 		if err := global.SaveUserSettings(); err != nil {
@@ -856,6 +888,7 @@ func setupDomain(domain string) error {
 	moderated.Relay.ServiceURL = global.Settings.Moderated.GetServiceURL()
 	popular.Relay.ServiceURL = global.Settings.Popular.GetServiceURL()
 	uppermost.Relay.ServiceURL = global.Settings.Uppermost.GetServiceURL()
+	network.Relay.ServiceURL = global.Settings.Network.GetServiceURL()
 
 	blossom.BlobIndex.ServiceURL = global.Settings.HTTPScheme() + global.Settings.Domain
 	if blossom.Server != nil {
@@ -1087,8 +1120,9 @@ func statsHandler(w http.ResponseWriter, r *http.Request) {
 	popularStats, _ := global.IL.Popular.ComputeStats(mmm.StatsOptions{})
 	uppermostStats, _ := global.IL.Uppermost.ComputeStats(mmm.StatsOptions{})
 	inboxStats, _ := global.IL.Inbox.ComputeStats(mmm.StatsOptions{})
+	networkStats, _ := global.IL.Network.ComputeStats(mmm.StatsOptions{})
 
-	StatsPage(loggedUser, mainStats, systemStats, favoritesStats, internalStats, personalStats, moderatedStats, popularStats, uppermostStats, inboxStats).Render(r.Context(), w)
+	StatsPage(loggedUser, mainStats, systemStats, favoritesStats, internalStats, personalStats, moderatedStats, popularStats, uppermostStats, inboxStats, networkStats).Render(r.Context(), w)
 }
 
 func syncHandler(w http.ResponseWriter, r *http.Request) {

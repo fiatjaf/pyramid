@@ -136,6 +136,11 @@ func Init() error {
 		return fmt.Errorf("failed to ensure 'moderated': %w", err)
 	}
 
+	IL.Network, err = MMMM.EnsureLayer("network")
+	if err != nil {
+		return fmt.Errorf("failed to ensure 'network': %w", err)
+	}
+
 	IL.Scheduled, err = MMMM.EnsureLayer("scheduled")
 	if err != nil {
 		return fmt.Errorf("failed to ensure 'scheduled': %w", err)
@@ -251,6 +256,9 @@ var IL struct {
 	// moderated relay
 	ModerationQueue *mmm.IndexingLayer
 	Moderated       *mmm.IndexingLayer
+
+	// web-of-trust relay
+	Network *mmm.IndexingLayer
 
 	// algo
 	Popular   *mmm.IndexingLayer

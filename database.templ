@@ -209,6 +209,8 @@ func databaseByName(name string) *mmm.IndexingLayer {
 		return global.IL.Popular
 	case "uppermost":
 		return global.IL.Uppermost
+	case "network":
+		return global.IL.Network
 	case "scheduled":
 		return global.IL.Scheduled
 	case "blossom":
@@ -281,6 +283,7 @@ templ databasePage(loggedUser nostr.PubKey, filterJSON string, errMsg string) {
 						@dbCheckbox("moderated", "Moderated")
 						@dbCheckbox("popular", "Popular")
 						@dbCheckbox("uppermost", "Uppermost")
+						@dbCheckbox("network", "Web of Trust")
 						@dbCheckbox("scheduled", "Scheduled")
 						@dbCheckbox("blossom", "Blossom")
 						@dbCheckbox("deleted-groups", "Deleted Groups")

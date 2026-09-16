@@ -48,6 +48,7 @@ import (
 	"github.com/fiatjaf/pyramid/search"
 	"github.com/fiatjaf/pyramid/stream"
 	"github.com/fiatjaf/pyramid/uppermost"
+	"github.com/fiatjaf/pyramid/network"
 	"github.com/fiatjaf/pyramid/wot"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
@@ -193,6 +194,7 @@ func main() {
 	favorites.Init()
 	bookmarks.Init()
 	inbox.Init()
+	network.Init()
 	nsite.Init()
 
 	// start background web-of-trust computation (needed by inbox and operator)
@@ -527,6 +529,9 @@ func run(ctx context.Context) error {
 	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath+"/", inbox.Relay)
 	mux.Handle("/"+global.Settings.Inbox.HTTPBasePath, inbox.Relay)
 
+	mux.Handle("/"+global.Settings.Network.HTTPBasePath+"/", network.Relay)
+	mux.Handle("/"+global.Settings.Network.HTTPBasePath, network.Relay)
+
 	mux.Handle("/"+global.Settings.Popular.HTTPBasePath+"/", popular.Relay)
 	mux.Handle("/"+global.Settings.Popular.HTTPBasePath, popular.Relay)
 
@@ -605,6 +610,8 @@ func run(ctx context.Context) error {
 			subRelay, basePath = uppermost.Relay, global.Settings.Uppermost.HTTPBasePath
 		case global.Settings.Moderated.HTTPDomain:
 			subRelay, basePath = moderated.Relay, global.Settings.Moderated.HTTPBasePath
+		case global.Settings.Network.HTTPDomain:
+			subRelay, basePath = network.Relay, global.Settings.Network.HTTPBasePath
 		}
 		if subRelay != nil {
 			if r.Header.Get("Upgrade") == "websocket" ||
@@ -659,6 +666,7 @@ func run(ctx context.Context) error {
 			global.Settings.Popular.HTTPDomain,
 			global.Settings.Uppermost.HTTPDomain,
 			global.Settings.Moderated.HTTPDomain,
+			global.Settings.Network.HTTPDomain,
 		} {
 			if domain != "" {
 				hosts = append(hosts, domain)

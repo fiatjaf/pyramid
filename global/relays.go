@@ -18,4 +18,5 @@ const (
 	RelayModerated RelayID = "moderated"
 	RelayPopular   RelayID = "popular"
 	RelayUppermost RelayID = "uppermost"
+	RelayNetwork   RelayID = "network"
 )

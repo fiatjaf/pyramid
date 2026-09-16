@@ -18,7 +18,8 @@ templ StatsPage(
 	moderatedStats,
 	popularStats,
 	uppermostStats,
-	inboxStats mmm.EventStats,
+	inboxStats,
+	networkStats mmm.EventStats,
 ) {
 	@layout.Layout(loggedUser, "stats") {
 		<div class="space-y-8">
@@ -26,6 +27,7 @@ templ StatsPage(
 				@layout.SubSectionTitle("event statistics")
 				@statsTable("main", mainStats)
 				@statsTable("inbox", inboxStats)
+				@statsTable("network", networkStats)
 				@statsTable("popular", popularStats)
 				@statsTable("uppermost", uppermostStats)
 				@statsTable("favorites", favoritesStats)
