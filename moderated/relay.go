@@ -103,11 +103,18 @@ func setupEnabled() {
 
 		// automatically filtered by the extended web-of-trust: non-members
 		// outside the wot don't even reach the moderation queue
-		if wot.IsComputed() && !pyramid.IsMember(evt.PubKey) && !wot.Contains(evt.PubKey) {
-			return true, "blocked: you're not in the extended network of this relay"
+		authedPublicKeys := khatru.GetAllAuthed(ctx)
+		if len(authedPublicKeys) == 0 {
+			return true, "auth-required: we check publishers against the relay extended network"
 		}
 
-		return false, ""
+		for _, authed := range authedPublicKeys {
+			if reject, _ := wot.RejectAuthor(authed); !reject {
+				return false, ""
+			}
+		}
+
+		return true, "restricted: you're not in the relay extended network"
 	}
 
 	Relay.PreventBroadcast = func(ws *khatru.WebSocket, filter nostr.Filter, event nostr.Event) bool {

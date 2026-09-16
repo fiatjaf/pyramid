@@ -8,10 +8,10 @@ import (
 	"github.com/fiatjaf/pyramid/inbox"
 	"github.com/fiatjaf/pyramid/internal"
 	"github.com/fiatjaf/pyramid/moderated"
+	"github.com/fiatjaf/pyramid/network"
 	"github.com/fiatjaf/pyramid/personal"
 	"github.com/fiatjaf/pyramid/popular"
 	"github.com/fiatjaf/pyramid/uppermost"
-	"github.com/fiatjaf/pyramid/network"
 )
 
 var MainRelay *khatru.Relay

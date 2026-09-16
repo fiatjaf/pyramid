@@ -18,6 +18,30 @@ import (
 
 var log = global.Log.With().Str("module", "wot").Logger()
 
+// RejectAuthor is the shared rejection policy for events written to
+// relays whose write access is gated by the web-of-trust (inbox, network,
+// moderated): the author must not be specifically blocked and must be a
+// relay member or inside the aggregated web-of-trust.
+func RejectAuthor(pk nostr.PubKey) (reject bool, msg string) {
+	if slices.Contains(global.Settings.Wot.SpecificallyBlocked, pk) {
+		return true, "blocked: you are blocked"
+	}
+
+	if pyramid.IsMember(pk) {
+		return false, ""
+	}
+
+	if !IsComputed() {
+		return true, "blocked: wot still being computed, wait some minutes"
+	}
+
+	if !Contains(pk) {
+		return true, "blocked: you're not in the extended network of this relay"
+	}
+
+	return false, ""
+}
+
 type XorFilter struct {
 	Items int
 	xorfilter.Xor8

@@ -209,10 +209,6 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 		return true, "blocked: event kind not allowed"
 	}
 
-	if slices.Contains(global.Settings.Wot.SpecificallyBlocked, evt.PubKey) {
-		return true, "blocked: you are blocked"
-	}
-
 	// ensure this comes from someone in the relay combined extended network
 	bannedByAll := true
 	for member := range pyramid.Members.Range {
@@ -225,12 +221,8 @@ func rejectEvent(ctx context.Context, evt nostr.Event) (bool, string) {
 		return true, "blocked: you're filtered out on this relay"
 	}
 
-	if wot.IsComputed() {
-		if !wot.Contains(sender) {
-			return true, "blocked: you're not in the extended network of this relay"
-		}
-	} else {
-		return true, "blocked: wot still being computed, wait some minutes"
+	if reject, msg := wot.RejectAuthor(sender); reject {
+		return reject, msg
 	}
 
 	if slices.Contains([]nostr.Kind{9735, 9321}, evt.Kind) {

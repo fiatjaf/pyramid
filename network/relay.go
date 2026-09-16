@@ -84,18 +84,7 @@ func setupEnabled() {
 	Relay.OnEvent = policies.SeqEvent(
 		policies.PreventLargeContent(global.Settings.Limits.MaxEventSize),
 		func(ctx context.Context, evt nostr.Event) (bool, string) {
-			authedPublicKeys := khatru.GetAllAuthed(ctx)
-			if len(authedPublicKeys) == 0 {
-				return true, "auth-required: must be in the web-of-trust"
-			}
-
-			for _, authed := range authedPublicKeys {
-				if pyramid.IsMember(authed) || wot.Contains(authed) {
-					return false, ""
-				}
-			}
-
-			return true, "restricted: you're not in the web-of-trust"
+			return wot.RejectAuthor(evt.PubKey)
 		},
 	)
 
