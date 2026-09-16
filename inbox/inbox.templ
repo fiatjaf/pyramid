@@ -30,14 +30,14 @@ templ inboxPage(loggedUser nostr.PubKey) {
 			<p class="text-lg leading-relaxed">{ global.Settings.Inbox.GetDescription() }</p>
 			if pyramid.IsMember(loggedUser) {
 				{{ reports := reportsForMember(loggedUser) }}
-				<div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+				<div class="overflow-x-auto border border-gray-200 dark:border-gray-700">
 					<div class="flex items-center justify-between px-4 py-3">
 						<h2 class="font-semibold text-gray-800 dark:text-gray-100">your reports</h2>
 						<span class="text-sm text-gray-600 dark:text-gray-400">banned users: { fmt.Sprint(bannedCount(loggedUser)) }</span>
 					</div>
 					<table class="w-full text-left text-sm">
-						<thead class="bg-gray-50 dark:bg-gray-800">
-							<tr><th class="px-4 py-2">date</th><th class="px-4 py-2">pubkey target</th><th class="px-4 py-2">reason</th><th class="px-4 py-2">action</th></tr>
+						<thead>
+							<tr><th class="px-4 py-2 border-b border-gray-200 dark:border-gray-700">date</th><th class="px-4 py-2 border-b border-gray-200 dark:border-gray-700">pubkey target</th><th class="px-4 py-2 border-b border-gray-200 dark:border-gray-700">reason</th><th class="px-4 py-2 border-b border-gray-200 dark:border-gray-700">action</th></tr>
 						</thead>
 						<tbody>
 							for report := range reports {
@@ -57,7 +57,7 @@ templ inboxPage(loggedUser nostr.PubKey) {
 					</table>
 				</div>
 			}
-			<div class="bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+			<div class="border-t border-gray-200 dark:border-gray-700 pt-4">
 				<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">what gets through:</h2>
 				<ul class="list-disc list-inside space-y-1 text-sm">
 					<li>events that mention relay members</li>
@@ -66,7 +66,7 @@ templ inboxPage(loggedUser nostr.PubKey) {
 					<li>option to block specific public keys and all their follows</li>
 				</ul>
 			</div>
-			<div class="bg-purple-50/50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4">
+			<div class="border-t border-gray-200 dark:border-gray-700 pt-4">
 				<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">secure messages:</h2>
 				<ul class="list-disc list-inside space-y-1 text-sm">
 					<li>incoming encrypted messages are stored separately and served only to their authenticated targets</li>
@@ -75,14 +75,14 @@ templ inboxPage(loggedUser nostr.PubKey) {
 			</div>
 			if global.Settings.Inbox.Enabled {
 				<a
-					class="mb-4 inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 themed:bg-[var(--accent-color)] unthemed:bg-blue-500 unthemed:bg-blue-600"
+					class="mb-4 inline-flex items-center gap-2 px-2 py-1 text-blue-600 dark:text-blue-400 hover:underline themed:text-[var(--accent-color)]"
 					target="_blank"
 					href={ global.Settings.BrowseURI }
 					x-init="$el.href = $el.href.replace(/({|%7B)url(}|%7D)/, encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
 				>
 					browse inbox →
 				</a>
-				<div class="mt-6 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+				<div class="mt-6 border border-gray-200 dark:border-gray-700 p-4">
 					if !wot.IsComputed() {
 						<span>calculating aggregated web-of-trust...</span>
 					} else {
@@ -155,7 +155,7 @@ templ inboxPage(loggedUser nostr.PubKey) {
 								<button
 									type="submit"
 									:disabled="loading"
-									class="cursor-pointer rounded-lg px-4 py-1.5 text-sm font-semibold text-white shadow-lg transform hover:scale-105 themed:bg-[var(--extra-color)] themed:hover:bg-[rgb(from_var(--extra-color)_r_g_b_/_80%)] light:bg-stone-600 light:hover:bg-stone-700 dark:bg-stone-500 dark:hover:bg-stone-600"
+									class="cursor-pointer px-3 py-1 text-sm bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
 								>check</button>
 							</div>
 						</form>

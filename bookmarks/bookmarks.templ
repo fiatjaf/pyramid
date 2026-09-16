@@ -26,7 +26,7 @@ templ bookmarksPage(loggedUser nostr.PubKey) {
 			if global.Settings.Bookmarks.Enabled {
 				<div class="flex flex-wrap gap-2">
 					<a
-						class="inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 themed:bg-[var(--accent-color)] unthemed:bg-blue-500 unthemed:hover:bg-blue-600"
+						class="inline-flex items-center gap-2 px-2 py-1 text-blue-600 dark:text-blue-400 hover:underline themed:text-[var(--accent-color)]"
 						target="_blank"
 						href={ global.Settings.BrowseURI }
 						x-init="$el.href = $el.href.replace(/({|%7B)url(}|%7D)/, encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/')))"
@@ -35,7 +35,7 @@ templ bookmarksPage(loggedUser nostr.PubKey) {
 					</a>
 					if global.Settings.Bookmarks.AllAccess != "disabled" {
 						<a
-							class="inline-flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 themed:bg-[var(--accent-color)] unthemed:bg-blue-500 unthemed:hover:bg-blue-600"
+							class="inline-flex items-center gap-2 px-2 py-1 text-blue-600 dark:text-blue-400 hover:underline themed:text-[var(--accent-color)]"
 							target="_blank"
 							href={ global.Settings.BrowseURI }
 							x-init="$el.href = $el.href.replace(/({|%7B)url(}|%7D)/, encodeURIComponent(location.href.replace('http', 'ws').split('/').slice(0, 4).join('/') + '/all'))"
