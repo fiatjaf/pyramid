@@ -23,6 +23,13 @@ templ favoritesPage(loggedUser nostr.PubKey) {
 		</div>
 		<div class="space-y-4 text-gray-700 dark:text-gray-300">
 			<p class="text-lg leading-relaxed">{ global.Settings.Favorites.GetDescription() }</p>
+			<div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+				<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">how the favorites relay works:</h2>
+				<ul class="list-disc list-inside space-y-1 text-sm">
+					<li>relay members can manually republish notes from anywhere else and they'll be saved</li>
+					<li>anyone can read</li>
+				</ul>
+			</div>
 			if global.Settings.Favorites.Enabled {
 				<a
 					class="mb-4 inline-flex items-center gap-2 px-2 py-1 text-blue-600 dark:text-blue-400 hover:underline themed:text-[var(--accent-color)]"

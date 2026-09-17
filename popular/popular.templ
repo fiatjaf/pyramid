@@ -23,6 +23,15 @@ templ popularPage(loggedUser nostr.PubKey) {
 		</div>
 		<div class="space-y-4 text-gray-700 dark:text-gray-300">
 			<p class="text-lg leading-relaxed">{ global.Settings.Popular.GetDescription() }</p>
+			<div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+				<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">how the popular relay works:</h2>
+				<ul class="list-disc list-inside space-y-1 text-sm">
+					<li>this is a read-only relay, nothing can be published here directly</li>
+					<li>relay members that have the main relay in their outbox list will naturally send replies, reactions and zaps there, we use that data to compute what notes on the broader Nostr ecosystem are poppular with the members of this relay</li>
+					<li>notes that reach the reaction threshold (from members' reactions, replies and zaps) are saved and become visible</li>
+					<li>once a note gets even more traction it is promoted to the uppermost relay and removed from this</li>
+				</ul>
+			</div>
 			if global.Settings.Popular.Enabled {
 				<a
 					class="mb-4 inline-flex items-center gap-2 px-2 py-1 text-blue-600 dark:text-blue-400 hover:underline themed:text-[var(--accent-color)]"

@@ -23,6 +23,15 @@ templ bookmarksPage(loggedUser nostr.PubKey) {
 		</div>
 		<div class="space-y-4 text-gray-700 dark:text-gray-300">
 			<p class="text-lg leading-relaxed">{ global.Settings.Bookmarks.GetDescription() }</p>
+			<div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+				<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">how the bookmarks relay works:</h2>
+				<ul class="list-disc list-inside space-y-1 text-sm">
+					<li>each member gets a separate relay where they can save events they want to bookmark</li>
+					<li>it works for events from other people, that's the idea of bookmarking</li>
+					<li>the same relay URL will behave differently depending on who access it, authentication is required</li>
+					<li>the /all subpath aggregates all members' bookmarks for others to see (access can be public or restricted)</li>
+				</ul>
+			</div>
 			if global.Settings.Bookmarks.Enabled {
 				<div class="flex flex-wrap gap-2">
 					<a
