@@ -108,7 +108,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							<button
 								@click="open = !open"
 								class={ "cursor-pointer rounded-lg px-4 py-2 font-medium flex items-center gap-1 themed:text-[var(--text-color)] themed:hover:bg-[rgb(from_var(--text-color)_r_g_b_/10%)] light:hover:bg-stone-100 dark:hover:bg-stone-700",
-                                    templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", currentPage == "groups" || currentPage == "grasp" || currentPage == "blossom" || currentPage == "nsite" || currentPage == "paywall" || currentPage == "stream" || currentPage == "operator" || currentPage == "imgproxy" || currentPage == "linkpreview"),
+                                    templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", currentPage == "groups" || currentPage == "grasp" || currentPage == "blossom" || currentPage == "nsite" || currentPage == "paywall" || currentPage == "stream" || currentPage == "operator" || currentPage == "imgproxy" || currentPage == "linkpreview" || currentPage == "wot"),
                                     templ.KV("hidden", !(global.Settings.Groups.Enabled || global.Settings.Grasp.Enabled || global.Settings.Blossom.Enabled || global.Settings.Nsite.Enabled || global.Settings.Paywall.Enabled || global.Settings.Stream.Enabled || global.Settings.Operator.Enabled || (global.Settings.Domain != "" && global.Settings.Imgproxy.Enabled) || (global.Settings.Domain != "" && global.Settings.LinkPreview.Enabled) || pyramid.IsRoot(loggedUser))) }
 							>
 								switch currentPage {
@@ -130,6 +130,8 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 										imgproxy
 									case "linkpreview":
 										linkpreview
+									case "wot":
+										wot
 									default:
 										services
 								}
@@ -187,6 +189,9 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 										linkpreview
 									}
 								}
+								@NavLink("/wot/", currentPage == "wot") {
+									wot
+								}
 							</div>
 						</div>
 						<div
@@ -197,7 +202,7 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 							<button
 								@click="open = !open"
 								class={ "cursor-pointer rounded-lg px-4 py-2 font-medium flex items-center gap-1 themed:text-[var(--text-color)] themed:hover:bg-[rgb(from_var(--text-color)_r_g_b_/10%)] light:hover:bg-stone-100 dark:hover:bg-stone-700",
-                                    templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "bookmarks" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "moderated" || currentPage == "network" || currentPage == "wot"),
+                                    templ.KV("themed:bg-[rgb(from_var(--text-color)_r_g_b_/15%)] light:bg-stone-200 dark:bg-stone-700", currentPage == "favorites" || currentPage == "bookmarks" || currentPage == "uppermost" || currentPage == "popular" || currentPage == "inbox" || currentPage == "internal" || currentPage == "moderated" || currentPage == "network"),
                                     templ.KV("hidden", !pyramid.IsRoot(loggedUser) && !global.Settings.Favorites.Enabled && !global.Settings.Bookmarks.Enabled && !global.Settings.Uppermost.Enabled && !global.Settings.Popular.Enabled && !global.Settings.Inbox.Enabled && !global.Settings.Network.Enabled && !(global.Settings.Internal.Enabled && pyramid.IsMember(loggedUser)) && !(global.Settings.Personal.Enabled && pyramid.IsMember(loggedUser)) && !global.Settings.Moderated.Enabled ) }
 							>
 								switch currentPage {
@@ -273,9 +278,6 @@ templ Layout(loggedUser nostr.PubKey, currentPage string) {
 											}
 										}
 									}
-								}
-								@NavLink("/wot/", currentPage == "wot") {
-									wot
 								}
 							</div>
 						</div>
