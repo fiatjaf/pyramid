@@ -11,6 +11,10 @@ import (
 )
 
 templ moderatedPage(loggedUser nostr.PubKey) {
+	{{
+		points := GetApprovalTarget()
+		target := fmt.Sprintf("%d", points)
+	}}
 	@layout.Layout(loggedUser, "moderated") {
 		<div class="flex items-center justify-between mb-4">
 			<div class="flex items-center">
@@ -28,9 +32,10 @@ templ moderatedPage(loggedUser nostr.PubKey) {
 			<div class="border-t border-gray-200 dark:border-gray-700 pt-4">
 				<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">how the moderated relay works:</h2>
 				<ul class="list-disc list-inside space-y-1 text-sm">
-					<li>anyone who can reach this site can write, but events wait in the moderation queue until a member approves them</li>
-					<li>authors in the <a href="/wot/" class="text-blue-600 dark:text-blue-400 themed:text-[var(--accent-color)] hover:underline">web-of-trust</a> skip the queue entirely and get published automatically</li>
-					<li>approved events are visible on the relay, but nothing is ever broadcasted to connected clients</li>
+					<li>people have to be in the <a href="/wot/" class="text-blue-600 dark:text-blue-400 themed:text-[var(--accent-color)] hover:underline">relay extended network</a> in order to write</li>
+					<li>events are put in a queue and are only visible by relay members</li>
+					<li>every event needs { target } points to be approved. each vote from a member is worth a number of points, { target } by default, so a single vote is enough by default when every member at any level is worth that</li>
+					<li>approved events are broadcasted to listeners and become visible to anyone</li>
 				</ul>
 			</div>
 			if global.Settings.Moderated.Enabled {
@@ -45,32 +50,91 @@ templ moderatedPage(loggedUser nostr.PubKey) {
 			}
 			if pyramid.IsRoot(loggedUser) {
 				@layout.SubRelaySettings(global.RelayModerated, global.Settings.Moderated.Enabled, global.Settings.Moderated.Name, global.Settings.Moderated.Description, global.Settings.Moderated.Icon, global.Settings.Moderated.Pinned, global.Settings.Moderated.HTTPBasePath, global.Settings.Moderated.HTTPDomain) {
+					<details>
+						<summary class="mb-4 cursor-pointer text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200">approval votes</summary>
+						<form
+							method="POST"
+							action="/settings"
+							class="mb-4"
+							x-data={ `{
+								voteValues: ` + global.JSONString(global.Settings.Moderated.ApprovalVotesSpec) + `,
+								saved: false,
+								async saveSettings() {
+									const response = await fetch(this.$refs.form.action, {
+										method: 'POST',
+										body: new URLSearchParams(new FormData(this.$refs.form))
+									})
+									if (response.ok) {
+										this.saved = true;
+										setTimeout(() => this.saved = false, 2000)
+									}
+								}
+							}` }
+							x-ref="form"
+						>
+							<div>
+								<label class="block text-sm font-medium mb-2 dark:text-stone-300" for="moderated_approval_votes">points per vote</label>
+								<input
+									type="text"
+									name="moderated_approval_votes"
+									placeholder="e.g. 100 or 50/25/13"
+									class="w-full px-4 py-2 rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 dark:text-stone-100 mb-2"
+									x-model="voteValues"
+									@blur="saveSettings()"
+								/>
+								<p class="text-xs text-stone-500 dark:text-stone-400 mt-1">{ moderatedVoteValueHint(points) }</p>
+							</div>
+							<div
+								x-show="saved"
+								x-transition
+								class="text-sm text-green-600 dark:text-green-400 font-medium mb-4"
+							>
+								saved!
+							</div>
+						</form>
+					</details>
 				}
 			}
-			if pyramid.IsMember(loggedUser) && global.Settings.Moderated.Enabled {
-				<div class="mt-8">
-					<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">moderation queue</h3>
-					@pendingEventsSection()
-				</div>
+			if pyramid.IsMember(loggedUser) {
+				if global.Settings.Moderated.Enabled {
+					<div class="mt-8">
+						<h3 class="text-lg font-semibold mb-4 dark:text-stone-200">moderation queue</h3>
+						@pendingEventsSection(target)
+					</div>
+				}
 			}
 		</div>
 	}
 }
 
-templ pendingEventsSection() {
+func moderatedVoteValueHint(points int) string {
+	return fmt.Sprintf(
+		"when a single number is given, every vote from a member is worth that number (%d points total are required to approve). slash-separated values assign a worth for each pyramid level (e.g. \"50/25/13\" means level 1 votes are worth 50 points, level 2 votes 25 points, and level 3 votes 13 points). root members are always worth %d. leave empty to use %d for everyone.",
+		points, points, points,
+	)
+}
+
+templ pendingEventsSection(target string) {
 	<div class="space-y-4">
 		{{ hasAny := false }}
 		for evt := range global.IL.ModerationQueue.QueryEvents(nostr.Filter{}, 100) {
 			{{ hasAny = true }}
+			{{ points := fmt.Sprintf("%d", GetVoteTotal(evt.ID)) }}
 			<div class="bg-white dark:bg-stone-800 rounded-lg p-4 border border-stone-200 dark:border-stone-700 shadow-sm">
 				<div class="mb-2">
 					<div class="flex items-center gap-2 mb-1">
 						<span class="text-xs text-stone-500 dark:text-stone-400">from:</span>
 						<nostr-name class="text-sm font-mono" pubkey={ evt.PubKey.Hex() }></nostr-name>
 					</div>
-					<div class="flex items-center gap-2">
-						<span class="text-xs text-stone-500 dark:text-stone-400">kind:</span>
-						<span class="text-sm">{ fmt.Sprintf("%d", evt.Kind) }</span>
+					<div class="flex items-center gap-4">
+						<div class="flex items-center gap-2">
+							<span class="text-xs text-stone-500 dark:text-stone-400">kind:</span>
+							<span class="text-sm">{ fmt.Sprintf("%d", evt.Kind) }</span>
+						</div>
+						<div class="flex items-center gap-2">
+							<span class="text-xs text-stone-500 dark:text-stone-400">points:</span>
+							<span class="text-sm">{ points } / { target }</span>
+						</div>
 					</div>
 				</div>
 				<div class="mb-3 p-3 bg-stone-50 dark:bg-stone-900 rounded text-sm break-words max-h-32 overflow-y-auto">
@@ -82,7 +146,7 @@ templ pendingEventsSection() {
 							type="submit"
 							class="px-3 py-1 rounded bg-green-500 hover:bg-green-600 text-white text-sm font-medium"
 						>
-							approve
+							vote approve
 						</button>
 					</form>
 					<form method="POST" action={ templ.SafeURL("/" + global.Settings.Moderated.HTTPBasePath + "/reject/" + evt.ID.Hex()) }>

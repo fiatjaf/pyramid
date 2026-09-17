@@ -553,6 +553,20 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				network.Init()
 				go restartSoon()
 				//
+				// moderated-specific
+			case "moderated_approval_votes":
+				spec := strings.TrimSpace(v[0])
+				if spec != "" {
+					for _, part := range strings.Split(spec, "/") {
+						n, err := strconv.Atoi(strings.TrimSpace(part))
+						if err != nil || n <= 0 {
+							http.Error(w, "invalid moderated_approval_votes: must be a positive number or slash-separated positive numbers", 400)
+							return
+						}
+					}
+				}
+				global.Settings.Moderated.ApprovalVotesSpec = spec
+				//
 				// inbox-specific
 			case "inbox_hellthread_limit":
 				global.Settings.Inbox.HellthreadLimit, _ = strconv.Atoi(v[0])

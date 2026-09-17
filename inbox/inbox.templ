@@ -59,10 +59,11 @@ templ inboxPage(loggedUser nostr.PubKey) {
 			<div class="border-t border-gray-200 dark:border-gray-700 pt-4">
 				<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">how the inbox works:</h2>
 				<ul class="list-disc list-inside space-y-1 text-sm">
-					<li>only events that mention a relay member and come from someone in the <a href="/wot/" class="text-blue-600 dark:text-blue-400 themed:text-[var(--accent-color)] hover:underline">web-of-trust</a> are accepted</li>
-					<li>hellthreads (too many p-tags) are rejected</li>
-					<li>people flagged by members (or blocked at the <a href="/wot/" class="text-blue-600 dark:text-blue-400 themed:text-[var(--accent-color)] hover:underline">web-of-trust</a> level) are filtered out</li>
-					<li>encrypted DMs also require the sender to be in the web-of-trust, and can be configured to require AUTH</li>
+					<li>only events that mention a relay member are accepted</li>
+					<li>events have to come from someone in the <a href="/wot/" class="text-blue-600 dark:text-blue-400 themed:text-[var(--accent-color)] hover:underline">relay network</a></li>
+					<li>hellthreads (too many "p"-tags) are rejected</li>
+					<li>people flagged by members are filtered out</li>
+					<li>encrypted DMs can also be configured to be filtered by the relay extended network, which means they require the sender to authenticate before sending the gift-wrapped message</li>
 				</ul>
 			</div>
 			if global.Settings.Inbox.Enabled {
@@ -141,7 +142,7 @@ templ inboxPage(loggedUser nostr.PubKey) {
 								type="button"
 								x-show="!showInboxAllowedKinds"
 								@mouseup="showInboxAllowedKinds = true"
-								class="cursor-pointer px-3 py-1 text-sm rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-600 dark:hover:bg-stone-500"
+								class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium mb-6"
 							>
 								customize inbox event kinds
 							</button>

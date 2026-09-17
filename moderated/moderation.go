@@ -25,15 +25,26 @@ func approveEvent(approver nostr.PubKey, id nostr.ID) error {
 		return fmt.Errorf("event not found in queue")
 	}
 
-	// save to moderated layer
-	var err error
-	if evt.Kind.IsAddressable() || evt.Kind.IsReplaceable() {
-		_, err = global.IL.Moderated.ReplaceEvent(evt)
-	} else {
-		err = global.IL.Moderated.SaveEvent(evt)
-	}
+	// cast (or fetch) a vote for this event
+	reached, err := vote(approver, id)
 	if err != nil {
 		return err
+	}
+	if !reached {
+		log.Info().Str("id", id.Hex()).Str("voter", approver.Hex()).Int("points", GetVoteTotal(id)).
+			Msg("approval vote cast, not yet enough to approve")
+		return nil
+	}
+
+	// save to moderated layer
+	var saveErr error
+	if evt.Kind.IsAddressable() || evt.Kind.IsReplaceable() {
+		_, saveErr = global.IL.Moderated.ReplaceEvent(evt)
+	} else {
+		saveErr = global.IL.Moderated.SaveEvent(evt)
+	}
+	if saveErr != nil {
+		return saveErr
 	}
 
 	// delete from queue
@@ -41,9 +52,13 @@ func approveEvent(approver nostr.PubKey, id nostr.ID) error {
 		log.Error().Err(err).Str("id", evt.ID.String()).Msg("failed to delete from queue after approval")
 	}
 
+	// forget the votes along with the event
+	deleteVotes(id)
+
+	// broadcast to listeners
 	count := Relay.ForceBroadcastEvent(evt)
 	log.Info().Str("id", evt.ID.Hex()).Str("approver", approver.Hex()).Int("broadcasted", count).
-		Msg("event approved")
+		Msg("event approved and broadcasted")
 
 	return nil
 }
@@ -53,6 +68,9 @@ func rejectEvent(rejector nostr.PubKey, id nostr.ID) error {
 	if err := global.IL.ModerationQueue.DeleteEvent(id); err != nil {
 		return err
 	}
+
+	// forget any votes cast for this event
+	deleteVotes(id)
 
 	log.Info().Str("id", id.Hex()).Str("rejector", rejector.Hex()).Msg("event rejected")
 	return nil

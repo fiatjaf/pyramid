@@ -161,6 +161,7 @@ type UserSettings struct {
 
 	Moderated struct {
 		RelayMetadata
+		ApprovalVotesSpec string `json:"approval_votes_spec,omitempty"`
 	} `json:"moderated"`
 
 	Network struct {
