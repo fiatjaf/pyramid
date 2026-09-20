@@ -41,6 +41,9 @@ templ networkPage(loggedUser nostr.PubKey) {
 					browse network →
 				</a>
 			}
+			if pyramid.IsRoot(loggedUser) {
+				@layout.SubRelaySettings(global.RelayNetwork, global.Settings.Network.Enabled, global.Settings.Network.Name, global.Settings.Network.Description, global.Settings.Network.Icon, global.Settings.Network.Pinned, global.Settings.Network.HTTPBasePath, global.Settings.Network.HTTPDomain)
+			}
 		</div>
 	}
 }
