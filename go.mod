@@ -3,12 +3,13 @@ module github.com/fiatjaf/pyramid
 go 1.26.2
 
 require (
-	fiatjaf.com/nostr v0.0.0-20260815222433-1d52197d55a5
+	fiatjaf.com/nostr v0.0.0-20260916040958-27e395a0f6e7
 	fiatjaf.com/pomegranate v0.0.0-20260515185713-4cdb7e027855
 	fiatjaf.com/promenade v0.4.4
 	github.com/FastFilter/xorfilter v0.2.1
 	github.com/a-h/templ v0.3.1020
 	github.com/bep/debounce v1.2.1
+	github.com/bits-and-blooms/bloom/v3 v3.7.1
 	github.com/blevesearch/bleve/v2 v2.4.4
 	github.com/btcsuite/btcd/btcec/v2 v2.3.6
 	github.com/buildkite/terminal-to-html/v3 v3.16.8
@@ -49,7 +50,6 @@ require (
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.24.2 // indirect
-	github.com/bits-and-blooms/bloom/v3 v3.7.1 // indirect
 	github.com/blevesearch/bleve_index_api v1.1.12 // indirect
 	github.com/blevesearch/geo v0.1.20 // indirect
 	github.com/blevesearch/go-faiss v1.0.24 // indirect

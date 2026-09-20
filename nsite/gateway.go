@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"fiatjaf.com/nostr"
-	libblossom "fiatjaf.com/nostr/nipb0/blossom"
+	libblossom "fiatjaf.com/nostr/nipb7/blossom"
 	"github.com/fiatjaf/pyramid/blossom"
 	"github.com/fiatjaf/pyramid/global"
 )

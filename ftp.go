@@ -24,7 +24,7 @@ import (
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/eventstore/mmm"
-	blossom_lib "fiatjaf.com/nostr/nipb0/blossom"
+	blossom_lib "fiatjaf.com/nostr/nipb7/blossom"
 	"github.com/fiatjaf/pyramid/blossom"
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/liamg/magic"
