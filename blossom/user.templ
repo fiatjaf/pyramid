@@ -1,0 +1,90 @@
+package blossom
+
+import (
+	"fmt"
+	"time"
+
+	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/nip19"
+
+	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/layout"
+	"github.com/fiatjaf/pyramid/pyramid"
+)
+
+templ blossomUserPage(loggedUser nostr.PubKey, targetUser nostr.PubKey) {
+	@layout.Layout(loggedUser, "blossom") {
+		<div class="max-w-3xl mx-auto">
+			<h1 class="text-4xl font-bold mb-4 font-[family-name:var(--primary-font)]">blossom</h1>
+			<p class="text-lg leading-relaxed text-gray-700 dark:text-gray-300 mb-8">
+				blobs for <nostr-name pubkey={ targetUser.Hex() }>{ nip19.EncodeNpub(targetUser) }</nostr-name>
+			</p>
+			<div x-data={ `{ hasBlobs: false, selected: [] }` }>
+				{{ blossomUsed := 0 }}
+				for blob := range BlobIndex.List(ctx, targetUser) {
+					{{ blossomUsed += blob.Size }}
+				}
+				<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
+					if pyramid.IsRoot(targetUser) || pyramid.GetMaxBlossomUploadSizeFor(targetUser) == 0 {
+						{ fmt.Sprintf("%.1f MB used / unlimited", float64(blossomUsed)/(1024*1024)) }
+					} else {
+						{ fmt.Sprintf("%.1f / %d MB used", float64(blossomUsed)/(1024*1024), pyramid.GetMaxBlossomUploadSizeFor(targetUser)) }
+					}
+				</p>
+				<p class="text-sm text-stone-600 dark:text-stone-400" x-show="!hasBlobs">no blobs</p>
+				<form hx-post="/blossom/delete" hx-confirm="delete selected blobs?">
+					<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700" x-show="hasBlobs">
+						<thead class="bg-stone-50 dark:bg-stone-800">
+							<tr>
+								<th class="px-4 py-3"><input type="checkbox" aria-label="select all blobs" :checked="selected.length === $root.querySelectorAll('input[name=blobs]').length" @change="selected = $event.target.checked ? [...$root.querySelectorAll('input[name=blobs]')].map(input => input.value) : []" class="rounded text-blue-500 focus:ring-blue-500"/></th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">hash</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">type</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">size</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">upload date</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">other owners</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider"></th>
+							</tr>
+						</thead>
+						<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
+							{{ hasBlobs := false }}
+							for blob := range BlobIndex.List(ctx, targetUser) {
+								{{ hasBlobs = true }}
+								<tr>
+									<td class="px-4 py-3"><input type="checkbox" name="blobs" value={ targetUser.Hex() + "/" + blob.SHA256 } aria-label="select blob" x-model="selected" class="rounded text-blue-500 focus:ring-blue-500"/></td>
+									<td class="px-4 py-3 text-sm font-mono text-stone-900 dark:text-stone-100">
+										<a href={ templ.SafeURL(blob.URL) } target="_blank" class="block truncate max-w-[8rem] hover:underline">{ blob.SHA256 }</a>
+									</td>
+									<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">{ blob.Type }</td>
+									<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">{ formatSize(blob.Size) }</td>
+									<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+										if blob.Uploaded > nostr.Now() - 61 {
+											<span class="text-emerald-800">just now</span>
+										} else {
+											<span>{ blob.Uploaded.Time().Format(time.DateTime) }</span>
+										}
+									</td>
+									<td class="px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
+										for _, owner := range BlobIndex.OwnersForBlob(ctx, blob.SHA256) {
+											if owner != targetUser {
+												<a href={ "/blossom/u/" + nip19.EncodeNpub(owner) } class="text-sm font-medium light:text-stone-600 dark:text-stone-400 hover:underline underline-offset-4 mr-2"><nostr-name pubkey={ owner.Hex() }>{ owner.Hex() }</nostr-name></a>
+											}
+										}
+									</td>
+									<td class="px-4 py-3 text-sm">
+										if global.Settings.Blossom.Enabled {
+											<button type="button" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-xs cursor-pointer" hx-delete={ "/blossom/b/" + blob.SHA256 + "?user=" + targetUser.Hex() } hx-target="closest tr" hx-swap="outerHTML" hx-confirm={ "delete blob " + blob.SHA256[:16] + "...?" }>delete</button>
+										}
+									</td>
+								</tr>
+							}
+							if hasBlobs {
+								<span x-init="hasBlobs = true"></span>
+							}
+						</tbody>
+					</table>
+					<button type="submit" x-show="selected.length > 0" class="mt-4 cursor-pointer px-3 py-1 rounded-md text-xs font-medium text-white bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500">delete selected</button>
+				</form>
+			</div>
+		</div>
+	}
+}
