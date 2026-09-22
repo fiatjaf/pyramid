@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"iter"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,6 +16,7 @@ import (
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/blossom"
+	blobtypes "fiatjaf.com/nostr/nipb7/blossom"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/groups"
@@ -78,6 +81,7 @@ func setupDisabled() {
 	Handler.mux.HandleFunc("POST /blossom/enable", enableHandler)
 	Handler.mux.HandleFunc("GET /blossom/blobs", blobsPageHandler)
 	Handler.mux.HandleFunc("GET /blossom/u/{pubkey}", userPageHandler)
+	Handler.mux.HandleFunc("POST /blossom/u/{pubkey}/orphans", orphanBlobsPageHandler)
 	Handler.mux.HandleFunc("DELETE /blossom/b/{sha256}", deleteUserBlobHandler)
 	Handler.mux.HandleFunc("POST /blossom/delete", deleteUserBlobsHandler)
 	Handler.mux.HandleFunc("/blossom/", pageHandler)
@@ -159,6 +163,7 @@ func setupEnabled() {
 	Handler.mux.HandleFunc("POST /blossom/disable", disableHandler)
 	Handler.mux.HandleFunc("GET /blossom/blobs", blobsPageHandler)
 	Handler.mux.HandleFunc("GET /blossom/u/{pubkey}", userPageHandler)
+	Handler.mux.HandleFunc("POST /blossom/u/{pubkey}/orphans", orphanBlobsPageHandler)
 	Handler.mux.HandleFunc("DELETE /blossom/b/{sha256}", deleteUserBlobHandler)
 	Handler.mux.HandleFunc("POST /blossom/delete", deleteUserBlobsHandler)
 	Handler.mux.HandleFunc("/blossom/", pageHandler)
@@ -212,7 +217,72 @@ func userPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blossomUserPage(loggedUser, user).Render(r.Context(), w)
+	blossomUserPage(loggedUser, user, BlobIndex.List(r.Context(), user), false).Render(r.Context(), w)
+}
+
+func orphanBlobsPageHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+	if !pyramid.IsMember(loggedUser) {
+		http.Error(w, "unauthorized", 401)
+		return
+	}
+
+	targetUser := global.PubKeyFromInput(r.PathValue("pubkey"))
+	if targetUser == nostr.ZeroPK {
+		http.Error(w, "invalid pubkey", 400)
+		return
+	}
+	if targetUser != loggedUser && !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
+		return
+	}
+
+	blobs := make(map[string]blobtypes.BlobDescriptor)
+	for blob := range BlobIndex.List(r.Context(), targetUser) {
+		blobs[blob.SHA256] = blob
+	}
+
+	for _, itr := range []iter.Seq[nostr.Event]{
+		global.IL.DeletedGroups.QueryEvents(nostr.Filter{Authors: []nostr.PubKey{targetUser}}, 10_000_000),
+		global.IL.Scheduled.QueryEvents(nostr.Filter{Authors: []nostr.PubKey{targetUser}}, 10_000_000),
+		global.IL.ModerationQueue.QueryEvents(nostr.Filter{Authors: []nostr.PubKey{targetUser}}, 10_000_000),
+		global.IL.Internal.QueryEvents(nostr.Filter{Authors: []nostr.PubKey{targetUser}}, 10_000_000),
+		global.IL.Network.QueryEvents(nostr.Filter{Authors: []nostr.PubKey{targetUser}}, 10_000_000),
+		global.IL.Moderated.QueryEvents(nostr.Filter{Authors: []nostr.PubKey{targetUser}}, 10_000_000),
+		global.IL.Personal.QueryEvents(nostr.Filter{Authors: []nostr.PubKey{targetUser}}, 10_000_000),
+		global.IL.Inbox.QueryEvents(nostr.Filter{Authors: []nostr.PubKey{targetUser}}, 10_000_000),
+		global.IL.Main.QueryEvents(nostr.Filter{Authors: []nostr.PubKey{targetUser}}, 10_000_000),
+	} {
+		for event := range itr {
+			for sha256 := range blobs {
+				if strings.Contains(event.Content, sha256) {
+					delete(blobs, sha256)
+					continue
+				}
+				for _, tag := range event.Tags {
+					found := false
+					for _, item := range tag[1:] {
+						if strings.Contains(item, sha256) {
+							found = true
+							break
+						}
+					}
+					if found {
+						delete(blobs, sha256)
+						break
+					}
+				}
+			}
+			if len(blobs) == 0 {
+				break
+			}
+		}
+		if len(blobs) == 0 {
+			break
+		}
+	}
+
+	blossomUserPage(loggedUser, targetUser, maps.Values(blobs), true).Render(r.Context(), w)
 }
 
 func blobsPageHandler(w http.ResponseWriter, r *http.Request) {

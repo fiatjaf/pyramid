@@ -2,26 +2,43 @@ package blossom
 
 import (
 	"fmt"
+	"iter"
 	"time"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/nip19"
+	blossomlib "fiatjaf.com/nostr/nipb7/blossom"
 
 	"github.com/fiatjaf/pyramid/global"
 	"github.com/fiatjaf/pyramid/layout"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
-templ blossomUserPage(loggedUser nostr.PubKey, targetUser nostr.PubKey) {
+templ blossomUserPage(
+	loggedUser nostr.PubKey,
+	targetUser nostr.PubKey,
+	blobs iter.Seq[blossomlib.BlobDescriptor],
+	orphanOnly bool,
+) {
 	@layout.Layout(loggedUser, "blossom") {
 		<div class="max-w-3xl mx-auto">
 			<h1 class="text-4xl font-bold mb-4 font-[family-name:var(--primary-font)]">blossom</h1>
 			<p class="text-lg leading-relaxed text-gray-700 dark:text-gray-300 mb-8">
+				if orphanOnly {
+					orphan
+				}
 				blobs for <nostr-name pubkey={ targetUser.Hex() }>{ nip19.EncodeNpub(targetUser) }</nostr-name>
 			</p>
+			if orphanOnly {
+				<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">only blobs not referenced by any event from <nostr-name pubkey={ targetUser.Hex() }>{ nip19.EncodeNpub(targetUser) }</nostr-name>. these should be safer to delete, although they might still be referenced by events that are only in other relays or inside encrypted messages.</p>
+			} else {
+				<form method="POST" action={ "/blossom/u/" + nip19.EncodeNpub(targetUser) + "/orphans" } class="mb-4">
+					<button type="submit" class="cursor-pointer px-3 py-1 rounded-md text-xs font-medium text-white bg-stone-500 hover:bg-stone-600 dark:bg-stone-600 dark:hover:bg-stone-500">show orphan blobs</button>
+				</form>
+			}
 			<div x-data={ `{ hasBlobs: false, selected: [] }` }>
 				{{ blossomUsed := 0 }}
-				for blob := range BlobIndex.List(ctx, targetUser) {
+				for blob := range blobs {
 					{{ blossomUsed += blob.Size }}
 				}
 				<p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
@@ -47,7 +64,7 @@ templ blossomUserPage(loggedUser nostr.PubKey, targetUser nostr.PubKey) {
 						</thead>
 						<tbody class="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
 							{{ hasBlobs := false }}
-							for blob := range BlobIndex.List(ctx, targetUser) {
+							for blob := range blobs {
 								{{ hasBlobs = true }}
 								<tr>
 									<td class="px-4 py-3"><input type="checkbox" name="blobs" value={ targetUser.Hex() + "/" + blob.SHA256 } aria-label="select blob" x-model="selected" class="rounded text-blue-500 focus:ring-blue-500"/></td>
