@@ -79,6 +79,7 @@ func setupDisabled() {
 	Handler.mux.HandleFunc("GET /blossom/blobs", blobsPageHandler)
 	Handler.mux.HandleFunc("GET /blossom/u/{pubkey}", userPageHandler)
 	Handler.mux.HandleFunc("DELETE /blossom/b/{sha256}", deleteUserBlobHandler)
+	Handler.mux.HandleFunc("POST /blossom/delete", deleteUserBlobsHandler)
 	Handler.mux.HandleFunc("/blossom/", pageHandler)
 }
 
@@ -159,6 +160,7 @@ func setupEnabled() {
 	Handler.mux.HandleFunc("GET /blossom/blobs", blobsPageHandler)
 	Handler.mux.HandleFunc("GET /blossom/u/{pubkey}", userPageHandler)
 	Handler.mux.HandleFunc("DELETE /blossom/b/{sha256}", deleteUserBlobHandler)
+	Handler.mux.HandleFunc("POST /blossom/delete", deleteUserBlobsHandler)
 	Handler.mux.HandleFunc("/blossom/", pageHandler)
 }
 
@@ -203,6 +205,10 @@ func userPageHandler(w http.ResponseWriter, r *http.Request) {
 	user := global.PubKeyFromInput(pubkeyInput)
 	if user == nostr.ZeroPK {
 		http.Error(w, "invalid pubkey", 400)
+		return
+	}
+	if user != loggedUser && !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "unauthorized", 403)
 		return
 	}
 
@@ -253,6 +259,48 @@ func deleteUserBlobHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(200)
+}
+
+func deleteUserBlobsHandler(w http.ResponseWriter, r *http.Request) {
+	loggedUser, _ := global.GetLoggedUser(r)
+	if !pyramid.IsRoot(loggedUser) {
+		http.Error(w, "only root can delete other users' blobs", 403)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "invalid form", 400)
+		return
+	}
+	if len(r.Form["blobs"]) == 0 {
+		http.Error(w, "no blobs selected", 400)
+		return
+	}
+
+	for _, value := range r.Form["blobs"] {
+		parts := strings.SplitN(value, "/", 2)
+		if len(parts) != 2 {
+			http.Error(w, "invalid blob", 400)
+			return
+		}
+		targetUser := global.PubKeyFromInput(parts[0])
+		if targetUser == nostr.ZeroPK || safeBlobHash(parts[1]) == "" {
+			http.Error(w, "invalid blob", 400)
+			return
+		}
+		if err := BlobIndex.Delete(r.Context(), parts[1], targetUser); err != nil {
+			http.Error(w, "delete failed: "+err.Error(), 500)
+			return
+		}
+		if bd, _ := BlobIndex.Get(r.Context(), parts[1]); bd == nil {
+			if err := deleteBlob(r.Context(), parts[1], "<irrelevant>"); err != nil {
+				http.Error(w, "delete failed: "+err.Error(), 500)
+				return
+			}
+		}
+	}
+
+	w.Header().Set("HX-Refresh", "true")
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {
