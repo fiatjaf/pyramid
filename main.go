@@ -540,6 +540,10 @@ func run(ctx context.Context) error {
 	mux.Handle("/"+global.Settings.Uppermost.HTTPBasePath+"/", uppermost.Relay)
 	mux.Handle("/"+global.Settings.Uppermost.HTTPBasePath, uppermost.Relay)
 
+	// Keep pending moderation queue as separate relay so its NIP-86 methods
+	// operate on votes while queue events stay hidden from public relay.
+	mux.Handle("/"+global.Settings.Moderated.HTTPBasePath+"/pending/", moderated.PendingRelay)
+	mux.Handle("/"+global.Settings.Moderated.HTTPBasePath+"/pending", moderated.PendingRelay)
 	mux.Handle("/"+global.Settings.Moderated.HTTPBasePath+"/", moderated.Relay)
 	mux.Handle("/"+global.Settings.Moderated.HTTPBasePath, moderated.Relay)
 

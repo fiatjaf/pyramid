@@ -115,13 +115,25 @@ func moderatedVoteValueHint(points int) string {
 }
 
 templ pendingEventsSection(target string) {
-	<div class="space-y-4">
+	<form method="POST" action={ templ.SafeURL("/" + global.Settings.Moderated.HTTPBasePath + "/approve") } x-data="{ all: false }" class="space-y-4">
+		<div class="flex items-center gap-3">
+			<label class="inline-flex items-center gap-2 text-sm font-medium">
+				<input type="checkbox" x-model="all" class="rounded border-stone-300"/>
+				select all
+			</label>
+			<button type="submit" class="px-3 py-1 rounded bg-green-500 hover:bg-green-600 text-white text-sm font-medium">accept selected</button>
+			<button type="submit" formaction={ templ.SafeURL("/" + global.Settings.Moderated.HTTPBasePath + "/reject") } class="px-3 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-sm font-medium">reject selected</button>
+		</div>
 		{{ hasAny := false }}
 		for evt := range global.IL.ModerationQueue.QueryEvents(nostr.Filter{}, 100) {
 			{{ hasAny = true }}
 			{{ points := fmt.Sprintf("%d", GetVoteTotal(evt.ID)) }}
+			{{ rejectionPoints := fmt.Sprintf("%d", GetRejectionVoteTotal(evt.ID)) }}
+			{{ rejectionTarget := fmt.Sprintf("%d", GetRejectionTarget(evt)) }}
 			<div class="bg-white dark:bg-stone-800 rounded-lg p-4 border border-stone-200 dark:border-stone-700 shadow-sm">
-				<div class="mb-2">
+				<div class="mb-2 flex gap-3">
+					<input type="checkbox" name="selectedEventId" value={ evt.ID.Hex() } x-bind:checked="all" class="mt-1 rounded border-stone-300"/>
+					<div class="flex-1">
 					<div class="flex items-center gap-2 mb-1">
 						<span class="text-xs text-stone-500 dark:text-stone-400">from:</span>
 						<nostr-name class="text-sm font-mono" pubkey={ evt.PubKey.Hex() }></nostr-name>
@@ -135,33 +147,24 @@ templ pendingEventsSection(target string) {
 							<span class="text-xs text-stone-500 dark:text-stone-400">points:</span>
 							<span class="text-sm">{ points } / { target }</span>
 						</div>
+						<div class="flex items-center gap-2">
+							<span class="text-xs text-stone-500 dark:text-stone-400">rejection:</span>
+							<span class="text-sm">{ rejectionPoints } / { rejectionTarget }</span>
+						</div>
+					</div>
 					</div>
 				</div>
 				<div class="mb-3 p-3 bg-stone-50 dark:bg-stone-900 rounded text-sm break-words max-h-32 overflow-y-auto">
 					{ evt.Content }
 				</div>
 				<div class="flex gap-2">
-					<form method="POST" action={ templ.SafeURL("/" + global.Settings.Moderated.HTTPBasePath + "/approve/" + evt.ID.Hex()) }>
-						<button
-							type="submit"
-							class="px-3 py-1 rounded bg-green-500 hover:bg-green-600 text-white text-sm font-medium"
-						>
-							vote approve
-						</button>
-					</form>
-					<form method="POST" action={ templ.SafeURL("/" + global.Settings.Moderated.HTTPBasePath + "/reject/" + evt.ID.Hex()) }>
-						<button
-							type="submit"
-							class="px-3 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-sm font-medium"
-						>
-							reject
-						</button>
-					</form>
+					<button type="submit" name="eventId" value={ evt.ID.Hex() } formaction={ templ.SafeURL("/" + global.Settings.Moderated.HTTPBasePath + "/approve/" + evt.ID.Hex()) } class="px-3 py-1 rounded bg-green-500 hover:bg-green-600 text-white text-sm font-medium">vote approve</button>
+					<button type="submit" name="eventId" value={ evt.ID.Hex() } formaction={ templ.SafeURL("/" + global.Settings.Moderated.HTTPBasePath + "/reject/" + evt.ID.Hex()) } class="px-3 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-sm font-medium">vote reject</button>
 				</div>
 			</div>
 		}
 		if !hasAny {
 			<p class="text-stone-500 dark:text-stone-400 italic">no events pending moderation</p>
 		}
-	</div>
+	</form>
 }

@@ -64,7 +64,27 @@ func approveEvent(approver nostr.PubKey, id nostr.ID) error {
 }
 
 func rejectEvent(rejector nostr.PubKey, id nostr.ID) error {
-	// delete from queue
+	var evt nostr.Event
+	found := false
+	for e := range global.IL.ModerationQueue.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+		evt = e
+		found = true
+		break
+	}
+	if !found {
+		return fmt.Errorf("event not found in queue")
+	}
+
+	reached, err := rejectionVote(rejector, evt)
+	if err != nil {
+		return err
+	}
+	if !reached {
+		log.Info().Str("id", id.Hex()).Str("voter", rejector.Hex()).Int("points", GetRejectionVoteTotal(id)).
+			Msg("rejection vote cast, not yet enough to reject")
+		return nil
+	}
+
 	if err := global.IL.ModerationQueue.DeleteEvent(id); err != nil {
 		return err
 	}
@@ -120,6 +140,40 @@ func rejectHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, global.Settings.Moderated.GetPageURL(), 302)
 }
 
+func approveEventsHandler(w http.ResponseWriter, r *http.Request) {
+	moderateEventsHandler(w, r, approveEvent)
+}
+
+func rejectEventsHandler(w http.ResponseWriter, r *http.Request) {
+	moderateEventsHandler(w, r, rejectEvent)
+}
+
+func moderateEventsHandler(w http.ResponseWriter, r *http.Request, moderate func(nostr.PubKey, nostr.ID) error) {
+	loggedUser, _ := global.GetLoggedUser(r)
+	if !pyramid.IsMember(loggedUser) {
+		http.Error(w, "unauthorized: must be a member", 403)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "invalid event ids", 400)
+		return
+	}
+	for _, rawID := range r.Form["selectedEventId"] {
+		id, err := nostr.IDFromHex(rawID)
+		if err != nil {
+			http.Error(w, "invalid event id", 400)
+			return
+		}
+		if err := moderate(loggedUser, id); err != nil && err != errAlreadyVoted {
+			http.Error(w, "failed to moderate event: "+err.Error(), 500)
+			return
+		}
+	}
+
+	http.Redirect(w, r, global.Settings.Moderated.GetPageURL(), 302)
+}
+
 func listEventsNeedingModerationHandler(ctx context.Context) ([]nip86.IDReason, error) {
 	author, ok := khatru.GetAuthed(ctx)
 	if !ok {
@@ -156,6 +210,17 @@ func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
 		return fmt.Errorf("not authenticated")
 	}
 
+	// root users can remove events that were already approved
+	if pyramid.IsRoot(caller) {
+		for range global.IL.Moderated.QueryEvents(nostr.Filter{IDs: []nostr.ID{id}}, 1) {
+			if err := global.IL.Moderated.DeleteEvent(id); err != nil {
+				return err
+			}
+			log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("approved event removed by root")
+			return nil
+		}
+	}
+
 	// allow if caller is a member (includes root users)
 	if pyramid.IsMember(caller) {
 		log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("moderated banevent called by member")
@@ -172,6 +237,13 @@ func banEventHandler(ctx context.Context, id nostr.ID, reason string) error {
 			return fmt.Errorf("must be a member or the event author to ban an event")
 		}
 		log.Info().Str("caller", caller.Hex()).Str("id", id.Hex()).Str("reason", reason).Msg("moderated banevent called by author")
+
+		// authors can always retract their own pending events, no vote needed
+		if err := global.IL.ModerationQueue.DeleteEvent(id); err != nil {
+			return err
+		}
+		deleteVotes(id)
+		return nil
 	}
 
 	return rejectEvent(caller, id)

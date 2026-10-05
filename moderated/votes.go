@@ -2,7 +2,7 @@ package moderated
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"strconv"
 	"strings"
 
@@ -12,6 +12,10 @@ import (
 )
 
 const approvalTarget = 100
+
+const rejectionTarget = 100
+
+var errAlreadyVoted = errors.New("already voted")
 
 func GetApprovalTarget() int {
 	return approvalTarget
@@ -23,12 +27,16 @@ func votesKey(id nostr.ID) []byte {
 	return []byte("moderated:votes:" + id.Hex())
 }
 
-func loadVotes(id nostr.ID) voteSet {
+func rejectionVotesKey(id nostr.ID) []byte {
+	return []byte("moderated:rejection-votes:" + id.Hex())
+}
+
+func loadVotes(key []byte) voteSet {
 	votes := make(voteSet, 1)
 	if global.Nostr == nil || global.Nostr.KVStore == nil {
 		return votes
 	}
-	data, err := global.Nostr.KVStore.Get(votesKey(id))
+	data, err := global.Nostr.KVStore.Get(key)
 	if err != nil || data == nil {
 		return votes
 	}
@@ -36,16 +44,17 @@ func loadVotes(id nostr.ID) voteSet {
 	return votes
 }
 
-func saveVotes(id nostr.ID, votes voteSet) {
+func saveVotes(key []byte, votes voteSet) {
 	data, err := json.Marshal(votes)
 	if err != nil {
 		return
 	}
-	global.Nostr.KVStore.Set(votesKey(id), data)
+	global.Nostr.KVStore.Set(key, data)
 }
 
 func deleteVotes(id nostr.ID) {
 	global.Nostr.KVStore.Delete(votesKey(id))
+	global.Nostr.KVStore.Delete(rejectionVotesKey(id))
 }
 
 func (votes voteSet) total() int {
@@ -100,18 +109,37 @@ func GetVoteWorth(approver nostr.PubKey) int {
 }
 
 func GetVoteTotal(id nostr.ID) int {
-	return loadVotes(id).total()
+	return loadVotes(votesKey(id)).total()
 }
 
 func vote(approver nostr.PubKey, id nostr.ID) (bool, error) {
-	votes := loadVotes(id)
+	return voteWithTarget(approver, votesKey(id), approvalTarget)
+}
 
-	if _, ok := votes[approver]; ok {
-		return votes.total() >= approvalTarget, fmt.Errorf("already voted")
+func rejectionVote(rejector nostr.PubKey, evt nostr.Event) (bool, error) {
+	days := int((nostr.Now() - evt.CreatedAt) / (24 * 60 * 60))
+	target := rejectionTarget - days
+	return voteWithTarget(rejector, rejectionVotesKey(evt.ID), target)
+}
+
+func GetRejectionVoteTotal(id nostr.ID) int {
+	return loadVotes(rejectionVotesKey(id)).total()
+}
+
+func GetRejectionTarget(evt nostr.Event) int {
+	days := int((nostr.Now() - evt.CreatedAt) / (24 * 60 * 60))
+	return rejectionTarget - days
+}
+
+func voteWithTarget(voter nostr.PubKey, key []byte, target int) (bool, error) {
+	votes := loadVotes(key)
+
+	if _, ok := votes[voter]; ok {
+		return votes.total() >= target, errAlreadyVoted
 	}
 
-	votes[approver] = GetVoteWorth(approver)
-	saveVotes(id, votes)
+	votes[voter] = GetVoteWorth(voter)
+	saveVotes(key, votes)
 
-	return votes.total() >= approvalTarget, nil
+	return votes.total() >= target, nil
 }

@@ -3,6 +3,7 @@ package moderated
 import (
 	"context"
 	"fmt"
+	"iter"
 	"net/http"
 	"time"
 
@@ -19,10 +20,14 @@ import (
 var (
 	log   = global.Log.With().Str("relay", "moderated").Logger()
 	Relay *khatru.Relay
+	// PendingRelay exposes events waiting for moderation without exposing them
+	// through the public moderated relay.
+	PendingRelay *khatru.Relay
 )
 
 func Init() {
 	Relay = global.NewRelay()
+	PendingRelay = global.NewRelay()
 
 	if global.Settings.Moderated.Enabled {
 		setupEnabled()
@@ -33,6 +38,7 @@ func Init() {
 
 func setupDisabled() {
 	global.CleanupRelay(Relay)
+	global.CleanupRelay(PendingRelay)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/"+global.Settings.Moderated.HTTPBasePath+"/", func(w http.ResponseWriter, r *http.Request) {
@@ -69,8 +75,33 @@ func setupEnabled() {
 	// Cache pinned event at startup
 	global.CachePinnedEvent(global.RelayModerated)
 
-	// use custom QueryStored with pinned event support
-	Relay.QueryStored = global.QueryStoredWithPinned(global.RelayModerated)
+	// Keep pending events out of normal moderated queries, but let authenticated
+	// members retrieve an event by ID after listing it through NIP-86.
+	moderatedQuery := global.QueryStoredWithPinned(global.RelayModerated)
+	Relay.QueryStored = func(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
+		if len(filter.IDs) == 0 || !hasMemberAuth(ctx) {
+			return moderatedQuery(ctx, filter)
+		}
+
+		return func(yield func(nostr.Event) bool) {
+			seen := make(map[nostr.ID]struct{}, len(filter.IDs))
+			for evt := range moderatedQuery(ctx, filter) {
+				seen[evt.ID] = struct{}{}
+				if !yield(evt) {
+					return
+				}
+			}
+
+			for evt := range global.IL.ModerationQueue.QueryEvents(filter, global.Settings.Limits.MaxQueryLimit) {
+				if _, ok := seen[evt.ID]; ok {
+					continue
+				}
+				if !yield(evt) {
+					return
+				}
+			}
+		}
+	}
 	Relay.Count = func(ctx context.Context, filter nostr.Filter) (uint32, error) {
 		return global.IL.Moderated.CountEvents(filter)
 	}
@@ -123,11 +154,70 @@ func setupEnabled() {
 	}
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST /"+global.Settings.Moderated.HTTPBasePath+"/approve", approveEventsHandler)
 	mux.HandleFunc("POST /"+global.Settings.Moderated.HTTPBasePath+"/approve/{eventId}", approveHandler)
+	mux.HandleFunc("POST /"+global.Settings.Moderated.HTTPBasePath+"/reject", rejectEventsHandler)
 	mux.HandleFunc("POST /"+global.Settings.Moderated.HTTPBasePath+"/reject/{eventId}", rejectHandler)
 	mux.HandleFunc("POST /"+global.Settings.Moderated.HTTPBasePath+"/disable", disableHandler)
 	mux.HandleFunc("/"+global.Settings.Moderated.HTTPBasePath+"/", moderatedPageHandler)
 	Relay.SetRouter(mux)
+
+	setupPendingRelay()
+}
+
+func hasMemberAuth(ctx context.Context) bool {
+	for _, author := range khatru.GetAllAuthed(ctx) {
+		if pyramid.IsMember(author) {
+			return true
+		}
+	}
+	return false
+}
+
+func setupPendingRelay() {
+	PendingRelay.ServiceURL = global.Settings.Moderated.GetServiceURL() + "/pending"
+
+	pk := global.Settings.RelayInternalSecretKey.Public()
+	PendingRelay.Info.Self = &pk
+	PendingRelay.Info.PubKey = &pk
+	PendingRelay.OverwriteRelayInformation = func(ctx context.Context, r *http.Request, info nip11.RelayInformationDocument) nip11.RelayInformationDocument {
+		info.Name = global.Settings.Moderated.GetName() + " pending"
+		info.Description = "events pending moderation"
+		info.Contact = global.Settings.RelayContact
+		info.Software = "https://github.com/fiatjaf/pyramid"
+		return info
+	}
+
+	PendingRelay.QueryStored = func(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event] {
+		return global.IL.ModerationQueue.QueryEvents(filter, global.Settings.Limits.MaxQueryLimit)
+	}
+	PendingRelay.Count = func(ctx context.Context, filter nostr.Filter) (uint32, error) {
+		return global.IL.ModerationQueue.CountEvents(filter)
+	}
+	PendingRelay.OnRequest = policies.SeqRequest(
+		policies.NoComplexFilters,
+		policies.NoSearchQueries,
+		policies.FilterIPRateLimiter(20, time.Minute, 100),
+		global.RejectTooManyOpenSubscriptions,
+		func(ctx context.Context, filter nostr.Filter) (bool, string) {
+			if len(khatru.GetAllAuthed(ctx)) == 0 {
+				return true, "auth-required: only members can see pending events"
+			}
+			if hasMemberAuth(ctx) {
+				return false, ""
+			}
+			return true, "restricted: you're not a relay member"
+		},
+	)
+	PendingRelay.OnEvent = func(ctx context.Context, evt nostr.Event) (bool, string) {
+		return true, "restricted: read-only relay"
+	}
+	PendingRelay.PreventBroadcast = func(ws *khatru.WebSocket, filter nostr.Filter, event nostr.Event) bool {
+		return true
+	}
+	PendingRelay.ManagementAPI.ListEventsNeedingModeration = listEventsNeedingModerationHandler
+	PendingRelay.ManagementAPI.AllowEvent = allowEventHandler
+	PendingRelay.ManagementAPI.BanEvent = banEventHandler
 }
 
 func enableHandler(w http.ResponseWriter, r *http.Request) {
