@@ -59,10 +59,11 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
     - also accepts zaps issued by relay members even though these are signed by zapper services
   - _internal_: a relay private to members of the hierarchy, both for reading and for writing
   - _favorites_: notes from external users manually curated by relay members through republishing chosen events
-  - _inbox_: a safe inbox with protection against hellthreads and spam, with
-    - filtering out anyone outside the extended (2-level) social graph of relay members
+  - _inbox_: a safe inbox with protection against hellthreads and spam, with:
+    - customizable filtering of anyone outside the extended social graph of relay members
     - custom bans invalidate specific users and their social graph
-    - optional proof-of-work requirements
+    - optional AUTH requirements for DMs
+    - choose which event kinds are accepted
   - _popular_: notes from external users automatically curated by relay members based on reactions and interactions
   - _uppermost_: only the notes most loved by a higher percentage of relay members
   - _moderated_: a multi-use relay open to the public, but for which pyramid members have to approve each post manually
@@ -70,6 +71,7 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
   - _bookmarks_: a per-user bookmarking relay
     - each member gets a private database, only readable by themselves after NIP-42 auth
     - a read-only `/all` subpath aggregates public bookmarks from all members, configurable as public, members-only or disabled
+  - _network_: accepts all events published by anyone within the unified web-of-trust
 
 <br clear="all">
 
@@ -156,6 +158,11 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
 - **scheduled notes**
   - accept future-dated events on the main relay, hold them in a separate store and publish automatically when due
   - follows this [half-standard](https://nostrhub.io/naddr1qvzqqqrcvypzqwlsccluhy6xxsr6l9a9uhhxf75g85g8a709tprjcn4e42h053vaqqjrxcenve3kxwfh95ur2cny956r2wpk94snwetr95cnxdnzvvmxzwrzxqmrqexy0d2)
+
+- **WoT**
+  - a searchable unified social graph service used to filter multiple subrelays
+  - customize the number of member follows an external user must have in order to accept replies and posts
+  - block and specific pubkeys, as needed
 
 ## community
 
