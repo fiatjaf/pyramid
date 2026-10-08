@@ -27,7 +27,7 @@ templ popularPage(loggedUser nostr.PubKey) {
 				<h2 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">how the popular relay works:</h2>
 				<ul class="list-disc list-inside space-y-1 text-sm">
 					<li>this is a read-only relay, nothing can be published here directly</li>
-					<li>relay members that have the main relay in their outbox list will naturally send replies, reactions and zaps there, we use that data to compute what notes on the broader Nostr ecosystem are poppular with the members of this relay</li>
+					<li>relay members that have the main relay in their outbox list will naturally send replies, reactions and zaps there, we use that data to compute what notes on the broader Nostr ecosystem are popular with the members of this relay</li>
 					<li>notes that reach the reaction threshold (from members' reactions, replies and zaps) are saved and become visible</li>
 					<li>once a note gets even more traction it is promoted to the uppermost relay and removed from this</li>
 				</ul>
