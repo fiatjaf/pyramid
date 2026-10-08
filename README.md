@@ -162,7 +162,7 @@ https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
 - **WoT**
   - a searchable unified social graph service used to filter multiple subrelays
   - customize the number of member follows an external user must have in order to accept replies and posts
-  - block and specific pubkeys, as needed
+  - block and unblock specific pubkeys, as needed
 
 ## community
 
