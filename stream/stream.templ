@@ -23,7 +23,9 @@ func pageHandler(w http.ResponseWriter, r *http.Request) {
 
 	var streamKey string
 	if pyramid.IsMember(loggedUser) {
-		userStreamKey := hmac.New(sha256.New, []byte(global.Settings.Stream.Salt)).Sum(loggedUser[:])
+		mac := hmac.New(sha256.New, []byte(global.Settings.Stream.Salt))
+		mac.Write(loggedUser[:])
+		userStreamKey := mac.Sum(nil)
 		streamKey = base64.RawURLEncoding.EncodeToString(userStreamKey[0:23])
 
 		err := configure.RoomKeys.SetCustomKey(loggedUser.Hex(), streamKey)

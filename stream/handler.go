@@ -1,7 +1,6 @@
 package stream
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -18,9 +17,9 @@ var (
 	L       = global.Log.With().Str("module", "stream").Logger()
 	Handler = &MuxHandler{}
 
-	hlsServer     *hls.Server
-	rtmpStream    *rtmp.RtmpStream
-	rtmpCtxCancel context.CancelFunc
+	hlsServer    *hls.Server
+	rtmpStream   *rtmp.RtmpStream
+	rtmpListener net.Listener
 )
 
 func Init(relay *khatru.Relay) {
@@ -42,8 +41,10 @@ func setupDisabled() {
 	Handler.mux = http.NewServeMux()
 	Handler.mux.HandleFunc("POST /stream/enable", enableHandler)
 	Handler.mux.HandleFunc("/stream/", pageHandler)
-	if rtmpCtxCancel != nil {
-		rtmpCtxCancel()
+	// close synchronously so a subsequent setupEnabled() can bind the port again
+	if rtmpListener != nil {
+		rtmpListener.Close()
+		rtmpListener = nil
 	}
 	L.Debug().Msg("stream service disabled")
 }
@@ -53,11 +54,9 @@ func setupEnabled() {
 	hlsServer.BasePath = "/stream"
 	rtmpStream = rtmp.NewRtmpStream()
 
-	rtmpCtx, cancel := context.WithCancel(context.Background())
-	if err := startRtmp(rtmpCtx, rtmpStream, hlsServer); err != nil {
+	if err := startRtmp(rtmpStream, hlsServer); err != nil {
 		L.Warn().Err(err).Msg("failed to start rtmp")
 	}
-	rtmpCtxCancel = cancel
 
 	Handler.mux = http.NewServeMux()
 	Handler.mux.HandleFunc("POST /stream/disable", disableHandler)
@@ -114,19 +113,14 @@ func (mh *MuxHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mh.mux.ServeHTTP(w, r)
 }
 
-func startRtmp(ctx context.Context, stream *rtmp.RtmpStream, hlsServer *hls.Server) error {
-	var rtmpListen net.Listener
+func startRtmp(stream *rtmp.RtmpStream, hlsServer *hls.Server) error {
 	rtmpListen, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", global.Settings.Stream.Port))
 	if err != nil {
 		return err
 	}
+	rtmpListener = rtmpListen
 
 	rtmpServer := rtmp.NewRtmpServer(stream, hlsServer)
-
-	go func() {
-		<-ctx.Done()
-		rtmpListen.Close()
-	}()
 
 	go func() {
 		defer func() {
