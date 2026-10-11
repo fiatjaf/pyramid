@@ -57,6 +57,14 @@ func Init() {
 		return
 	}
 
+	// an empty base secret would make every url mac forgeable
+	if len(baseSecret) == 0 {
+		ensureBaseSecret()
+		if err := global.SaveUserSettings(); err != nil {
+			log.Error().Err(err).Msg("failed to save imgproxy base secret")
+		}
+	}
+
 	setupEnabled()
 	go startImgproxy()
 }
@@ -93,7 +101,9 @@ func pageHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		spl := strings.Split(r.URL.Path, "/")
+		// use the escaped path: the source url inside it is percent-encoded and
+		// decoding it here would turn its "?" into a query string when forwarding
+		spl := strings.Split(r.URL.EscapedPath(), "/")
 
 		// decode special token from url
 		token, err := base64.RawURLEncoding.DecodeString(spl[2])
@@ -156,20 +166,24 @@ func enableHandler(w http.ResponseWriter, r *http.Request) {
 
 	state.err = ""
 	global.Settings.Imgproxy.Enabled = true
+	ensureBaseSecret()
 	if err := global.SaveUserSettings(); err != nil {
 		http.Error(w, "failed to save settings", http.StatusInternalServerError)
 		return
 	}
 
-	if global.Settings.Imgproxy.BaseSecret == "" {
-		baseSecret = make([]byte, 16)
-		rand.Read(baseSecret)
-		global.Settings.Imgproxy.BaseSecret = hex.EncodeToString(baseSecret)
-	}
-
 	setupEnabled()
 	go startImgproxy()
 	http.Redirect(w, r, "/imgproxy/", http.StatusSeeOther)
+}
+
+func ensureBaseSecret() {
+	if len(baseSecret) > 0 {
+		return
+	}
+	baseSecret = make([]byte, 16)
+	rand.Read(baseSecret)
+	global.Settings.Imgproxy.BaseSecret = hex.EncodeToString(baseSecret)
 }
 
 func disableHandler(w http.ResponseWriter, r *http.Request) {
@@ -355,6 +369,10 @@ func secretHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if evt.Kind != 27235 {
 		http.Error(w, "invalid kind", http.StatusUnauthorized)
+		return
+	}
+	if now := nostr.Now(); evt.CreatedAt < now-60 || evt.CreatedAt > now+60 {
+		http.Error(w, "event timestamp out of range", http.StatusUnauthorized)
 		return
 	}
 	if !evt.VerifySignature() {
