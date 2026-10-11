@@ -153,7 +153,7 @@ func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, addr
 		if modClosed != nil {
 			return nil, fmt.Errorf("moderation events fetch failed with reason: %s", modClosed.Reason)
 		}
-		return nil, fmt.Errorf("no moderation events found, can't import", groupID, relay)
+		return nil, fmt.Errorf("no moderation events found for group %q at %s, can't import", groupID, relay)
 	}
 
 	// for "keep" mode, refuse to import groups whose admins carry roles this
@@ -287,7 +287,7 @@ func (s *GroupsState) ImportGroup(ctx context.Context, caller nostr.PubKey, addr
 		Tags: nostr.TagMap{"h": []string{groupID}},
 	})
 	if otherClosed != nil {
-		return nil, fmt.Errorf("actual group events fetch failed with reason: %s", modClosed.Reason)
+		return nil, fmt.Errorf("actual group events fetch failed with reason: %s", otherClosed.Reason)
 	}
 	otherSaved := 0
 	for _, evt := range otherEvts {
