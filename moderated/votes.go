@@ -2,7 +2,6 @@ package moderated
 
 import (
 	"encoding/json"
-	"errors"
 	"strconv"
 	"strings"
 
@@ -14,8 +13,6 @@ import (
 const approvalTarget = 100
 
 const rejectionTarget = 100
-
-var errAlreadyVoted = errors.New("already voted")
 
 func GetApprovalTarget() int {
 	return approvalTarget
@@ -112,14 +109,12 @@ func GetVoteTotal(id nostr.ID) int {
 	return loadVotes(votesKey(id)).total()
 }
 
-func vote(approver nostr.PubKey, id nostr.ID) (bool, error) {
+func vote(approver nostr.PubKey, id nostr.ID) bool {
 	return voteWithTarget(approver, votesKey(id), approvalTarget)
 }
 
-func rejectionVote(rejector nostr.PubKey, evt nostr.Event) (bool, error) {
-	days := int((nostr.Now() - evt.CreatedAt) / (24 * 60 * 60))
-	target := rejectionTarget - days
-	return voteWithTarget(rejector, rejectionVotesKey(evt.ID), target)
+func rejectionVote(rejector nostr.PubKey, evt nostr.Event) bool {
+	return voteWithTarget(rejector, rejectionVotesKey(evt.ID), GetRejectionTarget(evt))
 }
 
 func GetRejectionVoteTotal(id nostr.ID) int {
@@ -131,15 +126,15 @@ func GetRejectionTarget(evt nostr.Event) int {
 	return rejectionTarget - days
 }
 
-func voteWithTarget(voter nostr.PubKey, key []byte, target int) (bool, error) {
+// voteWithTarget records the voter's vote (if they haven't voted yet) and
+// reports whether the total has reached the target
+func voteWithTarget(voter nostr.PubKey, key []byte, target int) bool {
 	votes := loadVotes(key)
 
-	if _, ok := votes[voter]; ok {
-		return votes.total() >= target, errAlreadyVoted
+	if _, ok := votes[voter]; !ok {
+		votes[voter] = GetVoteWorth(voter)
+		saveVotes(key, votes)
 	}
 
-	votes[voter] = GetVoteWorth(voter)
-	saveVotes(key, votes)
-
-	return votes.total() >= target, nil
+	return votes.total() >= target
 }

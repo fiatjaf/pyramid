@@ -26,11 +26,7 @@ func approveEvent(approver nostr.PubKey, id nostr.ID) error {
 	}
 
 	// cast (or fetch) a vote for this event
-	reached, err := vote(approver, id)
-	if err != nil {
-		return err
-	}
-	if !reached {
+	if !vote(approver, id) {
 		log.Info().Str("id", id.Hex()).Str("voter", approver.Hex()).Int("points", GetVoteTotal(id)).
 			Msg("approval vote cast, not yet enough to approve")
 		return nil
@@ -75,11 +71,9 @@ func rejectEvent(rejector nostr.PubKey, id nostr.ID) error {
 		return fmt.Errorf("event not found in queue")
 	}
 
-	reached, err := rejectionVote(rejector, evt)
-	if err != nil {
-		return err
-	}
-	if !reached {
+	// the rejection target decays as the event ages, so it may be reached
+	// even if this vote doesn't add any points (e.g. a repeated vote)
+	if !rejectionVote(rejector, evt) {
 		log.Info().Str("id", id.Hex()).Str("voter", rejector.Hex()).Int("points", GetRejectionVoteTotal(id)).
 			Msg("rejection vote cast, not yet enough to reject")
 		return nil
@@ -165,7 +159,7 @@ func moderateEventsHandler(w http.ResponseWriter, r *http.Request, moderate func
 			http.Error(w, "invalid event id", 400)
 			return
 		}
-		if err := moderate(loggedUser, id); err != nil && err != errAlreadyVoted {
+		if err := moderate(loggedUser, id); err != nil {
 			http.Error(w, "failed to moderate event: "+err.Error(), 500)
 			return
 		}
