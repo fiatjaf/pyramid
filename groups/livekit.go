@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"fiatjaf.com/nostr"
 	"github.com/livekit/protocol/auth"
@@ -20,7 +21,7 @@ import (
 )
 
 var (
-	livekitHTTPClient = &http.Client{}
+	livekitHTTPClient = &http.Client{Timeout: 15 * time.Second}
 	livekitRooms      = make(map[string]bool)
 	livekitRoomsMu    sync.RWMutex
 )
@@ -85,6 +86,12 @@ func livekitAuthHandler(w http.ResponseWriter, r *http.Request) {
 
 	if event.Kind != 27235 {
 		http.Error(w, "invalid event kind", 401)
+		return
+	}
+
+	// nip-98: reject stale (or future) events so captured headers can't be replayed
+	if now := nostr.Now(); event.CreatedAt < now-60 || event.CreatedAt > now+60 {
+		http.Error(w, "event timestamp out of range", 401)
 		return
 	}
 

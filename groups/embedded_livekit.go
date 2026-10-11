@@ -163,6 +163,10 @@ turn:
   external_tls: true
 keys:
   '` + apiKey + `': '` + apiSecret + `'
+webhook:
+  api_key: '` + apiKey + `'
+  urls:
+    - '` + global.Settings.HTTPScheme() + global.Settings.Domain + `/groups/livekit/webhook'
 `
 
 	rotator := &lumberjack.Logger{
@@ -308,12 +312,12 @@ func ensureLiveKitBinary(release livekitRelease) error {
 		return err
 	}
 
-	// inspect checksum to see if we have to download a new binary
-	if file, err := os.Open(embeddedLiveKitBinaryPath); err == nil {
-		defer file.Close()
-		hash := sha256.New()
-		if _, err := io.Copy(hash, file); err == nil {
-			if hex.EncodeToString(hash.Sum(nil)) == shasum {
+	// the release digest is of the archive, not of the extracted binary, so we
+	// keep the digest of the archive we extracted from in a sidecar file
+	digestPath := embeddedLiveKitBinaryPath + ".sha256"
+	if shasum != "" {
+		if _, err := os.Stat(embeddedLiveKitBinaryPath); err == nil {
+			if stored, err := os.ReadFile(digestPath); err == nil && strings.TrimSpace(string(stored)) == shasum {
 				// we already have the latest version
 				return nil
 			}
@@ -330,8 +334,28 @@ func ensureLiveKitBinary(release livekitRelease) error {
 		return fmt.Errorf("download livekit binary: github returned %s", resp.Status)
 	}
 
+	archive, err := os.CreateTemp(".", "livekit-archive-*")
+	if err != nil {
+		return fmt.Errorf("create livekit archive temp file: %w", err)
+	}
+	defer func() {
+		archive.Close()
+		os.Remove(archive.Name())
+	}()
+
+	hash := sha256.New()
+	if _, err := io.Copy(io.MultiWriter(archive, hash), resp.Body); err != nil {
+		return fmt.Errorf("download livekit binary: %w", err)
+	}
+	if shasum != "" && hex.EncodeToString(hash.Sum(nil)) != shasum {
+		return fmt.Errorf("download livekit binary: sha256 mismatch")
+	}
+	if _, err := archive.Seek(0, io.SeekStart); err != nil {
+		return fmt.Errorf("read livekit archive: %w", err)
+	}
+
 	// extract
-	gzr, err := gzip.NewReader(resp.Body)
+	gzr, err := gzip.NewReader(archive)
 	if err != nil {
 		return fmt.Errorf("read livekit archive: %w", err)
 	}
@@ -380,6 +404,11 @@ func ensureLiveKitBinary(release livekitRelease) error {
 	}
 	if !found {
 		return fmt.Errorf("embedded livekit binary not found in archive")
+	}
+	if shasum != "" {
+		if err := os.WriteFile(digestPath, []byte(shasum), 0o644); err != nil {
+			log.Warn().Err(err).Msg("failed to store embedded livekit archive digest")
+		}
 	}
 
 	log.Info().Str("version", release.TagName).Msg("downloaded embedded livekit binary")
@@ -456,7 +485,10 @@ type dnsCheckResult struct {
 	serverIP string
 }
 
-var embeddedDNS = &dnsCheckResult{status: "checking"}
+var (
+	embeddedDNS            = &dnsCheckResult{status: "checking"}
+	embeddedDNSCheckerOnce sync.Once
+)
 
 func EmbeddedLiveKitDNSCheck() (status, serverIP string) {
 	embeddedDNS.mu.RLock()
@@ -502,20 +534,23 @@ func checkEmbeddedLiveKitDNS() {
 }
 
 func startEmbeddedLiveKitDNSChecker() {
-	go func() {
-		for {
-			checkEmbeddedLiveKitDNS()
+	// StartEmbeddedLiveKit may run many times (stop/start), but one loop is enough
+	embeddedDNSCheckerOnce.Do(func() { go embeddedLiveKitDNSCheckerLoop() })
+}
 
-			embeddedDNS.mu.RLock()
-			s := embeddedDNS.status
-			embeddedDNS.mu.RUnlock()
+func embeddedLiveKitDNSCheckerLoop() {
+	for {
+		checkEmbeddedLiveKitDNS()
 
-			interval := 5 * time.Minute
-			if s == "ok" {
-				interval = 24 * time.Hour
-			}
+		embeddedDNS.mu.RLock()
+		s := embeddedDNS.status
+		embeddedDNS.mu.RUnlock()
 
-			time.Sleep(interval)
+		interval := 5 * time.Minute
+		if s == "ok" {
+			interval = 24 * time.Hour
 		}
-	}()
+
+		time.Sleep(interval)
+	}
 }
