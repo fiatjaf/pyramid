@@ -72,6 +72,9 @@ func clientDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		for _, relay := range relays.GetAll() {
+			if relay.Relay == nil {
+				continue
+			}
 			client, found = relay.Relay.GetClientSnapshot(r.PathValue("clientId"))
 			if found {
 				relayID = relay.ID

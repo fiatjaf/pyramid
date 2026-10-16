@@ -10,6 +10,7 @@ import (
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/khatru/policies"
 	"github.com/fiatjaf/pyramid/global"
+	"github.com/fiatjaf/pyramid/global/relays"
 	"github.com/fiatjaf/pyramid/pyramid"
 )
 
@@ -20,6 +21,7 @@ var scheduled *khatru.Relay
 func initScheduledRelay() {
 	db := global.IL.Scheduled
 	scheduled = global.NewRelay()
+	relays.ScheduledRelay = scheduled
 	scheduled.ServiceURL = global.Settings.WSScheme() + global.Settings.Domain + "/scheduled"
 
 	scheduled.UseEventstore(db, global.Settings.Limits.MaxQueryLimit)

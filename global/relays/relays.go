@@ -14,7 +14,17 @@ import (
 	"github.com/fiatjaf/pyramid/uppermost"
 )
 
-var MainRelay *khatru.Relay
+var (
+	MainRelay      *khatru.Relay
+	ScheduledRelay *khatru.Relay
+)
+
+// these are not proper relay ids, they are only used to identify these relays in the clients listing
+const (
+	relayModeratedPending global.RelayID = "moderated/pending"
+	relayBookmarksAll     global.RelayID = "bookmarks/all"
+	relayScheduled        global.RelayID = "scheduled"
+)
 
 func GetAll() []struct {
 	ID    global.RelayID
@@ -28,12 +38,15 @@ func GetAll() []struct {
 		{global.RelayInternal, internal.Relay},
 		{global.RelayInbox, inbox.Relay},
 		{global.RelayModerated, moderated.Relay},
+		{relayModeratedPending, moderated.PendingRelay},
 		{global.RelayFavorites, favorites.Relay},
 		{global.RelayBookmarks, bookmarks.Relay},
+		{relayBookmarksAll, bookmarks.AllRelay},
 		{global.RelayPopular, popular.Relay},
 		{global.RelayUppermost, uppermost.Relay},
 		{global.RelayNetwork, network.Relay},
 		{global.RelayPersonal, personal.Relay},
+		{relayScheduled, ScheduledRelay},
 	}
 }
 
@@ -47,10 +60,14 @@ func GetRelay(relayID global.RelayID) *khatru.Relay {
 		return inbox.Relay
 	case global.RelayModerated:
 		return moderated.Relay
+	case relayModeratedPending:
+		return moderated.PendingRelay
 	case global.RelayFavorites:
 		return favorites.Relay
 	case global.RelayBookmarks:
 		return bookmarks.Relay
+	case relayBookmarksAll:
+		return bookmarks.AllRelay
 	case global.RelayPopular:
 		return popular.Relay
 	case global.RelayUppermost:
@@ -59,6 +76,8 @@ func GetRelay(relayID global.RelayID) *khatru.Relay {
 		return network.Relay
 	case global.RelayPersonal:
 		return personal.Relay
+	case relayScheduled:
+		return ScheduledRelay
 	}
 
 	return nil
