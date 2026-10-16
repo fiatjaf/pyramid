@@ -19,32 +19,55 @@ type trackedConnection struct {
 var subscriptionTracker = xsync.NewMapOf[string, trackedConnection]()
 
 type debouncedRejectionLogger struct {
-	mu    sync.Mutex
-	count int
-	timer *time.Timer
+	mu               sync.Mutex
+	count            int
+	timer            *time.Timer
+	client           string
+	path             string
+	currentOpen      int
+	currentTotalCost int
 }
 
 var rejectionDebouncer = xsync.NewMapOf[string, *debouncedRejectionLogger]()
 
-func logRejectionDebounced(ip, client string) {
+func logRejectionDebounced(ip, client, path string, currentOpen, currentTotalCost int) {
 	rejectionDebouncer.Compute(ip, func(d *debouncedRejectionLogger, loaded bool) (*debouncedRejectionLogger, bool) {
 		if !loaded {
 			d = &debouncedRejectionLogger{}
 		}
 		d.mu.Lock()
 		d.count++
+		// keep the details of the latest rejection
+		d.client = client
+		d.path = path
+		d.currentOpen = currentOpen
+		d.currentTotalCost = currentTotalCost
 		if d.timer == nil {
 			d.timer = time.AfterFunc(5*time.Second, func() {
 				d.mu.Lock()
-				c := d.count
+				count := d.count
+				client := d.client
+				path := d.path
+				currentOpen := d.currentOpen
+				currentTotalCost := d.currentTotalCost
 				d.count = 0
 				d.timer = nil
 				d.mu.Unlock()
-				Log.Info().
+				logEntry := Log.Info().
 					Str("ip", ip).
 					Str("client", client).
-					Int("count", c).
-					Msg("subscriptions rejected")
+					Str("path", path).
+					Int("rejections", count)
+
+				if currentOpen > 0 {
+					logEntry = logEntry.Int("open", currentOpen)
+				}
+				if currentTotalCost > 0 {
+					logEntry = logEntry.Int("total-cost", currentTotalCost)
+				}
+
+				logEntry.
+					Msg("rejected subscriptions")
 			})
 		}
 		d.mu.Unlock()
@@ -103,23 +126,33 @@ func RejectTooManyOpenSubscriptions(ctx context.Context, _ nostr.Filter) (bool, 
 		return false, ""
 	}
 
-	var client string
+	v, _ := subscriptionTracker.Load(ip)
+
+	var currentOpen int
+	var currentTotalCost int
+	if v.subscriptions >= Settings.Limits.MaxSubscriptionsOpen {
+		currentOpen = v.subscriptions
+	} else if v.cost >= Settings.Limits.MaxTotalCostOpen {
+		currentTotalCost = v.cost
+	} else {
+		return false, ""
+	}
+
+	var client, path string
 	if conn := khatru.GetConnection(ctx); conn != nil && conn.Request != nil {
 		client = conn.Request.Header.Get("Origin")
 		if client == "" {
 			client = conn.Request.Header.Get("user-agent")
 		}
+		path = conn.Request.Host + conn.Request.URL.Path
 	}
 
-	if v, _ := subscriptionTracker.Load(ip); v.subscriptions >= Settings.Limits.MaxSubscriptionsOpen {
-		logRejectionDebounced(ip, client)
+	logRejectionDebounced(ip, client, path, currentOpen, currentTotalCost)
+
+	if v.subscriptions >= Settings.Limits.MaxSubscriptionsOpen {
 		return true, fmt.Sprintf("already %d subscriptions from this IP", v.subscriptions)
-	} else if v.cost >= Settings.Limits.MaxTotalCostOpen {
-		logRejectionDebounced(ip, client)
-		return true, fmt.Sprintf("there are subscriptions from this IP with a total filter cost of %d", v.cost)
 	}
-
-	return false, ""
+	return true, fmt.Sprintf("there are subscriptions from this IP with a total filter cost of %d", v.cost)
 }
 
 //go:inline
