@@ -26,8 +26,8 @@ var (
 )
 
 func Init() {
-	Relay = global.NewRelay()
-	AllRelay = global.NewRelay()
+	Relay = global.ReplaceRelay(Relay)
+	AllRelay = global.ReplaceRelay(AllRelay)
 
 	if err := initDatabases(); err != nil {
 		log.Fatal().Err(err).Msg("failed to initialize bookmarks databases")

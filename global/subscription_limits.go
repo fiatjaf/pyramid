@@ -75,6 +75,38 @@ func logRejectionDebounced(ip, client, path string, currentOpen, currentTotalCos
 	})
 }
 
+var (
+	retiredRelaysMu sync.Mutex
+	retiredRelays   []*khatru.Relay
+)
+
+// ReplaceRelay returns a fresh relay to replace old, which is marked as retired so its
+// clients can be disconnected later with DisconnectRetiredRelays.
+func ReplaceRelay(old *khatru.Relay) *khatru.Relay {
+	if old != nil {
+		retiredRelaysMu.Lock()
+		retiredRelays = append(retiredRelays, old)
+		retiredRelaysMu.Unlock()
+	}
+	return NewRelay()
+}
+
+// DisconnectRetiredRelays closes all connections still open on relays that were replaced
+// with ReplaceRelay, otherwise they would linger on (holding subscriptions that count
+// towards the per-IP limits) without being reachable from anywhere.
+// this must be called only after the http routes are pointing to the new relays,
+// otherwise clients may reconnect to the retired ones.
+func DisconnectRetiredRelays() {
+	retiredRelaysMu.Lock()
+	retired := retiredRelays
+	retiredRelays = nil
+	retiredRelaysMu.Unlock()
+
+	for _, relay := range retired {
+		relay.DisconnectAll()
+	}
+}
+
 func NewRelay() *khatru.Relay {
 	relay := khatru.NewRelay()
 

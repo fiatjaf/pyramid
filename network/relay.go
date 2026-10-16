@@ -22,7 +22,7 @@ var (
 )
 
 func Init() {
-	Relay = global.NewRelay()
+	Relay = global.ReplaceRelay(Relay)
 
 	if global.Settings.Network.Enabled {
 		// relay enabled

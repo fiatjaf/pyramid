@@ -635,6 +635,10 @@ func run(ctx context.Context) error {
 		mainHandler.ServeHTTP(w, r)
 	}))
 
+	// the routes above now point to the current relays, so it's safe to kick out
+	// clients still connected to relays that were replaced in the meantime
+	global.DisconnectRetiredRelays()
+
 	g, ctx := errgroup.WithContext(ctx)
 
 	// copy here as we'll modify it

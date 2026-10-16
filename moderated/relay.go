@@ -26,8 +26,8 @@ var (
 )
 
 func Init() {
-	Relay = global.NewRelay()
-	PendingRelay = global.NewRelay()
+	Relay = global.ReplaceRelay(Relay)
+	PendingRelay = global.ReplaceRelay(PendingRelay)
 
 	if global.Settings.Moderated.Enabled {
 		setupEnabled()

@@ -21,7 +21,7 @@ var (
 )
 
 func Init() {
-	Relay = global.NewRelay()
+	Relay = global.ReplaceRelay(Relay)
 
 	if global.Settings.Favorites.Enabled {
 		// relay enabled

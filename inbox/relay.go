@@ -24,7 +24,7 @@ var (
 )
 
 func Init() {
-	Relay = global.NewRelay()
+	Relay = global.ReplaceRelay(Relay)
 
 	slices.Sort(supportedKindsDefault)
 	initAllowedKinds()

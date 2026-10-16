@@ -348,6 +348,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 				case "public", "members", "disabled":
 					global.Settings.Bookmarks.AllAccess = v[0]
 					bookmarks.Init()
+					go restartSoon()
 				default:
 					http.Error(w, "invalid bookmarks_all_access: must be public, members, or disabled", 400)
 					return
