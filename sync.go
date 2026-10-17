@@ -5,7 +5,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"html"
+	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"fiatjaf.com/nostr"
@@ -97,28 +101,37 @@ func streamingSync(
 				batch := make([]nostr.ID, 0, 50)
 
 				seen := make(map[nostr.ID]struct{})
-				for item := range dir.Items {
-					if _, ok := seen[item]; ok {
-						continue
-					}
+			loop:
+				for {
 					select {
-					case progress <- fmt.Sprintf("event %s found on %s", item.Hex(), source):
 					case <-ctx.Done():
 						return
-					}
-					seen[item] = struct{}{}
-
-					batch = append(batch, item)
-					if len(batch) == 50 {
-						for evt := range dir.From.QueryEvents(nostr.Filter{IDs: batch}) {
-							select {
-							case progress <- fmt.Sprintf("publishing %s to %s", evt, target):
-							case <-ctx.Done():
-								return
-							}
-							dir.To.Publish(ctx, evt)
+					case item, ok := <-dir.Items:
+						if !ok {
+							break loop
 						}
-						batch = batch[:0]
+						if _, ok := seen[item]; ok {
+							continue
+						}
+						select {
+						case progress <- fmt.Sprintf("event %s found on %s", item.Hex(), source):
+						case <-ctx.Done():
+							return
+						}
+						seen[item] = struct{}{}
+
+						batch = append(batch, item)
+						if len(batch) == 50 {
+							for evt := range dir.From.QueryEvents(nostr.Filter{IDs: batch}) {
+								select {
+								case progress <- fmt.Sprintf("publishing %s to %s", evt, target):
+								case <-ctx.Done():
+									return
+								}
+								dir.To.Publish(ctx, evt)
+							}
+							batch = batch[:0]
+						}
 					}
 				}
 
@@ -147,13 +160,13 @@ func streamingSync(
 	for {
 		select {
 		case msg := <-progress:
-			fmt.Fprintf(writer, `<tr><td class="px-3 border">%s</td></tr>`, msg)
+			fmt.Fprintf(writer, `<tr><td class="px-3 border">%s</td></tr>`, html.EscapeString(msg))
 			writer.Flush()
 			flusher.Flush()
 
 		case err := <-done:
 			if err != nil {
-				fmt.Fprintf(writer, `<tr><td class="px-3 border text-red-500">sync failed: %s</td></tr>`, err.Error())
+				fmt.Fprintf(writer, `<tr><td class="px-3 border text-red-500">sync failed: %s</td></tr>`, html.EscapeString(err.Error()))
 			} else {
 				fmt.Fprint(writer, `<tr><td class="px-3 border text-emerald-500">sync complete</td></tr>`)
 			}
@@ -181,4 +194,42 @@ func streamingSync(
 			return
 		}
 	}
+}
+
+// isOwnRelayURL tells if the url points to any of the relays served by this pyramid, either
+// under the main domain (or its alternates) or under the custom domains some relays can have.
+func isOwnRelayURL(remoteUrl string) bool {
+	u, err := url.Parse(nostr.NormalizeURL(remoteUrl))
+	if err != nil || u.Host == "" {
+		return true // can't tell, so don't allow it
+	}
+	host := strings.ToLower(u.Hostname())
+
+	domains := append([]string{global.Settings.Domain}, global.Settings.AlternateDomains...)
+	domains = append(domains,
+		global.Settings.Internal.HTTPDomain,
+		global.Settings.Personal.HTTPDomain,
+		global.Settings.Favorites.HTTPDomain,
+		global.Settings.Bookmarks.HTTPDomain,
+		global.Settings.Inbox.HTTPDomain,
+		global.Settings.Popular.HTTPDomain,
+		global.Settings.Uppermost.HTTPDomain,
+		global.Settings.Moderated.HTTPDomain,
+		global.Settings.Network.HTTPDomain,
+	)
+
+	for _, domain := range domains {
+		if domain == "" {
+			continue
+		}
+		// domains may carry a port, ignore it like the http router does
+		if h, _, err := net.SplitHostPort(domain); err == nil {
+			domain = h
+		}
+		if strings.ToLower(strings.TrimSpace(domain)) == host {
+			return true
+		}
+	}
+
+	return false
 }

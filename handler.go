@@ -1141,6 +1141,10 @@ func syncHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	remoteUrl := r.FormValue("remote")
+	if isOwnRelayURL(remoteUrl) {
+		http.Error(w, "can't sync with this relay", http.StatusBadRequest)
+		return
+	}
 	download := r.FormValue("download") == "on"
 	upload := r.FormValue("upload") == "on"
 
