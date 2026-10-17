@@ -357,6 +357,11 @@ func main() {
 			paywall.RecomputeMemberPaywall(ctx, event.PubKey)
 		}
 
+		// replaceable events are archived
+		if event.Kind.IsReplaceable() {
+			archiveEvent(event)
+		}
+
 		// any replaceable event can potentially be referenced by a paywall
 		if event.Kind.IsReplaceable() || event.Kind.IsAddressable() {
 			for by := range paywall.ReferencedBy(event) {

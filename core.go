@@ -12,6 +12,7 @@ import (
 	"unsafe"
 
 	"fiatjaf.com/nostr"
+	"fiatjaf.com/nostr/eventstore"
 	"fiatjaf.com/nostr/eventstore/mmm"
 	"fiatjaf.com/nostr/khatru"
 	"fiatjaf.com/nostr/nip29"
@@ -503,6 +504,11 @@ func queryStored(ctx context.Context, filter nostr.Filter) iter.Seq[nostr.Event]
 		return search.Main.QueryEvents(filter, 40)
 	}
 
+	// past versions of a member's lists (or anything replaceable) are served from the archive
+	if len(filter.Authors) == 1 && len(filter.Kinds) == 1 && filter.Kinds[0].IsReplaceable() && filter.Limit > 1 {
+		return global.IL.Archive.QueryEvents(filter, global.Settings.Limits.MaxQueryLimit)
+	}
+
 	return func(yield func(nostr.Event) bool) {
 		// try to get a pinned note first
 		if global.PinnedCache.Main != nil &&
@@ -649,4 +655,35 @@ func publishRelayMetadata() {
 	relay.BroadcastEvent(evt)
 
 	return
+}
+
+// keeps a backup of members' lists (kind 3 and 1xxxx) in the archive, pruning
+// versions older than a month and anything beyond the 5 most recent
+func archiveEvent(event nostr.Event) {
+	if !pyramid.IsMember(event.PubKey) {
+		return
+	}
+
+	if err := global.IL.Archive.SaveEvent(event); err != nil && err != eventstore.ErrDupEvent {
+		log.Warn().Err(err).Stringer("event", event).Msg("failed to archive event")
+		return
+	}
+
+	monthAgo := nostr.Now() - 60*60*24*30
+	i := 0
+	for previous := range global.IL.Archive.QueryEvents(nostr.Filter{
+		Kinds:   []nostr.Kind{event.Kind},
+		Authors: []nostr.PubKey{event.PubKey},
+		Limit:   1_000,
+	}, 1_000) {
+		i++
+		if previous.ID == event.ID {
+			continue
+		}
+		if i > 5 || previous.CreatedAt < monthAgo {
+			if err := global.IL.Archive.DeleteEvent(previous.ID); err != nil {
+				log.Warn().Err(err).Stringer("event", previous).Msg("failed to prune archived event")
+			}
+		}
+	}
 }
