@@ -253,6 +253,8 @@ func performUpdateInPlace() error {
 	search.End()
 	err = syscall.Exec(absPath, append([]string{absPath}, os.Args[1:]...), os.Environ())
 
-	// if we reach here, exec failed
-	return fmt.Errorf("exec failed: %w", err)
+	// if we reach here, exec failed and since everything is already closed we can't continue
+	log.Error().Err(err).Msg("exec failed after update, exiting")
+	os.Exit(1)
+	return nil
 }

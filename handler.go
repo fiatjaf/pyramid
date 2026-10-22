@@ -221,7 +221,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 
 				// close search and disable
 				if wasEnabled && !global.Settings.Search.Enable {
-					search.Main.Close()
+					search.End()
 				}
 
 				// initialize search index if search is being turned on (was off, now on)

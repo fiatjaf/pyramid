@@ -3,6 +3,7 @@ package search
 import (
 	"fmt"
 	"path/filepath"
+	"sync"
 
 	"fiatjaf.com/nostr"
 	"fiatjaf.com/nostr/eventstore/bleve"
@@ -73,11 +74,27 @@ func Init() error {
 		return fmt.Errorf("failed to init search database: %w", err)
 	}
 
+	endMutex.Lock()
 	Main = bleveIndex
+	closed = false
+	endMutex.Unlock()
 
 	return nil
 }
 
+var (
+	endMutex sync.Mutex
+	closed   bool
+)
+
+// End closes the search index; it's safe to call multiple times (bleve panics on double close)
 func End() {
+	endMutex.Lock()
+	defer endMutex.Unlock()
+
+	if closed || Main == nil {
+		return
+	}
 	Main.Close()
+	closed = true
 }

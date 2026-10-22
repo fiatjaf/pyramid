@@ -489,6 +489,12 @@ func start() {
 			continue
 		}
 
+		if cause == updating {
+			// performUpdateInPlace() will replace this process with syscall.Exec(),
+			// so we must not return from main() (that would exit the process before it gets there)
+			select {}
+		}
+
 		if err != nil {
 			log.Debug().Err(err).Msg("exit reason")
 		}

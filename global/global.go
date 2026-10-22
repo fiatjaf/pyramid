@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"fiatjaf.com/nostr"
@@ -235,8 +236,13 @@ func migrateGroupsLayer() error {
 	return nil
 }
 
+var endOnce sync.Once
+
+// End closes the database; it's safe to call multiple times
 func End() {
-	MMMM.Close()
+	endOnce.Do(func() {
+		MMMM.Close()
+	})
 }
 
 var IL struct {
