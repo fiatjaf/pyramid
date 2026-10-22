@@ -1159,10 +1159,15 @@ func syncHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	kinds, err := global.ParseKinds(global.Settings.AllowedKindsSpec, global.SupportedKindsDefault)
-	if err != nil {
-		http.Error(w, "invalid kinds on settings", http.StatusBadRequest)
-		return
+	// when all kinds are allowed we leave this nil so the sync filter doesn't restrict kinds
+	var kinds []nostr.Kind
+	if global.Settings.AllowedKindsSpec != "all" {
+		var err error
+		kinds, err = global.ParseKinds(global.Settings.AllowedKindsSpec, global.SupportedKindsDefault)
+		if err != nil {
+			http.Error(w, "invalid kinds on settings", http.StatusBadRequest)
+			return
+		}
 	}
 
 	streamingSync(r.Context(), targetUser, kinds, remoteUrl, upload, download, w)
