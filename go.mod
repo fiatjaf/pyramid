@@ -2,6 +2,8 @@ module github.com/fiatjaf/pyramid
 
 go 1.26.2
 
+toolchain go1.26.10
+
 require (
 	fiatjaf.com/nostr v0.0.0-20261021183943-35ed1794ff30
 	fiatjaf.com/pomegranate v0.0.0-20260515185713-4cdb7e027855
