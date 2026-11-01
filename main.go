@@ -854,8 +854,12 @@ func run(ctx context.Context) error {
 			<-ctx.Done()
 
 			groups.ShutdownEmbeddedLiveKit()
-			global.End()
-			search.End()
+
+			// these are only opened once in main()
+			if context.Cause(ctx) != restarting {
+				global.End()
+				search.End()
+			}
 
 			if err := server.Shutdown(context.Background()); err != nil {
 				return err
