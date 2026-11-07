@@ -18,6 +18,43 @@ or watch [this](https://fevela.me/nevent1qvzqqqqqqypzqwlsccluhy6xxsr6l9a9uhhxf75
 
 https://github.com/user-attachments/assets/3eafa97c-a7a9-4fdc-b1ea-f466dae47634
 
+## manual install
+
+pick the latest tag at <https://github.com/fiatjaf/pyramid/releases> and download `pyramid-amd64` or `pyramid-arm64`:
+
+```
+mkdir -p pyramid && cd pyramid
+wget https://github.com/fiatjaf/pyramid/releases/download/<version>/pyramid-amd64
+mv pyramid-amd64 pyramid
+chmod +x pyramid
+HOST=127.0.0.1 PORT=3334 ./pyramid
+```
+
+while it is running, set the relay domain with a local API call (this only works while no domain has been configured yet -- after that you can edit the domain at the settings file at `data/settings.json`):
+
+```
+curl -X POST -d "domain=relay.example.com" http://127.0.0.1:3334/setup/domain
+```
+
+a minimal systemd unit looks like this:
+
+```
+[Unit]
+Description=pyramid relay
+After=network.target
+
+[Service]
+User=pyramid
+WorkingDirectory=/home/pyramid/pyramid
+ExecStart=/home/pyramid/pyramid/pyramid
+Restart=always
+RestartSec=60
+Environment=HOST=127.0.0.1 PORT=3334
+
+[Install]
+WantedBy=multi-user.target
+```
+
 ## features
 
 <img width="140" align="right" src="https://cdn.azzamo.net/bc8fdbccbd6914cf53edd87894addcf1acce3779dae37c90c93af98a2c1baf67.png" />
