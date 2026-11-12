@@ -186,6 +186,13 @@ templ groupDetailPage(loggedUser nostr.PubKey, group *Group, events []nostr.Even
 						<h2 class="text-lg font-semibold mb-3 dark:text-stone-200">open in dedicated clients</h2>
 						<div class="flex gap-3">
 							<a
+								href={ "https://nostrapps.com/#action=simple-group~naddr1qq88xar0w4nksenjdaukkunfvyq3jamnwvaz7tms09exzmtfvshxv6tpw34xze3wvdhk6q3q60kfjy5n29ps5mvr523yjjjga6hu9yucdfg08h89xf8gnq8zr5zsxpqqqzv9s88cjm4" }
+								target="_blank"
+								class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
+							>
+								nostrapps.com
+							</a>
+							<a
 								href={ "https://grimoire2.netlify.app/run?cmd=chat%20" + group.Address.Relay + "%27" + group.Address.ID }
 								target="_blank"
 								class="px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300"
