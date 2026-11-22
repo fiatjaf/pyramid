@@ -1,6 +1,7 @@
 package global
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -291,3 +292,5 @@ var IL struct {
 	// backups of past versions of members' contact lists, relay lists and other lists
 	Archive *mmm.IndexingLayer
 }
+
+var ReclaimBlobsFromEvent func(ctx context.Context, id nostr.ID)
