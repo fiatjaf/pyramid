@@ -174,7 +174,7 @@ templ operatorPage(loggedUser nostr.PubKey) {
 	}
 }
 
-templ confirmRecoveryPage(email, shard string) {
+templ confirmRecoveryPage(email, shard, origin string) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
@@ -187,16 +187,18 @@ templ confirmRecoveryPage(email, shard string) {
 			<div class="max-w-md mx-auto p-8 bg-white dark:bg-stone-800 rounded-lg shadow-lg">
 				<h1 class="text-2xl font-bold mb-4">Confirm Recovery</h1>
 				<p class="mb-4 text-stone-600 dark:text-stone-400">Are you sure you want to recover your secret shard for { email }?</p>
-				<p class="mb-6 text-stone-600 dark:text-stone-400">This will share your secret shard with the requesting application.</p>
+				<p class="mb-6 text-stone-600 dark:text-stone-400">This will share your secret shard with <b>{ origin }</b>. Only continue if that is the application you are using.</p>
 				<div class="flex gap-4">
-					<button id="confirm" class="cursor-pointer px-4 py-2 rounded bg-blue-500 hover:bg-blue-600 text-white font-medium">Yes, I trust the application</button>
+					<button id="confirm" class="cursor-pointer px-4 py-2 rounded bg-blue-500 hover:bg-blue-600 text-white font-medium">Yes, give it to { origin }</button>
 					<button onclick="window.close()" class="cursor-pointer px-4 py-2 rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-300 font-medium">Cancel</button>
 				</div>
 			</div>
 			<script>
 				const shard = "{{ shard }}";
+				const origin = "{{ origin }}";
 				document.getElementById('confirm').addEventListener('click', function() {
-					window.opener.postMessage(shard, "*")
+					// the browser drops the message if the opener isn't actually on this origin
+					window.opener.postMessage(shard, origin)
 					window.close()
 				})
 			</script>

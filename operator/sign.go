@@ -54,7 +54,9 @@ func handleSign(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if reg.CentralPubKey != evt.PubKey.Hex() {
-		http.Error(w, "pubkey does not match registration", http.StatusUnauthorized)
+		L.Warn().Str("email", email[1]).Str("expected", reg.CentralPubKey).Str("got", evt.PubKey.Hex()).
+			Msg("sign: request not signed by the registered central")
+		http.Error(w, "not signed by the central registered for this account", http.StatusUnauthorized)
 		return
 	}
 
@@ -95,6 +97,11 @@ func handleSign(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(ourCommit.Hex()))
 		return
 	case common.KindECDHRequest:
+		if !allowECDH(reg.Email) {
+			http.Error(w, "too many requests", http.StatusTooManyRequests)
+			return
+		}
+
 		cfg := frost.Configuration{}
 		if err := cfg.DecodeHex(evt.Content); err != nil {
 			http.Error(w, fmt.Sprintf("error decoding config: %v", err), http.StatusBadRequest)
@@ -152,6 +159,11 @@ func handleSign(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if session.registration.Email != reg.Email || session.registration.CentralPubKey != reg.CentralPubKey {
+			http.Error(w, "signing session belongs to a different account", http.StatusBadRequest)
+			return
+		}
+
 		session.mu.Lock()
 		defer session.mu.Unlock()
 
@@ -174,6 +186,13 @@ func handleSign(w http.ResponseWriter, r *http.Request) {
 			}
 			if slices.Contains(common.ForbiddenKinds, evtToSign.Kind) {
 				http.Error(w, "event has forbidden kind", http.StatusBadRequest)
+				return
+			}
+
+			// only this step counts against the limit, as it is the one that
+			// actually produces a signature, and the one where we know which event
+			if !allowSign(reg.Email, evtToSign.Kind, fmt.Sprintf("sign:kind=%d:event=%s", evtToSign.Kind, evtToSign.ID.Hex()[:8])) {
+				http.Error(w, "too many requests", http.StatusTooManyRequests)
 				return
 			}
 
